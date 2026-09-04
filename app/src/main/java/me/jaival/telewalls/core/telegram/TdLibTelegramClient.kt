@@ -401,13 +401,25 @@ class TdLibTelegramClient @Inject constructor(
             for (msg in searchResult.messages) {
                 val doc = parseDocumentFromMessage(msg, null)
                 if (doc != null) {
-                    documents.add(doc)
+                    val thumbnailPath = fetchThumbnailForMessage(msg) ?: doc.thumbnailPath
+                    documents.add(doc.copy(localPath = null, thumbnailPath = thumbnailPath))
                 }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching wallpapers from channel", e)
         }
         return documents
+    }
+
+    private suspend fun fetchThumbnailForMessage(msg: TdApi.Message): String? {
+        if (msg.content !is TdApi.MessageDocument) return null
+        val docContent = msg.content as TdApi.MessageDocument
+        val thumbnail = docContent.document.thumbnail ?: return null
+        val thumbnailFile = thumbnail.file
+        if (thumbnailFile.local.isDownloadingCompleted && thumbnailFile.local.path.isNotBlank()) {
+            return thumbnailFile.local.path
+        }
+        return downloadWallpaperFile(thumbnailFile.id.toString(), "thumb_${msg.id}.jpg")
     }
 
     private fun getMockWallpapers(chatId: Long): List<WallpaperDocument> {
@@ -419,7 +431,7 @@ class TdLibTelegramClient @Inject constructor(
                 fileName = "neon_cyberpunk.jpg",
                 mimeType = "image/jpeg",
                 sizeBytes = 3456789L,
-                localPath = "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=1080",
+                localPath = null,
                 thumbnailPath = "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=400",
                 metadata = WallpaperMetadata(
                     title = "Neon Cyberpunk Skyline",
@@ -440,7 +452,7 @@ class TdLibTelegramClient @Inject constructor(
                 fileName = "cosmic_nebula.jpg",
                 mimeType = "image/jpeg",
                 sizeBytes = 4123456L,
-                localPath = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1080",
+                localPath = null,
                 thumbnailPath = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=400",
                 metadata = WallpaperMetadata(
                     title = "Deep Space Nebula",
@@ -461,7 +473,7 @@ class TdLibTelegramClient @Inject constructor(
                 fileName = "misty_forest_peaks.jpg",
                 mimeType = "image/jpeg",
                 sizeBytes = 2987654L,
-                localPath = "https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=1080",
+                localPath = null,
                 thumbnailPath = "https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=400",
                 metadata = WallpaperMetadata(
                     title = "Misty Pine Forest",
@@ -482,7 +494,7 @@ class TdLibTelegramClient @Inject constructor(
                 fileName = "minimal_geometry.jpg",
                 mimeType = "image/jpeg",
                 sizeBytes = 1876543L,
-                localPath = "https://images.unsplash.com/photo-1541701494587-cb58502866ab?q=80&w=1080",
+                localPath = null,
                 thumbnailPath = "https://images.unsplash.com/photo-1541701494587-cb58502866ab?q=80&w=400",
                 metadata = WallpaperMetadata(
                     title = "Abstract Geometric Waves",
@@ -503,7 +515,7 @@ class TdLibTelegramClient @Inject constructor(
                 fileName = "hypercar_night.jpg",
                 mimeType = "image/jpeg",
                 sizeBytes = 3890123L,
-                localPath = "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1080",
+                localPath = null,
                 thumbnailPath = "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=400",
                 metadata = WallpaperMetadata(
                     title = "Midnight Supercar",
@@ -524,7 +536,7 @@ class TdLibTelegramClient @Inject constructor(
                 fileName = "gothic_cathedral.jpg",
                 mimeType = "image/jpeg",
                 sizeBytes = 4500123L,
-                localPath = "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=1080",
+                localPath = null,
                 thumbnailPath = "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=400",
                 metadata = WallpaperMetadata(
                     title = "Monochrome Architecture",
@@ -542,7 +554,9 @@ class TdLibTelegramClient @Inject constructor(
     }
 
     override suspend fun downloadWallpaperFile(fileId: String, destinationPath: String): String? {
-        if (isMockMode) return destinationPath
+        if (isMockMode) {
+            return getMockFullImagePath(fileId, destinationPath)
+        }
         try {
             val fileIdInt = fileId.toIntOrNull() ?: return null
             sendTd<TdApi.Ok>(TdApi.DownloadFile(fileIdInt, 32, 0, 0, true))
@@ -559,6 +573,18 @@ class TdLibTelegramClient @Inject constructor(
             Log.e(TAG, "Error downloading file $fileId", e)
         }
         return null
+    }
+
+    private fun getMockFullImagePath(fileId: String, fallbackPath: String): String {
+        return when (fileId) {
+            "mock_file_1" -> "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=1080"
+            "mock_file_2" -> "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1080"
+            "mock_file_3" -> "https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=1080"
+            "mock_file_4" -> "https://images.unsplash.com/photo-1541701494587-cb58502866ab?q=80&w=1080"
+            "mock_file_5" -> "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1080"
+            "mock_file_6" -> "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=1080"
+            else -> fallbackPath.ifBlank { "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=1080" }
+        }
     }
 
     override suspend fun deleteWallpaper(chatId: Long, messageId: Long): Boolean {
@@ -731,7 +757,7 @@ class TdLibTelegramClient @Inject constructor(
             fileName = doc.fileName,
             mimeType = doc.mimeType,
             sizeBytes = doc.document.size,
-            localPath = doc.document.local.path.ifEmpty { null },
+            localPath = null,
             thumbnailPath = doc.thumbnail?.file?.local?.path?.ifEmpty { null },
             metadata = metadata
         )

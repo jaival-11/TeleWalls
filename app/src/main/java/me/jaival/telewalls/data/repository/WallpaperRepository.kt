@@ -115,7 +115,13 @@ class WallpaperRepository @Inject constructor(
             val documents = telegramClient.fetchWallpapers(chatId, fromMessageId = 0L, limit = 50)
             if (documents.isNotEmpty()) {
                 val entities = documents.map { doc ->
-                    doc.toEntity(isFav = wallpaperDao.isFavorite("${doc.chatId}_${doc.messageId}"))
+                    val id = "${doc.chatId}_${doc.messageId}"
+                    val existingEntity = wallpaperDao.getWallpaperById(id)
+                    val isFav = existingEntity?.isFavorite ?: false
+                    val existingLocalPath = existingEntity?.localPath?.takeIf {
+                        it.isNotBlank() && (it.startsWith("http") || File(it).exists())
+                    }
+                    doc.toEntity(isFav = isFav, localPathOverride = existingLocalPath)
                 }
                 wallpaperDao.insertWallpapers(entities)
                 Result.success(documents.size)
@@ -196,7 +202,17 @@ class WallpaperRepository @Inject constructor(
         telegramClient.downloadWallpaperFile(fileId, destFile.absolutePath)
     }
 
-
+    suspend fun downloadFullWallpaper(wallpaper: Wallpaper): String? = withContext(Dispatchers.IO) {
+        val currentLocal = wallpaper.localPath
+        if (!currentLocal.isNullOrBlank() && (currentLocal.startsWith("http") || File(currentLocal).exists())) {
+            return@withContext currentLocal
+        }
+        val downloadedPath = downloadWallpaperFile(wallpaper.fileId, wallpaper.fileName)
+        if (downloadedPath != null) {
+            wallpaperDao.updateLocalPath(wallpaper.id, downloadedPath)
+        }
+        downloadedPath
+    }
 
     private fun WallpaperEntity.toDomain(): Wallpaper = Wallpaper(
         id = id,
@@ -220,7 +236,10 @@ class WallpaperRepository @Inject constructor(
         isFavorite = isFavorite
     )
 
-    private fun WallpaperDocument.toEntity(isFav: Boolean): WallpaperEntity = WallpaperEntity(
+    private fun WallpaperDocument.toEntity(
+        isFav: Boolean,
+        localPathOverride: String? = this.localPath
+    ): WallpaperEntity = WallpaperEntity(
         id = "${chatId}_${messageId}",
         messageId = messageId,
         chatId = chatId,
@@ -237,7 +256,7 @@ class WallpaperRepository @Inject constructor(
         description = metadata.description,
         author = metadata.author,
         timestamp = metadata.timestamp,
-        localPath = localPath,
+        localPath = localPathOverride,
         thumbnailPath = thumbnailPath,
         isFavorite = isFav
     )

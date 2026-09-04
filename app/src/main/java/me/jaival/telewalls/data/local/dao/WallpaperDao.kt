@@ -38,6 +38,9 @@ interface WallpaperDao {
     @Query("UPDATE wallpapers SET isFavorite = :isFavorite WHERE id = :id")
     suspend fun updateFavoriteStatus(id: String, isFavorite: Boolean)
 
+    @Query("UPDATE wallpapers SET localPath = :localPath WHERE id = :id")
+    suspend fun updateLocalPath(id: String, localPath: String)
+
     @Query("DELETE FROM wallpapers WHERE id = :id")
     suspend fun deleteWallpaperById(id: String)
 

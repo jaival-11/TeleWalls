@@ -73,6 +73,7 @@ fun DetailScreen(
 
     val wallpaper by viewModel.wallpaper.collectAsState()
     val applyState by viewModel.applyState.collectAsState()
+    val isLoadingFullImage by viewModel.isLoadingFullImage.collectAsState()
     val context = LocalContext.current
     val primaryColor = MaterialTheme.colorScheme.primary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
@@ -106,7 +107,7 @@ fun DetailScreen(
                 )
             )
     ) {
-        // High resolution wallpaper image
+        // High resolution wallpaper image (falls back to thumbnail while full image is loading)
         AsyncImage(
             model = ImageRequest.Builder(context)
                 .data(currentWall.localPath ?: currentWall.thumbnailPath ?: "")
@@ -127,6 +128,38 @@ fun DetailScreen(
                     )
                 )
         )
+
+        // Loading Full HD image indicator
+        if (isLoadingFullImage) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 96.dp)
+                    .clip(CircleShape)
+                    .glassmorphism(
+                        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f),
+                        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                        shape = CircleShape
+                    )
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(14.dp),
+                        color = primaryColor,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Fetching Full Image...",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
+                }
+            }
+        }
 
         // Top Action Bar
         Row(

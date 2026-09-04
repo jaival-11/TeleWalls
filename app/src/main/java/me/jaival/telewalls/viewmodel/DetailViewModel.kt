@@ -30,12 +30,27 @@ class DetailViewModel @Inject constructor(
     private val _wallpaper = MutableStateFlow<Wallpaper?>(null)
     val wallpaper: StateFlow<Wallpaper?> = _wallpaper.asStateFlow()
 
+    private val _isLoadingFullImage = MutableStateFlow(false)
+    val isLoadingFullImage: StateFlow<Boolean> = _isLoadingFullImage.asStateFlow()
+
     private val _applyState = MutableStateFlow<WallpaperApplyState>(WallpaperApplyState.Idle)
     val applyState: StateFlow<WallpaperApplyState> = _applyState.asStateFlow()
 
     fun loadWallpaper(id: String) {
         viewModelScope.launch {
-            _wallpaper.value = wallpaperRepository.getWallpaperById(id)
+            val loaded = wallpaperRepository.getWallpaperById(id)
+            _wallpaper.value = loaded
+            if (loaded != null) {
+                val hasFullImage = loaded.localPath != null && (loaded.localPath.startsWith("http") || File(loaded.localPath).exists())
+                if (!hasFullImage) {
+                    _isLoadingFullImage.value = true
+                    val fullPath = wallpaperRepository.downloadFullWallpaper(loaded)
+                    if (fullPath != null) {
+                        _wallpaper.value = wallpaperRepository.getWallpaperById(id)
+                    }
+                    _isLoadingFullImage.value = false
+                }
+            }
         }
     }
 
