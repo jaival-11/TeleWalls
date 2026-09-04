@@ -326,9 +326,10 @@ class TdLibTelegramClient @Inject constructor(
         }
 
         val jsonCaption = buildCaptionString(metadata)
+        val inputThumbnail = createThumbnailForUpload(localPath)
         val content = TdApi.InputMessageDocument(
             TdApi.InputFileLocal(localPath),
-            null,
+            inputThumbnail,
             true,
             TdApi.FormattedText(jsonCaption, emptyArray())
         )
@@ -380,6 +381,35 @@ class TdLibTelegramClient @Inject constructor(
         awaitClose { job.cancel() }
     }
 
+    private fun createThumbnailForUpload(localPath: String): TdApi.InputThumbnail? {
+        return try {
+            val file = File(localPath)
+            if (!file.exists()) return null
+            val options = android.graphics.BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            android.graphics.BitmapFactory.decodeFile(localPath, options)
+            val origWidth = options.outWidth
+            val origHeight = options.outHeight
+            if (origWidth <= 0 || origHeight <= 0) return null
+
+            val targetSize = 600
+            val scale = maxOf(1, maxOf(origWidth, origHeight) / targetSize)
+            val decodeOptions = android.graphics.BitmapFactory.Options().apply {
+                inSampleSize = scale
+            }
+            val bitmap = android.graphics.BitmapFactory.decodeFile(localPath, decodeOptions) ?: return null
+            val thumbFile = File(context.cacheDir, "upload_thumb_${System.currentTimeMillis()}.jpg")
+            java.io.FileOutputStream(thumbFile).use { out ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, out)
+            }
+            TdApi.InputThumbnail(TdApi.InputFileLocal(thumbFile.absolutePath), bitmap.width, bitmap.height)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error creating thumbnail for upload", e)
+            null
+        }
+    }
+
     override suspend fun fetchWallpapers(
         chatId: Long,
         fromMessageId: Long,
@@ -407,7 +437,7 @@ class TdLibTelegramClient @Inject constructor(
                         val doc = parseWallpaperFromMessage(msg, null)
                         if (doc != null) {
                             val thumbnailPath = fetchThumbnailForMessage(msg) ?: doc.thumbnailPath
-                            doc.copy(localPath = null, thumbnailPath = thumbnailPath)
+                            doc.copy(localPath = doc.localPath, thumbnailPath = thumbnailPath)
                         } else null
                     }
                 }.awaitAll().filterNotNull()
@@ -434,9 +464,18 @@ class TdLibTelegramClient @Inject constructor(
                         return downloaded
                     }
                 }
-                val miniThumb = content.document.minithumbnail?.data
-                if (miniThumb != null && miniThumb.isNotEmpty()) {
-                    return saveByteArrayToCache("thumb_${msg.id}.jpg", miniThumb)
+
+                val docFile = content.document.document
+                val mime = content.document.mimeType.orEmpty()
+                if (mime.startsWith("image/", ignoreCase = true) || docFile.fileName.endsWith(".jpg", ignoreCase = true) || docFile.fileName.endsWith(".png", ignoreCase = true)) {
+                    if (docFile.local?.isDownloadingCompleted == true && !docFile.local.path.isNullOrBlank() && File(docFile.local.path).exists()) {
+                        return docFile.local.path
+                    }
+                    val cacheFile = File(context.cacheDir, "thumb_doc_${msg.id}.jpg")
+                    val downloaded = downloadTdFile(docFile, cacheFile.absolutePath, timeoutMs = 4000)
+                    if (!downloaded.isNullOrBlank() && File(downloaded).exists()) {
+                        return downloaded
+                    }
                 }
             }
             is TdApi.MessagePhoto -> {
@@ -454,10 +493,6 @@ class TdLibTelegramClient @Inject constructor(
                     if (!downloaded.isNullOrBlank() && File(downloaded).exists()) {
                         return downloaded
                     }
-                }
-                val miniThumb = content.photo.minithumbnail?.data
-                if (miniThumb != null && miniThumb.isNotEmpty()) {
-                    return saveByteArrayToCache("thumb_${msg.id}.jpg", miniThumb)
                 }
             }
         }
