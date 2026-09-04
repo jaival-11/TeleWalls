@@ -46,11 +46,20 @@ fun TeleWallsNavGraph(
     val authViewModel: AuthViewModel = hiltViewModel()
     val detailViewModel: DetailViewModel = hiltViewModel()
 
-    val showBottomBar = currentRoute in listOf(
+    val isSetupCompleted by authViewModel.isSetupCompleted.collectAsState()
+
+    androidx.compose.runtime.LaunchedEffect(isSetupCompleted) {
+        if (!isSetupCompleted && currentRoute != ScreenRoutes.ONBOARDING) {
+            navController.navigate(ScreenRoutes.ONBOARDING) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
+
+    val showBottomBar = isSetupCompleted && currentRoute in listOf(
         ScreenRoutes.HOME,
         ScreenRoutes.FAVORITES,
         ScreenRoutes.UPLOAD,
-        ScreenRoutes.AUTH,
         ScreenRoutes.SETTINGS
     )
 
@@ -80,7 +89,7 @@ fun TeleWallsNavGraph(
         ) {
             NavHost(
                 navController = navController,
-                startDestination = ScreenRoutes.HOME,
+                startDestination = if (isSetupCompleted) ScreenRoutes.HOME else ScreenRoutes.ONBOARDING,
                 enterTransition = { fadeIn(animationSpec = tween(300)) },
                 exitTransition = { fadeOut(animationSpec = tween(300)) }
             ) {
@@ -122,10 +131,6 @@ fun TeleWallsNavGraph(
                             }
                         }
                     )
-                }
-
-                composable(ScreenRoutes.AUTH) {
-                    AuthScreen(viewModel = authViewModel)
                 }
 
                 composable(ScreenRoutes.SETTINGS) {

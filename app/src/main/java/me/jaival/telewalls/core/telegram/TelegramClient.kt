@@ -12,6 +12,7 @@ interface TelegramClient {
     suspend fun submitCode(code: String)
     suspend fun submitPassword(password: String)
     suspend fun requestQrCodeAuthentication()
+    suspend fun resetAuthState()
     suspend fun logout()
     
     suspend fun ensureStorageChat(knownChatId: Long? = null): Long

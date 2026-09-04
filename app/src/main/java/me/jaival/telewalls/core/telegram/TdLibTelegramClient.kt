@@ -164,27 +164,51 @@ class TdLibTelegramClient @Inject constructor(
     }
 
     override suspend fun submitPhoneNumber(phoneNumber: String) {
+        if (phoneNumber.isBlank()) {
+            _authState.value = TelegramAuthState.Failed("Please enter a valid phone number including country code (e.g. +1234567890)")
+            return
+        }
         if (isMockMode) {
             _authState.value = TelegramAuthState.WaitingForCode(phoneNumber = phoneNumber)
             return
         }
-        sendTd<TdApi.Ok>(TdApi.SetAuthenticationPhoneNumber(phoneNumber, null))
+        try {
+            sendTd<TdApi.Ok>(TdApi.SetAuthenticationPhoneNumber(phoneNumber, null))
+        } catch (e: Exception) {
+            _authState.value = TelegramAuthState.Failed(e.message ?: "Failed to submit phone number. Please verify and try again.")
+        }
     }
 
     override suspend fun submitCode(code: String) {
+        if (code.isBlank()) {
+            _authState.value = TelegramAuthState.Failed("Verification code cannot be empty.")
+            return
+        }
         if (isMockMode) {
             _authState.value = TelegramAuthState.Ready
             return
         }
-        sendTd<TdApi.Ok>(TdApi.CheckAuthenticationCode(code))
+        try {
+            sendTd<TdApi.Ok>(TdApi.CheckAuthenticationCode(code))
+        } catch (e: Exception) {
+            _authState.value = TelegramAuthState.Failed(e.message ?: "Invalid verification code. Please check and try again.")
+        }
     }
 
     override suspend fun submitPassword(password: String) {
+        if (password.isBlank()) {
+            _authState.value = TelegramAuthState.Failed("2FA Password cannot be empty.")
+            return
+        }
         if (isMockMode) {
             _authState.value = TelegramAuthState.Ready
             return
         }
-        sendTd<TdApi.Ok>(TdApi.CheckAuthenticationPassword(password))
+        try {
+            sendTd<TdApi.Ok>(TdApi.CheckAuthenticationPassword(password))
+        } catch (e: Exception) {
+            _authState.value = TelegramAuthState.Failed(e.message ?: "Invalid 2FA password. Please try again.")
+        }
     }
 
     override suspend fun requestQrCodeAuthentication() {
@@ -192,7 +216,15 @@ class TdLibTelegramClient @Inject constructor(
             _authState.value = TelegramAuthState.WaitingForQrScan("https://t.me/loginQRDemo")
             return
         }
-        sendTd<TdApi.Ok>(TdApi.RequestQrCodeAuthentication(longArrayOf()))
+        try {
+            sendTd<TdApi.Ok>(TdApi.RequestQrCodeAuthentication(longArrayOf()))
+        } catch (e: Exception) {
+            _authState.value = TelegramAuthState.Failed(e.message ?: "Failed to generate QR code.")
+        }
+    }
+
+    override suspend fun resetAuthState() {
+        _authState.value = TelegramAuthState.WaitingForPhoneNumber
     }
 
     override suspend fun logout() {
@@ -200,7 +232,11 @@ class TdLibTelegramClient @Inject constructor(
             _authState.value = TelegramAuthState.Uninitialized
             return
         }
-        sendTd<TdApi.Ok>(TdApi.LogOut())
+        try {
+            sendTd<TdApi.Ok>(TdApi.LogOut())
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during logout", e)
+        }
         _authState.value = TelegramAuthState.Uninitialized
     }
 

@@ -24,6 +24,11 @@ class AuthRepository @Inject constructor(
         private val API_ID_KEY = stringPreferencesKey("telegram_api_id")
         private val API_HASH_KEY = stringPreferencesKey("telegram_api_hash")
         private val ACTIVE_CHANNEL_ID_KEY = longPreferencesKey("active_channel_id")
+        private val IS_SETUP_COMPLETED_KEY = booleanPreferencesKey("is_setup_completed")
+    }
+
+    val isSetupCompletedFlow: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[IS_SETUP_COMPLETED_KEY] ?: false
     }
 
     val credentialsFlow: Flow<TelegramCredentials?> = context.dataStore.data.map { prefs ->
@@ -32,8 +37,7 @@ class AuthRepository @Inject constructor(
         if (apiId != 0 && apiHash.isNotBlank()) {
             TelegramCredentials(apiId, apiHash)
         } else {
-            // Default demo credentials for seamless first launch testing
-            TelegramCredentials(0, "demo")
+            null
         }
     }
 
@@ -54,11 +58,18 @@ class AuthRepository @Inject constructor(
         }
     }
 
+    suspend fun setSetupCompleted(completed: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[IS_SETUP_COMPLETED_KEY] = completed
+        }
+    }
+
     suspend fun clearSession() {
         context.dataStore.edit { prefs ->
             prefs.remove(API_ID_KEY)
             prefs.remove(API_HASH_KEY)
             prefs.remove(ACTIVE_CHANNEL_ID_KEY)
+            prefs.remove(IS_SETUP_COMPLETED_KEY)
         }
     }
 }

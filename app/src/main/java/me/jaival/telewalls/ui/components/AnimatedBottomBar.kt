@@ -68,7 +68,6 @@ val defaultBottomNavItems = listOf(
     NavItem(ScreenRoutes.HOME, "Home", Icons.Filled.Home, Icons.Outlined.Home),
     NavItem(ScreenRoutes.FAVORITES, "Favorites", Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder),
     NavItem(ScreenRoutes.UPLOAD, "Upload", Icons.Filled.CloudUpload, Icons.Outlined.CloudUpload),
-    NavItem(ScreenRoutes.AUTH, "Vault", Icons.Filled.Lock, Icons.Outlined.Lock),
     NavItem(ScreenRoutes.SETTINGS, "Settings", Icons.Filled.Settings, Icons.Outlined.Settings)
 )
 
