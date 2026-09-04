@@ -147,7 +147,15 @@ fun TeleWallsNavGraph(
                     DetailScreen(
                         wallpaperId = wallpaperId,
                         viewModel = detailViewModel,
-                        onBackClick = { navController.popBackStack() }
+                        onBackClick = { navController.popBackStack() },
+                        onColorClick = { colorHex ->
+                            homeViewModel.selectCategory("All")
+                            homeViewModel.updateSearchQuery(colorHex)
+                            navController.navigate(ScreenRoutes.HOME) {
+                                popUpTo(ScreenRoutes.HOME) { inclusive = false }
+                                launchSingleTop = true
+                            }
+                        }
                     )
                 }
             }

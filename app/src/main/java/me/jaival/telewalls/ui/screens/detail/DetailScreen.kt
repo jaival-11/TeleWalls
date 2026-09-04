@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -87,7 +88,8 @@ import java.io.File
 fun DetailScreen(
     wallpaperId: String,
     viewModel: DetailViewModel,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onColorClick: (String) -> Unit = {}
 ) {
     LaunchedEffect(wallpaperId) {
         viewModel.loadWallpaper(wallpaperId)
@@ -523,20 +525,30 @@ fun DetailScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Palette: ",
-                                style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            currentWall.colors.forEach { hex ->
-                                val color = try { Color(android.graphics.Color.parseColor(hex)) } catch (e: Exception) { primaryColor }
-                                Box(
-                                    modifier = Modifier
-                                        .size(16.dp)
-                                        .clip(CircleShape)
-                                        .background(color)
-                                        .border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape)
+                                text = "Palette:",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    color = Color.White.copy(alpha = 0.8f),
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Row(
+                                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                currentWall.colors.forEach { hex ->
+                                    val color = try { Color(android.graphics.Color.parseColor(hex)) } catch (e: Exception) { primaryColor }
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .background(color)
+                                            .border(1.5.dp, Color.White.copy(alpha = 0.45f), CircleShape)
+                                            .clickable { onColorClick(hex) }
+                                    )
+                                }
                             }
                         }
                     }
