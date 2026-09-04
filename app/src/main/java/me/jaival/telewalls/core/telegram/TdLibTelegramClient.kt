@@ -325,66 +325,107 @@ class TdLibTelegramClient @Inject constructor(
             return@callbackFlow
         }
 
-        val jsonCaption = buildCaptionString(metadata)
-        val inputThumbnail = createThumbnailForUpload(localPath)
-        val content = TdApi.InputMessageDocument(
-            TdApi.InputFileLocal(localPath),
-            inputThumbnail,
-            true,
-            TdApi.FormattedText(jsonCaption, emptyArray())
-        )
-
-        val pendingMsgId = CompletableDeferred<Long>()
-        val pendingFileId = CompletableDeferred<Int>()
-
         val job = scope.launch {
-            updates.collect { update ->
-                when (update) {
-                    is TdApi.UpdateFile -> {
-                        if (pendingFileId.isCompleted && update.file.id == pendingFileId.await()) {
-                            val uploaded = update.file.remote?.uploadedSize ?: 0L
-                            val total = update.file.size.takeIf { it > 0 } ?: update.file.expectedSize
-                            trySend(TelegramUploadEvent.Progress(uploaded, total))
+            try {
+                // Step 1: Create a compressed 600px thumbnail file from localPath
+                val thumbFile = createThumbnailFile(localPath)
+                var thumbRemoteId: String? = null
+
+                if (thumbFile != null && thumbFile.exists()) {
+                    trySend(TelegramUploadEvent.Progress(100000L, 10000000L))
+                    val photoInput = TdApi.InputMessagePhoto(
+                        TdApi.InputFileLocal(thumbFile.absolutePath),
+                        null,
+                        intArrayOf(),
+                        0,
+                        0,
+                        TdApi.FormattedText("#thumb", emptyArray()),
+                        0
+                    )
+                    try {
+                        val photoMsg = sendTd<TdApi.Message>(TdApi.SendMessage(chatId, null, null, null, null, photoInput))
+                        if (photoMsg.content is TdApi.MessagePhoto) {
+                            val photo = (photoMsg.content as TdApi.MessagePhoto).photo
+                            val bestSize = photo.sizes.maxByOrNull { it.photo.size }
+                            thumbRemoteId = bestSize?.photo?.remote?.id?.takeIf { it.isNotBlank() } ?: bestSize?.photo?.id?.toString()
                         }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed uploading standalone thumbnail photo, falling back to embedded thumbnail", e)
                     }
-                    is TdApi.UpdateMessageSendSucceeded -> {
-                        if (pendingMsgId.isCompleted && update.oldMessageId == pendingMsgId.await()) {
-                            val doc = parseWallpaperFromMessage(update.message, metadata)
-                            if (doc != null) {
-                                trySend(TelegramUploadEvent.Succeeded(doc))
-                                close()
+                }
+
+                // Step 2: Include thumbnailFileId in metadata
+                val updatedMetadata = metadata.copy(thumbnailFileId = thumbRemoteId)
+                val jsonCaption = buildCaptionString(updatedMetadata)
+
+                val inputThumbnail = thumbFile?.let {
+                    val opts = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    android.graphics.BitmapFactory.decodeFile(it.absolutePath, opts)
+                    TdApi.InputThumbnail(TdApi.InputFileLocal(it.absolutePath), opts.outWidth, opts.outHeight)
+                }
+
+                val docContent = TdApi.InputMessageDocument(
+                    TdApi.InputFileLocal(localPath),
+                    inputThumbnail,
+                    true,
+                    TdApi.FormattedText(jsonCaption, emptyArray())
+                )
+
+                val pendingMsgId = CompletableDeferred<Long>()
+                val pendingFileId = CompletableDeferred<Int>()
+
+                val updateCollector = launch {
+                    updates.collect { update ->
+                        when (update) {
+                            is TdApi.UpdateFile -> {
+                                if (pendingFileId.isCompleted && update.file.id == pendingFileId.await()) {
+                                    val uploaded = update.file.remote?.uploadedSize ?: 0L
+                                    val total = update.file.size.takeIf { it > 0 } ?: update.file.expectedSize
+                                    trySend(TelegramUploadEvent.Progress(uploaded, total))
+                                }
+                            }
+                            is TdApi.UpdateMessageSendSucceeded -> {
+                                if (pendingMsgId.isCompleted && update.oldMessageId == pendingMsgId.await()) {
+                                    val doc = parseWallpaperFromMessage(update.message, updatedMetadata)
+                                    if (doc != null) {
+                                        val finalDoc = doc.copy(
+                                            localPath = localPath,
+                                            thumbnailPath = thumbFile?.absolutePath ?: doc.thumbnailPath
+                                        )
+                                        trySend(TelegramUploadEvent.Succeeded(finalDoc))
+                                        close()
+                                    }
+                                }
+                            }
+                            is TdApi.UpdateMessageSendFailed -> {
+                                if (pendingMsgId.isCompleted && update.oldMessageId == pendingMsgId.await()) {
+                                    trySend(TelegramUploadEvent.Failed(update.error?.message ?: "Upload failed"))
+                                    close()
+                                }
                             }
                         }
                     }
-                    is TdApi.UpdateMessageSendFailed -> {
-                        if (pendingMsgId.isCompleted && update.oldMessageId == pendingMsgId.await()) {
-                            trySend(TelegramUploadEvent.Failed(update.error?.message ?: "Upload failed"))
-                            close()
-                        }
-                    }
                 }
-            }
-        }
 
-        try {
-            val msg = sendTd<TdApi.Message>(TdApi.SendMessage(chatId, null, null, null, null, content))
-            pendingMsgId.complete(msg.id)
-            if (msg.content is TdApi.MessageDocument) {
-                val file = (msg.content as TdApi.MessageDocument).document.document
-                pendingFileId.complete(file.id)
+                val msg = sendTd<TdApi.Message>(TdApi.SendMessage(chatId, null, null, null, null, docContent))
+                pendingMsgId.complete(msg.id)
+                if (msg.content is TdApi.MessageDocument) {
+                    val file = (msg.content as TdApi.MessageDocument).document.document
+                    pendingFileId.complete(file.id)
+                }
+            } catch (e: Exception) {
+                trySend(TelegramUploadEvent.Failed(e.message ?: "Upload failed"))
+                close()
             }
-        } catch (e: Exception) {
-            trySend(TelegramUploadEvent.Failed(e.message ?: "Upload failed"))
-            close()
         }
 
         awaitClose { job.cancel() }
     }
 
-    private fun createThumbnailForUpload(localPath: String): TdApi.InputThumbnail? {
+    private fun createThumbnailFile(localPath: String): File? {
         return try {
-            val file = File(localPath)
-            if (!file.exists()) return null
+            val srcFile = File(localPath)
+            if (!srcFile.exists()) return null
             val options = android.graphics.BitmapFactory.Options().apply {
                 inJustDecodeBounds = true
             }
@@ -399,13 +440,13 @@ class TdLibTelegramClient @Inject constructor(
                 inSampleSize = scale
             }
             val bitmap = android.graphics.BitmapFactory.decodeFile(localPath, decodeOptions) ?: return null
-            val thumbFile = File(context.cacheDir, "upload_thumb_${System.currentTimeMillis()}.jpg")
-            java.io.FileOutputStream(thumbFile).use { out ->
+            val destFile = File(context.cacheDir, "thumb_${System.currentTimeMillis()}_${srcFile.name}")
+            java.io.FileOutputStream(destFile).use { out ->
                 bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, out)
             }
-            TdApi.InputThumbnail(TdApi.InputFileLocal(thumbFile.absolutePath), bitmap.width, bitmap.height)
+            destFile
         } catch (e: Exception) {
-            Log.e(TAG, "Error creating thumbnail for upload", e)
+            Log.e(TAG, "Error creating thumbnail file", e)
             null
         }
     }
@@ -450,6 +491,20 @@ class TdLibTelegramClient @Inject constructor(
     }
 
     private suspend fun fetchThumbnailForMessage(msg: TdApi.Message): String? {
+        val docParsed = parseWallpaperFromMessage(msg, null)
+        val thumbFileIdFromMeta = docParsed?.metadata?.thumbnailFileId
+
+        if (!thumbFileIdFromMeta.isNullOrBlank()) {
+            val cacheFile = File(context.cacheDir, "thumb_meta_${msg.id}.jpg")
+            if (cacheFile.exists() && cacheFile.length() > 0) {
+                return cacheFile.absolutePath
+            }
+            val downloaded = downloadWallpaperFile(thumbFileIdFromMeta, cacheFile.absolutePath)
+            if (!downloaded.isNullOrBlank() && File(downloaded).exists() && File(downloaded).length() > 0) {
+                return downloaded
+            }
+        }
+
         when (val content = msg.content) {
             is TdApi.MessageDocument -> {
                 val thumbnail = content.document.thumbnail
