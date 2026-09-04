@@ -52,4 +52,19 @@ interface WallpaperDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM favorites WHERE wallpaperId = :wallpaperId)")
     suspend fun isFavorite(wallpaperId: String): Boolean
+
+    @Query("SELECT * FROM wallpapers")
+    suspend fun getAllWallpaperEntities(): List<WallpaperEntity>
+
+    @Query("SELECT * FROM favorites")
+    suspend fun getAllFavoriteEntities(): List<FavoriteEntity>
+
+    @Query("DELETE FROM wallpapers")
+    suspend fun clearWallpapers()
+
+    @Query("DELETE FROM favorites")
+    suspend fun clearFavorites()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFavorites(favorites: List<FavoriteEntity>)
 }

@@ -21,4 +21,10 @@ interface CategoryDao {
 
     @Query("SELECT name FROM categories")
     suspend fun getCategoryList(): List<String>
+
+    @Query("SELECT * FROM categories")
+    suspend fun getAllCategoryEntities(): List<CategoryEntity>
+
+    @Query("DELETE FROM categories")
+    suspend fun clearCategories()
 }

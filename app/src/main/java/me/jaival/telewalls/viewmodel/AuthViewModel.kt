@@ -14,12 +14,14 @@ import me.jaival.telewalls.core.telegram.TelegramAuthState
 import me.jaival.telewalls.core.telegram.TelegramClient
 import me.jaival.telewalls.core.telegram.TelegramCredentials
 import me.jaival.telewalls.data.repository.AuthRepository
+import me.jaival.telewalls.data.repository.BackupRepository
 import javax.inject.Inject
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val telegramClient: TelegramClient,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val backupRepository: BackupRepository
 ) : ViewModel() {
 
     val authState: StateFlow<TelegramAuthState> = telegramClient.authState
@@ -190,6 +192,38 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             telegramClient.logout()
             authRepository.clearSession()
+        }
+    }
+
+    fun exportBackup(uri: android.net.Uri, onResult: (Boolean, String?) -> Unit = { _, _ -> }) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            val result = backupRepository.exportBackupToUri(uri)
+            _isLoading.value = false
+            if (result.isSuccess) {
+                onResult(true, null)
+            } else {
+                val err = result.exceptionOrNull()?.message ?: "Failed to export backup."
+                _errorMessage.value = err
+                onResult(false, err)
+            }
+        }
+    }
+
+    fun restoreBackup(uri: android.net.Uri, onResult: (Boolean, String?) -> Unit = { _, _ -> }) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            val result = backupRepository.restoreBackupFromUri(uri)
+            _isLoading.value = false
+            if (result.isSuccess) {
+                onResult(true, null)
+            } else {
+                val err = result.exceptionOrNull()?.message ?: "Failed to restore backup file."
+                _errorMessage.value = err
+                onResult(false, err)
+            }
         }
     }
 }
