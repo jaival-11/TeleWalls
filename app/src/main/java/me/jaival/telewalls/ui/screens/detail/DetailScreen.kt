@@ -774,8 +774,7 @@ fun DetailScreen(
                     CategoryChips(
                         selectedCategory = editCategory,
                         onCategorySelected = { editCategory = it },
-                        categories = categories,
-                        onAddCategoryClick = { showAddCategoryDialog = true }
+                        categories = categories
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))

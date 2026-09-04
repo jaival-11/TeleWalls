@@ -278,8 +278,7 @@ fun UploadScreen(
             CategoryChips(
                 selectedCategory = selectedCategory,
                 onCategorySelected = { selectedCategory = it },
-                categories = categories,
-                onAddCategoryClick = { showAddCategoryDialog = true }
+                categories = categories
             )
 
             Spacer(modifier = Modifier.height(12.dp))
