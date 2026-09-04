@@ -95,6 +95,7 @@ fun DetailScreen(
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
 
     var showApplyDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
     var controlsVisible by remember { mutableStateOf(true) }
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
@@ -360,7 +361,7 @@ fun DetailScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(
                         onClick = {
-                            viewModel.deleteWallpaper(onDeleted = onBackClick)
+                            showDeleteConfirmationDialog = true
                         },
                         modifier = Modifier
                             .clip(CircleShape)
@@ -599,6 +600,49 @@ fun DetailScreen(
                 }
             },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        )
+    }
+
+    // Wallpaper Delete Confirmation Dialog
+    if (showDeleteConfirmationDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmationDialog = false },
+            title = {
+                Text(
+                    text = "Delete Wallpaper",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to delete this wallpaper? This action cannot be undone and will remove it from your Telegram Vault.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteConfirmationDialog = false
+                        viewModel.deleteWallpaper(onDeleted = onBackClick)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text("Delete", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteConfirmationDialog = false }
+                ) {
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = RoundedCornerShape(24.dp)
         )
     }
 }

@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -36,6 +37,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -60,6 +62,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val authState by authViewModel.authState.collectAsState()
     var dynamicColorsEnabled by remember { mutableStateOf(true) }
+    var showLogoutConfirmationDialog by remember { mutableStateOf(false) }
     val primaryColor = MaterialTheme.colorScheme.primary
 
     Scaffold(
@@ -178,8 +181,7 @@ fun SettingsScreen(
             // Logout Button
             Button(
                 onClick = {
-                    authViewModel.logout()
-                    Toast.makeText(context, "Logged out from Telegram Vault session", Toast.LENGTH_SHORT).show()
+                    showLogoutConfirmationDialog = true
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -195,6 +197,49 @@ fun SettingsScreen(
                 Text(text = "Logout Telegram Session", fontWeight = FontWeight.Bold)
             }
         }
+    }
+
+    if (showLogoutConfirmationDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutConfirmationDialog = false },
+            title = {
+                Text(
+                    text = "Logout Confirmation",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to log out from your Telegram session? You will need to log in again to access your wallpapers.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLogoutConfirmationDialog = false
+                        authViewModel.logout()
+                        Toast.makeText(context, "Logged out from Telegram Vault session", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text("Logout", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showLogoutConfirmationDialog = false }
+                ) {
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = RoundedCornerShape(24.dp)
+        )
     }
 }
 
