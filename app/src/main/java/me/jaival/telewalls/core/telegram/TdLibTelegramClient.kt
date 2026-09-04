@@ -407,7 +407,7 @@ class TdLibTelegramClient @Inject constructor(
             val origHeight = options.outHeight
             if (origWidth <= 0 || origHeight <= 0) return null
 
-            val targetSize = 600
+            val targetSize = 1000
             val scale = maxOf(1, maxOf(origWidth, origHeight) / targetSize)
             val decodeOptions = android.graphics.BitmapFactory.Options().apply {
                 inSampleSize = scale
@@ -515,7 +515,7 @@ class TdLibTelegramClient @Inject constructor(
                 }
                 is TdApi.MessagePhoto -> {
                     val sizes = content.photo.sizes
-                    val targetSize = sizes.minByOrNull { kotlin.math.abs(it.width - 600) }
+                    val targetSize = sizes.minByOrNull { kotlin.math.abs(it.width - 1000) }
                         ?: sizes.find { it.type == "m" || it.type == "x" || it.type == "y" }
                         ?: sizes.maxByOrNull { it.photo.size }
                     if (targetSize != null) {
