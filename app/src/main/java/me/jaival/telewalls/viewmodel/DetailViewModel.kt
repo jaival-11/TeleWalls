@@ -10,9 +10,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import me.jaival.telewalls.core.util.ImageUtils
 import me.jaival.telewalls.core.wallpaper.WallpaperManagerHelper
 import me.jaival.telewalls.core.wallpaper.WallpaperTarget
+import me.jaival.telewalls.data.repository.AuthRepository
 import me.jaival.telewalls.data.repository.Wallpaper
 import me.jaival.telewalls.data.repository.WallpaperRepository
 import java.io.File
@@ -36,8 +40,16 @@ sealed interface WallpaperDownloadState {
 @HiltViewModel
 class DetailViewModel @Inject constructor(
     private val wallpaperRepository: WallpaperRepository,
-    private val wallpaperManagerHelper: WallpaperManagerHelper
+    private val wallpaperManagerHelper: WallpaperManagerHelper,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
+
+    val categories: StateFlow<List<String>> = wallpaperRepository.categories
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = WallpaperRepository.DEFAULT_CATEGORIES
+        )
 
     private val _wallpaper = MutableStateFlow<Wallpaper?>(null)
     val wallpaper: StateFlow<Wallpaper?> = _wallpaper.asStateFlow()
@@ -201,6 +213,42 @@ class DetailViewModel @Inject constructor(
             if (success) {
                 onDeleted()
             }
+        }
+    }
+
+    fun createCategory(categoryName: String, onCategoryCreated: (String) -> Unit) {
+        val name = categoryName.trim()
+        if (name.isBlank()) return
+        viewModelScope.launch {
+            val chatId = authRepository.activeChannelIdFlow.first() ?: 99999L
+            val success = wallpaperRepository.addCategory(name, chatId)
+            if (success) {
+                onCategoryCreated(name)
+            }
+        }
+    }
+
+    fun updateMetadata(
+        title: String,
+        author: String,
+        category: String,
+        tags: String,
+        description: String,
+        onUpdated: () -> Unit
+    ) {
+        val current = _wallpaper.value ?: return
+        viewModelScope.launch {
+            val tagList = tags.split(",").map { it.trim() }.filter { it.isNotBlank() }
+            wallpaperRepository.updateWallpaperMetadata(
+                wallpaper = current,
+                title = title,
+                author = author,
+                category = category,
+                tags = tagList,
+                description = description
+            )
+            _wallpaper.value = wallpaperRepository.getWallpaperById(current.id)
+            onUpdated()
         }
     }
 

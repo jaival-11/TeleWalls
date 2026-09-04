@@ -783,6 +783,29 @@ class TdLibTelegramClient @Inject constructor(
         }
     }
 
+    override suspend fun editWallpaperMetadata(
+        chatId: Long,
+        messageId: Long,
+        metadata: WallpaperMetadata
+    ): Boolean {
+        if (isMockMode) return true
+        return try {
+            val jsonCaption = buildCaptionString(metadata)
+            sendTd<TdApi.Message>(
+                TdApi.EditMessageCaption(
+                    chatId,
+                    messageId,
+                    null,
+                    TdApi.FormattedText(jsonCaption, emptyArray())
+                )
+            )
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error editing message caption $messageId", e)
+            false
+        }
+    }
+
     override suspend fun fetchCategoriesMessage(chatId: Long): List<String> {
         if (isMockMode) {
             val prefs = context.getSharedPreferences("telewalls_mock_prefs", Context.MODE_PRIVATE)

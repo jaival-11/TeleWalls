@@ -44,6 +44,16 @@ interface WallpaperDao {
     @Query("UPDATE wallpapers SET thumbnailPath = :thumbnailPath WHERE id = :id")
     suspend fun updateThumbnailPath(id: String, thumbnailPath: String)
 
+    @Query("UPDATE wallpapers SET title = :title, author = :author, category = :category, tagsCsv = :tagsCsv, description = :description WHERE id = :id")
+    suspend fun updateWallpaperMetadata(
+        id: String,
+        title: String,
+        author: String,
+        category: String,
+        tagsCsv: String,
+        description: String
+    )
+
     @Query("DELETE FROM wallpapers WHERE id = :id")
     suspend fun deleteWallpaperById(id: String)
 

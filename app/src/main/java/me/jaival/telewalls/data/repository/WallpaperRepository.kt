@@ -207,6 +207,52 @@ class WallpaperRepository @Inject constructor(
         success
     }
 
+    suspend fun updateWallpaperMetadata(
+        wallpaper: Wallpaper,
+        title: String,
+        author: String,
+        category: String,
+        tags: List<String>,
+        description: String
+    ): Boolean = withContext(Dispatchers.IO) {
+        val cleanTitle = title.ifBlank { "Untitled Wallpaper" }
+        val cleanAuthor = author.ifBlank { "TeleWalls User" }
+        val cleanCategory = category.ifBlank { "AMOLED" }
+        val cleanTags = tags.map { it.trim() }.filter { it.isNotBlank() }
+        val tagsCsv = cleanTags.joinToString(",")
+
+        wallpaperDao.updateWallpaperMetadata(
+            id = wallpaper.id,
+            title = cleanTitle,
+            author = cleanAuthor,
+            category = cleanCategory,
+            tagsCsv = tagsCsv,
+            description = description
+        )
+
+        val updatedMetadata = WallpaperMetadata(
+            title = cleanTitle,
+            category = cleanCategory,
+            tags = cleanTags,
+            resolution = wallpaper.resolution,
+            aspectRatio = wallpaper.aspectRatio,
+            sizeBytes = wallpaper.sizeBytes,
+            colors = wallpaper.colors,
+            description = description,
+            author = cleanAuthor,
+            timestamp = wallpaper.timestamp
+        )
+
+        if (wallpaper.chatId != 0L && wallpaper.messageId != 0L) {
+            telegramClient.editWallpaperMetadata(
+                chatId = wallpaper.chatId,
+                messageId = wallpaper.messageId,
+                metadata = updatedMetadata
+            )
+        }
+        true
+    }
+
     suspend fun downloadWallpaperFile(fileId: String, fileName: String): String? = withContext(Dispatchers.IO) {
         val safeName = if (fileName.isNotBlank()) "${fileId}_$fileName" else "wallpaper_$fileId.jpg"
         val destFile = File(context.cacheDir, safeName)

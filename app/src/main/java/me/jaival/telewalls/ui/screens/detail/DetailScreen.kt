@@ -22,14 +22,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -40,8 +45,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import me.jaival.telewalls.ui.components.CategoryChips
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -86,6 +94,7 @@ fun DetailScreen(
     }
 
     val wallpaper by viewModel.wallpaper.collectAsState()
+    val categories by viewModel.categories.collectAsState()
     val applyState by viewModel.applyState.collectAsState()
     val downloadState by viewModel.downloadState.collectAsState()
     val isLoadingFullImage by viewModel.isLoadingFullImage.collectAsState()
@@ -96,6 +105,17 @@ fun DetailScreen(
 
     var showApplyDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
+
+    var showEditMetadataDialog by remember { mutableStateOf(false) }
+    var editTitle by remember { mutableStateOf("") }
+    var editAuthor by remember { mutableStateOf("") }
+    var editCategory by remember { mutableStateOf("") }
+    var editTags by remember { mutableStateOf("") }
+    var editDescription by remember { mutableStateOf("") }
+
+    var showAddCategoryDialog by remember { mutableStateOf(false) }
+    var newCategoryInput by remember { mutableStateOf("") }
+
     var controlsVisible by remember { mutableStateOf(true) }
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
@@ -356,6 +376,26 @@ fun DetailScreen(
                             imageVector = if (currentWall.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                             contentDescription = "Favorite",
                             tint = if (currentWall.isFavorite) tertiaryColor else Color.White
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                        onClick = {
+                            editTitle = currentWall.title
+                            editAuthor = currentWall.author
+                            editCategory = currentWall.category
+                            editTags = currentWall.tags.joinToString(", ")
+                            editDescription = currentWall.description
+                            showEditMetadataDialog = true
+                        },
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Edit,
+                            contentDescription = "Edit Metadata",
+                            tint = Color.White
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
@@ -643,6 +683,230 @@ fun DetailScreen(
             },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             shape = RoundedCornerShape(24.dp)
+        )
+    }
+
+    // Wallpaper Edit Metadata Dialog
+    if (showEditMetadataDialog) {
+        val fieldColors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+            focusedBorderColor = primaryColor,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+            focusedLabelColor = primaryColor,
+            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        AlertDialog(
+            onDismissRequest = { showEditMetadataDialog = false },
+            title = {
+                Text(
+                    text = "Edit Metadata",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    // Title
+                    OutlinedTextField(
+                        value = editTitle,
+                        onValueChange = { editTitle = it },
+                        label = { Text("Wallpaper Title") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = fieldColors
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Author
+                    OutlinedTextField(
+                        value = editAuthor,
+                        onValueChange = { editAuthor = it },
+                        label = { Text("Author Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = fieldColors
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Category Selection Header & Options
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Select Category",
+                            style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        )
+                        TextButton(
+                            onClick = { showAddCategoryDialog = true },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Create Category",
+                                tint = primaryColor,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Create New",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    color = primaryColor,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    CategoryChips(
+                        selectedCategory = editCategory,
+                        onCategorySelected = { editCategory = it },
+                        categories = categories,
+                        onAddCategoryClick = { showAddCategoryDialog = true }
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Tags
+                    OutlinedTextField(
+                        value = editTags,
+                        onValueChange = { editTags = it },
+                        label = { Text("Tags (comma-separated: neon, dark, city)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = fieldColors
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Description
+                    OutlinedTextField(
+                        value = editDescription,
+                        onValueChange = { editDescription = it },
+                        label = { Text("Description") },
+                        maxLines = 3,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = fieldColors
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.updateMetadata(
+                            title = editTitle,
+                            author = editAuthor,
+                            category = editCategory,
+                            tags = editTags,
+                            description = editDescription
+                        ) {
+                            showEditMetadataDialog = false
+                            Toast.makeText(context, "Metadata updated successfully!", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = primaryColor,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text("Save", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showEditMetadataDialog = false }
+                ) {
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
+
+    // Add New Category Dialog
+    if (showAddCategoryDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showAddCategoryDialog = false
+                newCategoryInput = ""
+            },
+            title = {
+                Text(
+                    text = "Create New Category",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Enter a name for the new category to add it to TeleWalls & sync with Telegram:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = newCategoryInput,
+                        onValueChange = { newCategoryInput = it },
+                        label = { Text("Category Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            focusedBorderColor = primaryColor,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            focusedLabelColor = primaryColor,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val trimmed = newCategoryInput.trim()
+                        if (trimmed.isNotBlank()) {
+                            viewModel.createCategory(trimmed) { created ->
+                                editCategory = created
+                            }
+                            showAddCategoryDialog = false
+                            newCategoryInput = ""
+                        }
+                    },
+                    enabled = newCategoryInput.isNotBlank()
+                ) {
+                    Text("Create")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showAddCategoryDialog = false
+                        newCategoryInput = ""
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
         )
     }
 }
