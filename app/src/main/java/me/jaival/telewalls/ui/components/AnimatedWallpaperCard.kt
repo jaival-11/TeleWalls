@@ -53,6 +53,7 @@ import coil.request.ImageRequest
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.jaival.telewalls.core.util.ImageUtils
+import me.jaival.telewalls.data.repository.Wallpaper
 
 @Composable
 fun AnimatedWallpaperCard(
@@ -224,7 +225,7 @@ fun AnimatedWallpaperCard(
                     )
                     if (wallpaper.colors.isNotEmpty()) {
                         Spacer(modifier = Modifier.width(8.dp))
-                        wallpaper.colors.take(3).forEach { hex ->
+                        for (hex in wallpaper.colors.take(3)) {
                             val color = try {
                                 Color(android.graphics.Color.parseColor(hex))
                             } catch (e: Exception) {

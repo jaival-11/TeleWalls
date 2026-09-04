@@ -47,10 +47,6 @@ import me.jaival.telewalls.ui.components.AnimatedWallpaperCard
 import me.jaival.telewalls.ui.components.CategoryChips
 import me.jaival.telewalls.ui.components.glassmorphism
 import me.jaival.telewalls.ui.components.ShimmerCard
-import me.jaival.telewalls.ui.components.AnimatedWallpaperCard
-import me.jaival.telewalls.ui.components.CategoryChips
-import me.jaival.telewalls.ui.components.glassmorphism
-import me.jaival.telewalls.ui.components.ShimmerCard
 import me.jaival.telewalls.viewmodel.HomeViewModel
 
 import android.widget.Toast
