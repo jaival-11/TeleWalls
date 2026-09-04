@@ -122,10 +122,10 @@ class WallpaperRepository @Inject constructor(
                         it.isNotBlank() && (it.startsWith("http") || File(it).exists())
                     }
                     val existingThumbnailPath = existingEntity?.thumbnailPath?.takeIf {
-                        it.isNotBlank() && (it.startsWith("http") || File(it).exists())
+                        it.isNotBlank() && (it.startsWith("http") || (File(it).exists() && File(it).length() > 2048))
                     }
                     val finalThumbnailPath = doc.thumbnailPath?.takeIf {
-                        it.isNotBlank() && (it.startsWith("http") || File(it).exists())
+                        it.isNotBlank() && (it.startsWith("http") || (File(it).exists() && File(it).length() > 2048))
                     } ?: existingThumbnailPath
                     doc.toEntity(
                         isFav = isFav,

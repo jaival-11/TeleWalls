@@ -97,8 +97,8 @@ fun AnimatedWallpaperCard(
     )
 
     val coroutineScope = rememberCoroutineScope()
-    val imageModel = remember(wallpaper.thumbnailPath, wallpaper.localPath) {
-        ImageUtils.resolveImageModel(wallpaper.thumbnailPath, wallpaper.localPath)
+    val imageModel = remember(wallpaper.localPath, wallpaper.thumbnailPath) {
+        ImageUtils.resolveImageModel(wallpaper.localPath, wallpaper.thumbnailPath)
     }
     val primaryColor = MaterialTheme.colorScheme.primary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary

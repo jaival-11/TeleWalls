@@ -434,9 +434,11 @@ class TdLibTelegramClient @Inject constructor(
             }
             is TdApi.MessagePhoto -> {
                 val sizes = content.photo.sizes
-                val smallSize = sizes.minByOrNull { it.photo.size }
-                if (smallSize != null) {
-                    val thumbFile = smallSize.photo
+                val targetSize = sizes.minByOrNull { kotlin.math.abs(it.width - 600) }
+                    ?: sizes.find { it.type == "m" || it.type == "x" || it.type == "y" }
+                    ?: sizes.maxByOrNull { it.photo.size }
+                if (targetSize != null) {
+                    val thumbFile = targetSize.photo
                     if (thumbFile.local?.isDownloadingCompleted == true && !thumbFile.local.path.isNullOrBlank() && File(thumbFile.local.path).exists()) {
                         return thumbFile.local.path
                     }
@@ -477,7 +479,7 @@ class TdLibTelegramClient @Inject constructor(
                 mimeType = "image/jpeg",
                 sizeBytes = 3456789L,
                 localPath = null,
-                thumbnailPath = "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=400",
+                thumbnailPath = "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=800",
                 metadata = WallpaperMetadata(
                     title = "Neon Cyberpunk Skyline",
                     category = "Sci-Fi",
@@ -498,7 +500,7 @@ class TdLibTelegramClient @Inject constructor(
                 mimeType = "image/jpeg",
                 sizeBytes = 4123456L,
                 localPath = null,
-                thumbnailPath = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=400",
+                thumbnailPath = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=800",
                 metadata = WallpaperMetadata(
                     title = "Deep Space Nebula",
                     category = "AMOLED",
@@ -519,7 +521,7 @@ class TdLibTelegramClient @Inject constructor(
                 mimeType = "image/jpeg",
                 sizeBytes = 2987654L,
                 localPath = null,
-                thumbnailPath = "https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=400",
+                thumbnailPath = "https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=800",
                 metadata = WallpaperMetadata(
                     title = "Misty Pine Forest",
                     category = "Nature",
@@ -540,7 +542,7 @@ class TdLibTelegramClient @Inject constructor(
                 mimeType = "image/jpeg",
                 sizeBytes = 1876543L,
                 localPath = null,
-                thumbnailPath = "https://images.unsplash.com/photo-1541701494587-cb58502866ab?q=80&w=400",
+                thumbnailPath = "https://images.unsplash.com/photo-1541701494587-cb58502866ab?q=80&w=800",
                 metadata = WallpaperMetadata(
                     title = "Abstract Geometric Waves",
                     category = "Minimal",
@@ -561,7 +563,7 @@ class TdLibTelegramClient @Inject constructor(
                 mimeType = "image/jpeg",
                 sizeBytes = 3890123L,
                 localPath = null,
-                thumbnailPath = "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=400",
+                thumbnailPath = "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800",
                 metadata = WallpaperMetadata(
                     title = "Midnight Supercar",
                     category = "Cars",
@@ -582,7 +584,7 @@ class TdLibTelegramClient @Inject constructor(
                 mimeType = "image/jpeg",
                 sizeBytes = 4500123L,
                 localPath = null,
-                thumbnailPath = "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=400",
+                thumbnailPath = "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=800",
                 metadata = WallpaperMetadata(
                     title = "Monochrome Architecture",
                     category = "Architecture",
@@ -617,11 +619,11 @@ class TdLibTelegramClient @Inject constructor(
                 return copyToDestinationIfNeeded(initialLocalPath, destinationPath)
             }
 
-            sendTd<TdApi.Ok>(TdApi.DownloadFile(tdFileId, 32, 0, 0, true))
+            sendTd<TdApi.Ok>(TdApi.DownloadFile(tdFileId, 32, 0, 0, false))
 
             // Wait for file download completion
-            for (i in 0..100) {
-                delay(200)
+            for (i in 0..150) {
+                delay(100)
                 val updatedFile = sendTd<TdApi.File>(TdApi.GetFile(tdFileId))
                 if (updatedFile.local?.isDownloadingCompleted == true && !updatedFile.local.path.isNullOrBlank()) {
                     val downloadedLocalPath = updatedFile.local.path

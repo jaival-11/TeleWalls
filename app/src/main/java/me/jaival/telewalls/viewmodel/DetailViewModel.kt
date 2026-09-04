@@ -89,6 +89,13 @@ class DetailViewModel @Inject constructor(
                 _isLoadingFullImage.value = false
             }
 
+            if (!imagePath.isNullOrBlank()) {
+                val updated = wallpaperRepository.getWallpaperById(current.id)
+                if (updated != null) {
+                    _wallpaper.value = updated
+                }
+            }
+
             if (imagePath.isNullOrBlank()) {
                 imagePath = current.thumbnailPath
             }
@@ -142,6 +149,13 @@ class DetailViewModel @Inject constructor(
                 _isLoadingFullImage.value = true
                 imagePath = wallpaperRepository.downloadFullWallpaper(current)
                 _isLoadingFullImage.value = false
+            }
+
+            if (!imagePath.isNullOrBlank()) {
+                val updated = wallpaperRepository.getWallpaperById(current.id)
+                if (updated != null) {
+                    _wallpaper.value = updated
+                }
             }
 
             if (imagePath.isNullOrBlank()) {
