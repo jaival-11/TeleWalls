@@ -12,6 +12,9 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -398,13 +401,18 @@ class TdLibTelegramClient @Inject constructor(
                     null
                 )
             )
-            for (msg in searchResult.messages) {
-                val doc = parseWallpaperFromMessage(msg, null)
-                if (doc != null) {
-                    val thumbnailPath = fetchThumbnailForMessage(msg) ?: doc.thumbnailPath
-                    documents.add(doc.copy(localPath = null, thumbnailPath = thumbnailPath))
-                }
+            val docsWithThumbs = coroutineScope {
+                searchResult.messages.map { msg ->
+                    async(Dispatchers.IO) {
+                        val doc = parseWallpaperFromMessage(msg, null)
+                        if (doc != null) {
+                            val thumbnailPath = fetchThumbnailForMessage(msg) ?: doc.thumbnailPath
+                            doc.copy(localPath = null, thumbnailPath = thumbnailPath)
+                        } else null
+                    }
+                }.awaitAll().filterNotNull()
             }
+            documents.addAll(docsWithThumbs)
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching wallpapers from channel", e)
         }
@@ -421,8 +429,7 @@ class TdLibTelegramClient @Inject constructor(
                         return thumbFile.local.path
                     }
                     val cacheFile = File(context.cacheDir, "thumb_${msg.id}.jpg")
-                    val thumbFileId = thumbFile.remote?.id?.takeIf { it.isNotBlank() } ?: thumbFile.id.toString()
-                    val downloaded = downloadWallpaperFile(thumbFileId, cacheFile.absolutePath)
+                    val downloaded = downloadTdFile(thumbFile, cacheFile.absolutePath, timeoutMs = 3000)
                     if (!downloaded.isNullOrBlank() && File(downloaded).exists()) {
                         return downloaded
                     }
@@ -443,8 +450,7 @@ class TdLibTelegramClient @Inject constructor(
                         return thumbFile.local.path
                     }
                     val cacheFile = File(context.cacheDir, "thumb_${msg.id}.jpg")
-                    val thumbFileId = thumbFile.remote?.id?.takeIf { it.isNotBlank() } ?: thumbFile.id.toString()
-                    val downloaded = downloadWallpaperFile(thumbFileId, cacheFile.absolutePath)
+                    val downloaded = downloadTdFile(thumbFile, cacheFile.absolutePath, timeoutMs = 3000)
                     if (!downloaded.isNullOrBlank() && File(downloaded).exists()) {
                         return downloaded
                     }
@@ -606,23 +612,36 @@ class TdLibTelegramClient @Inject constructor(
         }
         try {
             val fileInfo = try {
-                sendTd<TdApi.File>(TdApi.GetRemoteFile(fileId, TdApi.FileTypeUnknown()))
+                val fileIdInt = fileId.toIntOrNull()
+                if (fileIdInt != null) {
+                    sendTd<TdApi.File>(TdApi.GetFile(fileIdInt))
+                } else {
+                    sendTd<TdApi.File>(TdApi.GetRemoteFile(fileId, TdApi.FileTypeUnknown()))
+                }
             } catch (e: Exception) {
                 val fileIdInt = fileId.toIntOrNull() ?: return null
                 sendTd<TdApi.File>(TdApi.GetFile(fileIdInt))
             }
 
-            val tdFileId = fileInfo.id
-            val initialLocalPath = fileInfo.local?.path
+            return downloadTdFile(fileInfo, destinationPath, timeoutMs = 15000)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error downloading file $fileId", e)
+        }
+        return null
+    }
 
-            if (fileInfo.local?.isDownloadingCompleted == true && !initialLocalPath.isNullOrBlank() && File(initialLocalPath).exists()) {
-                return copyToDestinationIfNeeded(initialLocalPath, destinationPath)
+    private suspend fun downloadTdFile(file: TdApi.File, destinationPath: String, timeoutMs: Long = 5000): String? {
+        try {
+            val initialPath = file.local?.path
+            if (file.local?.isDownloadingCompleted == true && !initialPath.isNullOrBlank() && File(initialPath).exists()) {
+                return copyToDestinationIfNeeded(initialPath, destinationPath)
             }
 
+            val tdFileId = file.id
             sendTd<TdApi.Ok>(TdApi.DownloadFile(tdFileId, 32, 0, 0, false))
 
-            // Wait for file download completion
-            for (i in 0..150) {
+            val maxIterations = (timeoutMs / 100).toInt()
+            for (i in 0..maxIterations) {
                 delay(100)
                 val updatedFile = sendTd<TdApi.File>(TdApi.GetFile(tdFileId))
                 if (updatedFile.local?.isDownloadingCompleted == true && !updatedFile.local.path.isNullOrBlank()) {
@@ -633,7 +652,7 @@ class TdLibTelegramClient @Inject constructor(
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error downloading file $fileId", e)
+            Log.e(TAG, "Error downloading TDLib file ${file.id}", e)
         }
         return null
     }
