@@ -11,6 +11,7 @@ import dagger.hilt.components.SingletonComponent
 import me.jaival.telewalls.core.telegram.TdLibTelegramClient
 import me.jaival.telewalls.core.telegram.TelegramClient
 import me.jaival.telewalls.data.local.TeleWallsDatabase
+import me.jaival.telewalls.data.local.dao.CategoryDao
 import me.jaival.telewalls.data.local.dao.WallpaperDao
 import javax.inject.Singleton
 
@@ -38,6 +39,12 @@ object AppModule {
     @Singleton
     fun provideWallpaperDao(db: TeleWallsDatabase): WallpaperDao {
         return db.wallpaperDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideCategoryDao(db: TeleWallsDatabase): CategoryDao {
+        return db.categoryDao()
     }
 
     @Provides

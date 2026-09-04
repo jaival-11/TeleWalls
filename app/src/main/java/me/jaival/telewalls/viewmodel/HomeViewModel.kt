@@ -16,6 +16,8 @@ import me.jaival.telewalls.data.repository.Wallpaper
 import me.jaival.telewalls.data.repository.WallpaperRepository
 import javax.inject.Inject
 
+import kotlinx.coroutines.flow.map
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -25,6 +27,14 @@ class HomeViewModel @Inject constructor(
 
     private val _selectedCategory = MutableStateFlow("All")
     val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
+
+    val categories: StateFlow<List<String>> = wallpaperRepository.categories
+        .map { list -> listOf("All") + list }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = listOf("All") + WallpaperRepository.DEFAULT_CATEGORIES
+        )
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()

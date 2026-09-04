@@ -21,6 +21,10 @@ import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
 
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
+
 sealed interface UploadState {
     data object Idle : UploadState
     data class Processing(val status: String) : UploadState
@@ -38,6 +42,13 @@ class UploadViewModel @Inject constructor(
     private val _uploadState = MutableStateFlow<UploadState>(UploadState.Idle)
     val uploadState: StateFlow<UploadState> = _uploadState.asStateFlow()
 
+    val categories: StateFlow<List<String>> = wallpaperRepository.categories
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = WallpaperRepository.DEFAULT_CATEGORIES
+        )
+
     private val _selectedImageUri = MutableStateFlow<Uri?>(null)
     val selectedImageUri: StateFlow<Uri?> = _selectedImageUri.asStateFlow()
 
@@ -46,6 +57,18 @@ class UploadViewModel @Inject constructor(
 
     private val _detectedColors = MutableStateFlow<List<String>>(emptyList())
     val detectedColors: StateFlow<List<String>> = _detectedColors.asStateFlow()
+
+    fun createCategory(categoryName: String, onCategoryCreated: (String) -> Unit) {
+        val name = categoryName.trim()
+        if (name.isBlank()) return
+        viewModelScope.launch {
+            val chatId = authRepository.activeChannelIdFlow.first() ?: 99999L
+            val success = wallpaperRepository.addCategory(name, chatId)
+            if (success) {
+                onCategoryCreated(name)
+            }
+        }
+    }
 
     fun selectImage(context: Context, uri: Uri) {
         _selectedImageUri.value = uri

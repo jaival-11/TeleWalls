@@ -59,6 +59,7 @@ fun HomeScreen(
     onWallpaperClick: (String) -> Unit
 ) {
     val selectedCategory by viewModel.selectedCategory.collectAsState()
+    val categories by viewModel.categories.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val wallpapers by viewModel.wallpapers.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
@@ -171,7 +172,8 @@ fun HomeScreen(
             // Category Chips Row
             CategoryChips(
                 selectedCategory = selectedCategory,
-                onCategorySelected = { viewModel.selectCategory(it) }
+                onCategorySelected = { viewModel.selectCategory(it) },
+                categories = categories
             )
 
             Spacer(modifier = Modifier.height(12.dp))

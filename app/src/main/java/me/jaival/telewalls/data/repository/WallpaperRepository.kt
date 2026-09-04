@@ -11,6 +11,10 @@ import me.jaival.telewalls.core.telegram.TelegramUploadEvent
 import me.jaival.telewalls.core.telegram.WallpaperDocument
 import me.jaival.telewalls.core.telegram.WallpaperMetadata
 import me.jaival.telewalls.data.local.dao.WallpaperDao
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import me.jaival.telewalls.data.local.dao.CategoryDao
+import me.jaival.telewalls.data.local.entity.CategoryEntity
 import me.jaival.telewalls.data.local.entity.FavoriteEntity
 import me.jaival.telewalls.data.local.entity.WallpaperEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -44,10 +48,24 @@ data class Wallpaper(
 class WallpaperRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val telegramClient: TelegramClient,
-    private val wallpaperDao: WallpaperDao
+    private val wallpaperDao: WallpaperDao,
+    private val categoryDao: CategoryDao
 ) {
     companion object {
         private const val TAG = "WallpaperRepository"
+        val DEFAULT_CATEGORIES = listOf(
+            "AMOLED", "Nature", "Minimal", "Sci-Fi", "Architecture", "Abstract", "Cars"
+        )
+    }
+
+    val categories: Flow<List<String>> = combine(
+        categoryDao.getAllCategories(),
+        wallpaperDao.getCategoriesFromWallpapers()
+    ) { dbCategories, wallpaperCategories ->
+        (DEFAULT_CATEGORIES + dbCategories + wallpaperCategories)
+            .map { it.trim() }
+            .filter { it.isNotBlank() && !it.equals("All", ignoreCase = true) }
+            .distinctBy { it.lowercase() }
     }
 
     val allWallpapers: Flow<List<Wallpaper>> = wallpaperDao.getAllWallpapers().map { entities ->
@@ -80,6 +98,7 @@ class WallpaperRepository @Inject constructor(
 
     suspend fun syncWallpapersFromChannel(chatId: Long): Result<Int> = withContext(Dispatchers.IO) {
         try {
+            syncCategoriesFromChannel(chatId)
             val documents = telegramClient.fetchWallpapers(chatId, fromMessageId = 0L, limit = 50)
             if (documents.isNotEmpty()) {
                 val entities = documents.map { doc ->
@@ -92,6 +111,36 @@ class WallpaperRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error syncing wallpapers from channel", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun addCategory(name: String, chatId: Long?): Boolean = withContext(Dispatchers.IO) {
+        val cleanName = name.trim()
+        if (cleanName.isBlank() || cleanName.equals("All", ignoreCase = true)) return@withContext false
+
+        categoryDao.insertCategory(CategoryEntity(name = cleanName))
+
+        if (chatId != null && chatId != 0L) {
+            val currentList = categories.first()
+            val updatedList = (currentList + cleanName).map { it.trim() }.distinctBy { it.lowercase() }
+            telegramClient.saveCategoriesMessage(chatId, updatedList)
+        }
+        true
+    }
+
+    suspend fun syncCategoriesFromChannel(chatId: Long): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            val remoteCategories = telegramClient.fetchCategoriesMessage(chatId)
+            if (remoteCategories.isNotEmpty()) {
+                val entities = remoteCategories.map { CategoryEntity(name = it.trim()) }
+                categoryDao.insertCategories(entities)
+                Result.success(remoteCategories.size)
+            } else {
+                Result.success(0)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error syncing categories from channel", e)
             Result.failure(e)
         }
     }

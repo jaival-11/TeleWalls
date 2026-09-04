@@ -57,11 +57,13 @@ class TdLibTelegramClient @Inject constructor(
     )
 
     private var isMockMode = false
+    private val mockCategories = mutableSetOf<String>()
 
     companion object {
         private const val TAG = "TdLibTelegramClient"
         private const val VAULT_CHANNEL_TITLE = "TeleWalls Vault"
         private const val METADATA_PREFIX = "{"
+        private const val CATEGORIES_HASHTAG = "#Categories"
     }
 
     override suspend fun start(credentials: TelegramCredentials) {
@@ -437,6 +439,94 @@ class TdLibTelegramClient @Inject constructor(
             Log.e(TAG, "Error deleting message $messageId", e)
             false
         }
+    }
+
+    override suspend fun fetchCategoriesMessage(chatId: Long): List<String> {
+        if (isMockMode) {
+            val prefs = context.getSharedPreferences("telewalls_mock_prefs", Context.MODE_PRIVATE)
+            val saved = prefs.getStringSet("mock_categories", emptySet()) ?: emptySet()
+            return (mockCategories + saved).toList()
+        }
+
+        try {
+            val searchResult = sendTd<TdApi.FoundChatMessages>(
+                TdApi.SearchChatMessages(
+                    chatId,
+                    null,
+                    CATEGORIES_HASHTAG,
+                    null,
+                    0L,
+                    0,
+                    20,
+                    null
+                )
+            )
+            for (msg in searchResult.messages) {
+                val categories = parseCategoriesFromMessage(msg)
+                if (categories.isNotEmpty()) {
+                    return categories
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching categories message from Telegram channel", e)
+        }
+        return emptyList()
+    }
+
+    override suspend fun saveCategoriesMessage(chatId: Long, categories: List<String>): Boolean {
+        if (isMockMode) {
+            mockCategories.addAll(categories)
+            val prefs = context.getSharedPreferences("telewalls_mock_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putStringSet("mock_categories", mockCategories.toSet()).apply()
+            return true
+        }
+
+        return try {
+            val json = gson.toJson(categories)
+            val messageText = "$CATEGORIES_HASHTAG\n$json"
+            val content = TdApi.InputMessageText(
+                TdApi.FormattedText(messageText, emptyArray()),
+                null,
+                true
+            )
+            sendTd<TdApi.Message>(TdApi.SendMessage(chatId, null, null, null, null, content))
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving categories message to Telegram channel", e)
+            false
+        }
+    }
+
+    private fun parseCategoriesFromMessage(msg: TdApi.Message): List<String> {
+        val text = when (val content = msg.content) {
+            is TdApi.MessageText -> content.text.text.orEmpty()
+            is TdApi.MessageDocument -> content.caption.text.orEmpty()
+            is TdApi.MessagePhoto -> content.caption.text.orEmpty()
+            else -> ""
+        }
+        if (!text.contains(CATEGORIES_HASHTAG, ignoreCase = true)) return emptyList()
+
+        val index = text.indexOf(CATEGORIES_HASHTAG, ignoreCase = true)
+        val afterHashtag = text.substring(index + CATEGORIES_HASHTAG.length).trim()
+
+        try {
+            val jsonStart = afterHashtag.indexOf("[")
+            val jsonEnd = afterHashtag.lastIndexOf("]")
+            if (jsonStart != -1 && jsonEnd != -1 && jsonEnd > jsonStart) {
+                val jsonStr = afterHashtag.substring(jsonStart, jsonEnd + 1)
+                val listType = object : com.google.gson.reflect.TypeToken<List<String>>() {}.type
+                val parsed: List<String>? = gson.fromJson(jsonStr, listType)
+                if (!parsed.isNullOrEmpty()) {
+                    return parsed.map { it.trim() }.filter { it.isNotBlank() }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed parsing JSON category list from message", e)
+        }
+
+        return afterHashtag.lines()
+            .map { it.trim().removePrefix("-").removePrefix("*").trim() }
+            .filter { it.isNotBlank() && !it.startsWith("#") }
     }
 
     private fun buildCaptionString(metadata: WallpaperMetadata): String {

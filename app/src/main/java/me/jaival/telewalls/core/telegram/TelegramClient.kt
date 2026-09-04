@@ -39,4 +39,7 @@ interface TelegramClient {
     ): String?
 
     suspend fun deleteWallpaper(chatId: Long, messageId: Long): Boolean
+
+    suspend fun fetchCategoriesMessage(chatId: Long): List<String>
+    suspend fun saveCategoriesMessage(chatId: Long, categories: List<String>): Boolean
 }

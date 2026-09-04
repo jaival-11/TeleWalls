@@ -17,6 +17,9 @@ interface WallpaperDao {
     @Query("SELECT * FROM wallpapers WHERE category = :category ORDER BY timestamp DESC")
     fun getWallpapersByCategory(category: String): Flow<List<WallpaperEntity>>
 
+    @Query("SELECT DISTINCT category FROM wallpapers WHERE category IS NOT NULL AND category != ''")
+    fun getCategoriesFromWallpapers(): Flow<List<String>>
+
     @Query("SELECT * FROM wallpapers WHERE title LIKE '%' || :query || '%' OR tagsCsv LIKE '%' || :query || '%' ORDER BY timestamp DESC")
     fun searchWallpapers(query: String): Flow<List<WallpaperEntity>>
 
