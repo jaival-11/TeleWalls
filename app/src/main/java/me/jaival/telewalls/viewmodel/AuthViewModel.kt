@@ -54,7 +54,7 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun submitCredentials(apiId: Int, apiHash: String, onResult: (Boolean, String?) -> Unit) {
+    fun submitCredentials(apiId: Int, apiHash: String, onResult: (Boolean, String?) -> Unit = { _, _ -> }) {
         if (apiId <= 0 || apiHash.isBlank()) {
             val err = "Please provide a valid numeric API ID and API Hash."
             _errorMessage.value = err
@@ -132,7 +132,7 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun createStorageChannel(title: String, onResult: (Boolean, String?) -> Unit) {
+    fun createStorageChannel(title: String, onResult: (Boolean, String?) -> Unit = { _, _ -> }) {
         if (title.isBlank()) {
             val err = "Channel title cannot be empty"
             _errorMessage.value = err
@@ -158,7 +158,7 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun completeSetup(channelId: Long? = null, onResult: (Boolean, String?) -> Unit) {
+    fun completeSetup(channelId: Long? = null, onResult: (Boolean, String?) -> Unit = { _, _ -> }) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
