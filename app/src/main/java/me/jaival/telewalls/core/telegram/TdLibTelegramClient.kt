@@ -345,7 +345,7 @@ class TdLibTelegramClient @Inject constructor(
                     }
                     is TdApi.UpdateMessageSendSucceeded -> {
                         if (pendingMsgId.isCompleted && update.oldMessageId == pendingMsgId.await()) {
-                            val doc = parseDocumentFromMessage(update.message, metadata)
+                            val doc = parseWallpaperFromMessage(update.message, metadata)
                             if (doc != null) {
                                 trySend(TelegramUploadEvent.Succeeded(doc))
                                 close()
@@ -395,11 +395,11 @@ class TdLibTelegramClient @Inject constructor(
                     fromMessageId,
                     0,
                     limit,
-                    TdApi.SearchMessagesFilterDocument()
+                    null
                 )
             )
             for (msg in searchResult.messages) {
-                val doc = parseDocumentFromMessage(msg, null)
+                val doc = parseWallpaperFromMessage(msg, null)
                 if (doc != null) {
                     val thumbnailPath = fetchThumbnailForMessage(msg) ?: doc.thumbnailPath
                     documents.add(doc.copy(localPath = null, thumbnailPath = thumbnailPath))
@@ -412,15 +412,59 @@ class TdLibTelegramClient @Inject constructor(
     }
 
     private suspend fun fetchThumbnailForMessage(msg: TdApi.Message): String? {
-        if (msg.content !is TdApi.MessageDocument) return null
-        val docContent = msg.content as TdApi.MessageDocument
-        val thumbnail = docContent.document.thumbnail ?: return null
-        val thumbnailFile = thumbnail.file
-        if (thumbnailFile.local.isDownloadingCompleted && thumbnailFile.local.path.isNotBlank() && File(thumbnailFile.local.path).exists()) {
-            return thumbnailFile.local.path
+        when (val content = msg.content) {
+            is TdApi.MessageDocument -> {
+                val thumbnail = content.document.thumbnail
+                if (thumbnail != null) {
+                    val thumbFile = thumbnail.file
+                    if (thumbFile.local?.isDownloadingCompleted == true && !thumbFile.local.path.isNullOrBlank() && File(thumbFile.local.path).exists()) {
+                        return thumbFile.local.path
+                    }
+                    val cacheFile = File(context.cacheDir, "thumb_${msg.id}.jpg")
+                    val thumbFileId = thumbFile.remote?.id?.takeIf { it.isNotBlank() } ?: thumbFile.id.toString()
+                    val downloaded = downloadWallpaperFile(thumbFileId, cacheFile.absolutePath)
+                    if (!downloaded.isNullOrBlank() && File(downloaded).exists()) {
+                        return downloaded
+                    }
+                }
+                val miniThumb = content.document.minithumbnail?.data
+                if (miniThumb != null && miniThumb.isNotEmpty()) {
+                    return saveByteArrayToCache("thumb_${msg.id}.jpg", miniThumb)
+                }
+            }
+            is TdApi.MessagePhoto -> {
+                val sizes = content.photo.sizes
+                val smallSize = sizes.minByOrNull { it.photo.size }
+                if (smallSize != null) {
+                    val thumbFile = smallSize.photo
+                    if (thumbFile.local?.isDownloadingCompleted == true && !thumbFile.local.path.isNullOrBlank() && File(thumbFile.local.path).exists()) {
+                        return thumbFile.local.path
+                    }
+                    val cacheFile = File(context.cacheDir, "thumb_${msg.id}.jpg")
+                    val thumbFileId = thumbFile.remote?.id?.takeIf { it.isNotBlank() } ?: thumbFile.id.toString()
+                    val downloaded = downloadWallpaperFile(thumbFileId, cacheFile.absolutePath)
+                    if (!downloaded.isNullOrBlank() && File(downloaded).exists()) {
+                        return downloaded
+                    }
+                }
+                val miniThumb = content.photo.minithumbnail?.data
+                if (miniThumb != null && miniThumb.isNotEmpty()) {
+                    return saveByteArrayToCache("thumb_${msg.id}.jpg", miniThumb)
+                }
+            }
         }
-        val cacheFile = File(context.cacheDir, "thumb_${msg.id}.jpg")
-        return downloadWallpaperFile(thumbnailFile.id.toString(), cacheFile.absolutePath)
+        return null
+    }
+
+    private fun saveByteArrayToCache(fileName: String, data: ByteArray): String? {
+        return try {
+            val cacheFile = File(context.cacheDir, fileName)
+            cacheFile.writeBytes(data)
+            cacheFile.absolutePath
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving byte array to cache", e)
+            null
+        }
     }
 
     private fun getMockWallpapers(chatId: Long): List<WallpaperDocument> {
@@ -559,35 +603,54 @@ class TdLibTelegramClient @Inject constructor(
             return getMockFullImagePath(fileId, destinationPath)
         }
         try {
-            val fileIdInt = fileId.toIntOrNull() ?: return null
-            sendTd<TdApi.Ok>(TdApi.DownloadFile(fileIdInt, 32, 0, 0, true))
-            
+            val fileInfo = try {
+                sendTd<TdApi.File>(TdApi.GetRemoteFile(fileId, TdApi.FileTypeUnknown()))
+            } catch (e: Exception) {
+                val fileIdInt = fileId.toIntOrNull() ?: return null
+                sendTd<TdApi.File>(TdApi.GetFile(fileIdInt))
+            }
+
+            val tdFileId = fileInfo.id
+            val initialLocalPath = fileInfo.local?.path
+
+            if (fileInfo.local?.isDownloadingCompleted == true && !initialLocalPath.isNullOrBlank() && File(initialLocalPath).exists()) {
+                return copyToDestinationIfNeeded(initialLocalPath, destinationPath)
+            }
+
+            sendTd<TdApi.Ok>(TdApi.DownloadFile(tdFileId, 32, 0, 0, true))
+
             // Wait for file download completion
             for (i in 0..100) {
                 delay(200)
-                val fileInfo = sendTd<TdApi.File>(TdApi.GetFile(fileIdInt))
-                if (fileInfo.local?.isDownloadingCompleted == true && !fileInfo.local.path.isNullOrBlank()) {
-                    val localPath = fileInfo.local.path
-                    if (destinationPath.isNotBlank() && destinationPath != localPath) {
-                        try {
-                            val srcFile = File(localPath)
-                            val destFile = File(destinationPath)
-                            if (srcFile.exists()) {
-                                destFile.parentFile?.mkdirs()
-                                srcFile.copyTo(destFile, overwrite = true)
-                                return destFile.absolutePath
-                            }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed copying downloaded file to destinationPath $destinationPath", e)
-                        }
+                val updatedFile = sendTd<TdApi.File>(TdApi.GetFile(tdFileId))
+                if (updatedFile.local?.isDownloadingCompleted == true && !updatedFile.local.path.isNullOrBlank()) {
+                    val downloadedLocalPath = updatedFile.local.path
+                    if (File(downloadedLocalPath).exists()) {
+                        return copyToDestinationIfNeeded(downloadedLocalPath, destinationPath)
                     }
-                    return localPath
                 }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error downloading file $fileId", e)
         }
         return null
+    }
+
+    private fun copyToDestinationIfNeeded(srcPath: String, destinationPath: String): String {
+        if (destinationPath.isNotBlank() && destinationPath != srcPath) {
+            try {
+                val srcFile = File(srcPath)
+                val destFile = File(destinationPath)
+                if (srcFile.exists()) {
+                    destFile.parentFile?.mkdirs()
+                    srcFile.copyTo(destFile, overwrite = true)
+                    return destFile.absolutePath
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed copying downloaded file $srcPath to destinationPath $destinationPath", e)
+            }
+        }
+        return srcPath
     }
 
     private fun getMockFullImagePath(fileId: String, fallbackPath: String): String {
@@ -758,30 +821,54 @@ class TdLibTelegramClient @Inject constructor(
         return "$hashtags\n$json"
     }
 
-    private fun parseDocumentFromMessage(
+    private fun parseWallpaperFromMessage(
         msg: TdApi.Message,
         fallbackMetadata: WallpaperMetadata?
     ): WallpaperDocument? {
-        if (msg.content !is TdApi.MessageDocument) return null
-        val docContent = msg.content as TdApi.MessageDocument
-        val doc = docContent.document
-        val captionText = docContent.caption.text.orEmpty()
+        val file: TdApi.File
+        val fileName: String
+        val mimeType: String
+        val captionText: String
+
+        when (val content = msg.content) {
+            is TdApi.MessageDocument -> {
+                val doc = content.document
+                file = doc.document
+                fileName = doc.fileName
+                mimeType = doc.mimeType
+                captionText = content.caption.text.orEmpty()
+            }
+            is TdApi.MessagePhoto -> {
+                val photoSize = content.photo.sizes.maxByOrNull { it.photo.size } ?: return null
+                file = photoSize.photo
+                fileName = "photo_${msg.id}.jpg"
+                mimeType = "image/jpeg"
+                captionText = content.caption.text.orEmpty()
+            }
+            else -> return null
+        }
+
+        val remoteId = file.remote?.id?.takeIf { it.isNotBlank() } ?: file.id.toString()
 
         val metadata = parseMetadataFromCaption(captionText) ?: fallbackMetadata ?: WallpaperMetadata(
-            title = doc.fileName.substringBeforeLast("."),
+            title = fileName.substringBeforeLast("."),
             category = "General",
-            sizeBytes = doc.document.size
+            sizeBytes = file.size
         )
+
+        val localPath = file.local?.path?.takeIf {
+            file.local?.isDownloadingCompleted == true && it.isNotBlank() && File(it).exists()
+        }
 
         return WallpaperDocument(
             messageId = msg.id,
             chatId = msg.chatId,
-            fileId = doc.document.id.toString(),
-            fileName = doc.fileName,
-            mimeType = doc.mimeType,
-            sizeBytes = doc.document.size,
-            localPath = doc.document.local?.path?.takeIf { doc.document.local?.isDownloadingCompleted == true && it.isNotBlank() && File(it).exists() },
-            thumbnailPath = doc.thumbnail?.file?.local?.path?.takeIf { doc.thumbnail?.file?.local?.isDownloadingCompleted == true && it.isNotBlank() && File(it).exists() },
+            fileId = remoteId,
+            fileName = fileName,
+            mimeType = mimeType,
+            sizeBytes = file.size,
+            localPath = localPath,
+            thumbnailPath = null,
             metadata = metadata
         )
     }
