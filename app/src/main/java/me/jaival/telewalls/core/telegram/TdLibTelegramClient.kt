@@ -333,15 +333,10 @@ class TdLibTelegramClient @Inject constructor(
 
                 if (thumbFile != null && thumbFile.exists()) {
                     trySend(TelegramUploadEvent.Progress(100000L, 10000000L))
-                    val photoInput = TdApi.InputMessagePhoto(
-                        TdApi.InputFileLocal(thumbFile.absolutePath),
-                        null,
-                        intArrayOf(),
-                        0,
-                        0,
-                        TdApi.FormattedText("#thumb", emptyArray()),
-                        0
-                    )
+                    val photoInput = TdApi.InputMessagePhoto().apply {
+                        photo = TdApi.InputFileLocal(thumbFile.absolutePath)
+                        caption = TdApi.FormattedText("#thumb", emptyArray())
+                    }
                     try {
                         val photoMsg = sendTd<TdApi.Message>(TdApi.SendMessage(chatId, null, null, null, null, photoInput))
                         if (photoMsg.content is TdApi.MessagePhoto) {
@@ -364,12 +359,12 @@ class TdLibTelegramClient @Inject constructor(
                     TdApi.InputThumbnail(TdApi.InputFileLocal(it.absolutePath), opts.outWidth, opts.outHeight)
                 }
 
-                val docContent = TdApi.InputMessageDocument(
-                    TdApi.InputFileLocal(localPath),
-                    inputThumbnail,
-                    true,
-                    TdApi.FormattedText(jsonCaption, emptyArray())
-                )
+                val docContent = TdApi.InputMessageDocument().apply {
+                    document = TdApi.InputFileLocal(localPath)
+                    thumbnail = inputThumbnail
+                    disableContentTypeDetection = true
+                    caption = TdApi.FormattedText(jsonCaption, emptyArray())
+                }
 
                 val pendingMsgId = CompletableDeferred<Long>()
                 val pendingFileId = CompletableDeferred<Int>()
