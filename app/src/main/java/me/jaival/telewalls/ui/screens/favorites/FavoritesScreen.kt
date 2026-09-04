@@ -1,0 +1,101 @@
+package me.jaival.telewalls.ui.screens.favorites
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import me.jaival.telewalls.ui.components.AnimatedWallpaperCard
+import me.jaival.telewalls.ui.theme.VibrantMagenta
+import me.jaival.telewalls.viewmodel.HomeViewModel
+
+@Composable
+fun FavoritesScreen(
+    viewModel: HomeViewModel,
+    onWallpaperClick: (String) -> Unit
+) {
+    val favorites by viewModel.favorites.collectAsState()
+
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+                Text(
+                    text = "Saved Favorites",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        color = Color.White,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 28.sp
+                    )
+                )
+                Text(
+                    text = "${favorites.size} Wallpapers saved",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = VibrantMagenta,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (favorites.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "No Favorites Yet",
+                            style = MaterialTheme.typography.titleLarge.copy(color = Color.White)
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Tap the heart icon on any wallpaper to add it here!",
+                            style = MaterialTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = 0.6f))
+                        )
+                    }
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    itemsIndexed(favorites, key = { _, item -> item.id }) { index, wallpaper ->
+                        AnimatedWallpaperCard(
+                            wallpaper = wallpaper,
+                            index = index,
+                            onClick = { onWallpaperClick(wallpaper.id) },
+                            onFavoriteToggle = { viewModel.toggleFavorite(wallpaper.id) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

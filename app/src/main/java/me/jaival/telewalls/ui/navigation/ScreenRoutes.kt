@@ -1,0 +1,13 @@
+package me.jaival.telewalls.ui.navigation
+
+object ScreenRoutes {
+    const val ONBOARDING = "onboarding"
+    const val HOME = "home"
+    const val FAVORITES = "favorites"
+    const val UPLOAD = "upload"
+    const val AUTH = "auth"
+    const val SETTINGS = "settings"
+    const val DETAIL = "detail/{wallpaperId}"
+
+    fun detailRoute(wallpaperId: String): String = "detail/$wallpaperId"
+}
