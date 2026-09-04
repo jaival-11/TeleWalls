@@ -796,7 +796,8 @@ class TdLibTelegramClient @Inject constructor(
                     chatId,
                     messageId,
                     null,
-                    TdApi.FormattedText(jsonCaption, emptyArray())
+                    TdApi.FormattedText(jsonCaption, emptyArray()),
+                    false
                 )
             )
             true
