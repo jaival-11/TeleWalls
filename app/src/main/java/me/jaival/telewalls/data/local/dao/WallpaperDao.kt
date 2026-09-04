@@ -20,7 +20,7 @@ interface WallpaperDao {
     @Query("SELECT DISTINCT category FROM wallpapers WHERE category IS NOT NULL AND category != ''")
     fun getCategoriesFromWallpapers(): Flow<List<String>>
 
-    @Query("SELECT * FROM wallpapers WHERE title LIKE '%' || :query || '%' OR tagsCsv LIKE '%' || :query || '%' ORDER BY timestamp DESC")
+    @Query("SELECT * FROM wallpapers WHERE title LIKE '%' || :query || '%' OR tagsCsv LIKE '%' || :query || '%' OR category LIKE '%' || :query || '%' OR colorsCsv LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%' OR author LIKE '%' || :query || '%' ORDER BY timestamp DESC")
     fun searchWallpapers(query: String): Flow<List<WallpaperEntity>>
 
     @Query("SELECT * FROM wallpapers WHERE isFavorite = 1 ORDER BY timestamp DESC")

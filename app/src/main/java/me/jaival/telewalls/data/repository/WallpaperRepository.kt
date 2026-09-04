@@ -13,6 +13,7 @@ import me.jaival.telewalls.core.telegram.WallpaperMetadata
 import me.jaival.telewalls.data.local.dao.WallpaperDao
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import me.jaival.telewalls.core.util.ColorSearchUtils
 import me.jaival.telewalls.data.local.dao.CategoryDao
 import me.jaival.telewalls.data.local.entity.CategoryEntity
 import me.jaival.telewalls.data.local.entity.FavoriteEntity
@@ -77,18 +78,22 @@ class WallpaperRepository @Inject constructor(
     }
 
     fun getWallpapersByCategory(category: String): Flow<List<Wallpaper>> {
-        return if (category.equals("All", ignoreCase = true)) {
-            allWallpapers
-        } else {
-            wallpaperDao.getWallpapersByCategory(category).map { entities ->
-                entities.map { it.toDomain() }
-            }
-        }
+        return searchWallpapers(query = "", category = category)
     }
 
-    fun searchWallpapers(query: String): Flow<List<Wallpaper>> {
-        return wallpaperDao.searchWallpapers(query).map { entities ->
-            entities.map { it.toDomain() }
+    fun searchWallpapers(query: String, category: String = "All"): Flow<List<Wallpaper>> {
+        val cleanQuery = query.trim()
+        if (cleanQuery.isEmpty() && category.equals("All", ignoreCase = true)) {
+            return allWallpapers
+        }
+
+        return allWallpapers.map { list ->
+            list.mapNotNull { wallpaper ->
+                val (isMatch, score) = ColorSearchUtils.evaluateWallpaper(wallpaper, cleanQuery, category)
+                if (isMatch) Pair(wallpaper, score) else null
+            }
+            .sortedWith(compareByDescending<Pair<Wallpaper, Double>> { it.second }.thenByDescending { it.first.timestamp })
+            .map { it.first }
         }
     }
 

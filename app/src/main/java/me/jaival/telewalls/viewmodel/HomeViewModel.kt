@@ -16,6 +16,7 @@ import me.jaival.telewalls.data.repository.Wallpaper
 import me.jaival.telewalls.data.repository.WallpaperRepository
 import javax.inject.Inject
 
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -50,19 +51,17 @@ class HomeViewModel @Inject constructor(
     private val _toastEvent = MutableSharedFlow<String>()
     val toastEvent: SharedFlow<String> = _toastEvent.asSharedFlow()
 
-    val wallpapers: StateFlow<List<Wallpaper>> = _selectedCategory
-        .flatMapLatest { category ->
-            if (_searchQuery.value.isNotBlank()) {
-                wallpaperRepository.searchWallpapers(_searchQuery.value)
-            } else {
-                wallpaperRepository.getWallpapersByCategory(category)
-            }
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+    val wallpapers: StateFlow<List<Wallpaper>> = combine(_selectedCategory, _searchQuery) { category, query ->
+        Pair(category, query)
+    }
+    .flatMapLatest { (category, query) ->
+        wallpaperRepository.searchWallpapers(query = query, category = category)
+    }
+    .stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
     val favorites: StateFlow<List<Wallpaper>> = wallpaperRepository.favoriteWallpapers
         .stateIn(
@@ -81,8 +80,6 @@ class HomeViewModel @Inject constructor(
 
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
-        // re-trigger query filter
-        _selectedCategory.value = _selectedCategory.value
     }
 
     fun syncWallpapers() {
