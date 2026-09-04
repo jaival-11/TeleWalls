@@ -96,7 +96,7 @@ fun AnimatedWallpaperCard(
     )
 
     val coroutineScope = rememberCoroutineScope()
-    val imageModel = wallpaper.localPath ?: wallpaper.thumbnailPath ?: "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&q=80"
+    val imageModel = wallpaper.localPath ?: wallpaper.thumbnailPath ?: ""
     val primaryColor = MaterialTheme.colorScheme.primary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
     val surfaceGradientEnd = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)

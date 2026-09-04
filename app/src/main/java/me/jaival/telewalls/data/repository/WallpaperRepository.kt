@@ -88,11 +88,6 @@ class WallpaperRepository @Inject constructor(
                 wallpaperDao.insertWallpapers(entities)
                 Result.success(documents.size)
             } else {
-                // If local database is completely empty, populate curated demo seed wallpapers
-                val currentCount = wallpaperDao.getWallpaperById("seed_1")
-                if (currentCount == null) {
-                    seedDemoWallpapers()
-                }
                 Result.success(0)
             }
         } catch (e: Exception) {
@@ -139,131 +134,7 @@ class WallpaperRepository @Inject constructor(
         telegramClient.downloadWallpaperFile(fileId, destFile.absolutePath)
     }
 
-    private suspend fun seedDemoWallpapers() {
-        val demoWallpapers = listOf(
-            WallpaperEntity(
-                id = "seed_1",
-                messageId = 101,
-                chatId = 99999,
-                fileId = "file_1",
-                fileName = "neon_cyber_city.jpg",
-                mimeType = "image/jpeg",
-                sizeBytes = 4194304,
-                title = "Neon Cyberpunk Skyline",
-                category = "AMOLED",
-                tagsCsv = "neon,cyberpunk,city,night,amoled",
-                resolution = "1440x3200",
-                aspectRatio = "9:16",
-                colorsCsv = "#0F0F1A,#FF007A,#00F0FF,#1E1E2C",
-                description = "Ultra high resolution AMOLED city skyline with vibrant neon pink and cyan highlights.",
-                author = "TeleWalls Vault",
-                timestamp = System.currentTimeMillis() - 3600000,
-                localPath = "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=1080&q=80",
-                thumbnailPath = "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=400&q=80"
-            ),
-            WallpaperEntity(
-                id = "seed_2",
-                messageId = 102,
-                chatId = 99999,
-                fileId = "file_2",
-                fileName = "misty_pine_forest.jpg",
-                mimeType = "image/jpeg",
-                sizeBytes = 5242880,
-                title = "Misty Mountain Pines",
-                category = "Nature",
-                tagsCsv = "nature,forest,mountains,fog,green",
-                resolution = "1440x3200",
-                aspectRatio = "9:16",
-                colorsCsv = "#0F2012,#2E5A35,#8FA892,#1A2E20",
-                description = "Serene foggy pine forest shrouded in morning mist in mountain highlands.",
-                author = "Jaival",
-                timestamp = System.currentTimeMillis() - 7200000,
-                localPath = "https://images.unsplash.com/photo-1448375240586-882707db888b?w=1080&q=80",
-                thumbnailPath = "https://images.unsplash.com/photo-1448375240586-882707db888b?w=400&q=80"
-            ),
-            WallpaperEntity(
-                id = "seed_3",
-                messageId = 103,
-                chatId = 99999,
-                fileId = "file_3",
-                fileName = "minimal_sand_dune.jpg",
-                mimeType = "image/jpeg",
-                sizeBytes = 3145728,
-                title = "Golden Dunes Sunset",
-                category = "Minimal",
-                tagsCsv = "minimal,desert,sand,dunes,sunset,golden",
-                resolution = "1440x3200",
-                aspectRatio = "9:16",
-                colorsCsv = "#3A1F0D,#E69544,#F7C280,#1F1005",
-                description = "Clean minimalist desert sand dune curves with warm golden hour sunlight shadows.",
-                author = "TeleWalls Vault",
-                timestamp = System.currentTimeMillis() - 10800000,
-                localPath = "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1080&q=80",
-                thumbnailPath = "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=400&q=80"
-            ),
-            WallpaperEntity(
-                id = "seed_4",
-                messageId = 104,
-                chatId = 99999,
-                fileId = "file_4",
-                fileName = "cosmic_nebula_violet.jpg",
-                mimeType = "image/jpeg",
-                sizeBytes = 6291456,
-                title = "Deep Space Nebula",
-                category = "Sci-Fi",
-                tagsCsv = "space,nebula,stars,galaxy,purple,amoled",
-                resolution = "1440x3200",
-                aspectRatio = "9:16",
-                colorsCsv = "#0A0314,#7B1FA2,#E040FB,#120024",
-                description = "Breathtaking deep cosmos space nebula rendered with glowing violet clusters.",
-                author = "Jaival",
-                timestamp = System.currentTimeMillis() - 14400000,
-                localPath = "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1080&q=80",
-                thumbnailPath = "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=400&q=80"
-            ),
-            WallpaperEntity(
-                id = "seed_5",
-                messageId = 105,
-                chatId = 99999,
-                fileId = "file_5",
-                fileName = "tokyo_night_street.jpg",
-                mimeType = "image/jpeg",
-                sizeBytes = 4718592,
-                title = "Rainy Tokyo Alley",
-                category = "Architecture",
-                tagsCsv = "japan,tokyo,street,rain,city,reflections",
-                resolution = "1440x3200",
-                aspectRatio = "9:16",
-                colorsCsv = "#0B101E,#E91E63,#00BCD4,#1A237E",
-                description = "Atmospheric rainy alley in Shinjuku Tokyo with glowing lantern reflections.",
-                author = "TeleWalls Vault",
-                timestamp = System.currentTimeMillis() - 18000000,
-                localPath = "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=1080&q=80",
-                thumbnailPath = "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=400&q=80"
-            ),
-            WallpaperEntity(
-                id = "seed_6",
-                messageId = 106,
-                chatId = 99999,
-                fileId = "file_6",
-                fileName = "abstract_liquid_flow.jpg",
-                mimeType = "image/jpeg",
-                sizeBytes = 3670016,
-                title = "Chromatic Liquid Waves",
-                category = "Abstract",
-                tagsCsv = "abstract,liquid,3d,gradients,fluid",
-                resolution = "1440x3200",
-                aspectRatio = "9:16",
-                colorsCsv = "#14002B,#FF0055,#7928CA,#00DFD8",
-                description = "Smooth 3D fluid chromatic wave ribbons with vibrant gradient glows.",
-                author = "Jaival",
-                timestamp = System.currentTimeMillis() - 21600000,
-                localPath = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1080&q=80",
-                thumbnailPath = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&q=80"
-            )
-        )
-        wallpaperDao.insertWallpapers(demoWallpapers)
-    }
+
 
     private fun WallpaperEntity.toDomain(): Wallpaper = Wallpaper(
         id = id,
