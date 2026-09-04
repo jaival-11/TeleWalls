@@ -465,9 +465,11 @@ class TdLibTelegramClient @Inject constructor(
                     }
                 }
 
-                val docFile = content.document.document
-                val mime = content.document.mimeType.orEmpty()
-                if (mime.startsWith("image/", ignoreCase = true) || docFile.fileName.endsWith(".jpg", ignoreCase = true) || docFile.fileName.endsWith(".png", ignoreCase = true)) {
+                val doc = content.document
+                val docFile = doc.document
+                val mime = doc.mimeType.orEmpty()
+                val docFileName = doc.fileName.orEmpty()
+                if (mime.startsWith("image/", ignoreCase = true) || docFileName.endsWith(".jpg", ignoreCase = true) || docFileName.endsWith(".png", ignoreCase = true) || docFileName.endsWith(".jpeg", ignoreCase = true) || docFileName.endsWith(".webp", ignoreCase = true)) {
                     if (docFile.local?.isDownloadingCompleted == true && !docFile.local.path.isNullOrBlank() && File(docFile.local.path).exists()) {
                         return docFile.local.path
                     }
