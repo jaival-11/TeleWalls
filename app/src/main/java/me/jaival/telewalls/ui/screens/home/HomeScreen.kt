@@ -47,8 +47,10 @@ import me.jaival.telewalls.ui.components.AnimatedWallpaperCard
 import me.jaival.telewalls.ui.components.CategoryChips
 import me.jaival.telewalls.ui.components.glassmorphism
 import me.jaival.telewalls.ui.components.ShimmerCard
-import me.jaival.telewalls.ui.theme.NeonCyan
-import me.jaival.telewalls.ui.theme.VibrantMagenta
+import me.jaival.telewalls.ui.components.AnimatedWallpaperCard
+import me.jaival.telewalls.ui.components.CategoryChips
+import me.jaival.telewalls.ui.components.glassmorphism
+import me.jaival.telewalls.ui.components.ShimmerCard
 import me.jaival.telewalls.viewmodel.HomeViewModel
 
 @Composable
@@ -60,6 +62,7 @@ fun HomeScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val wallpapers by viewModel.wallpapers.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
@@ -81,7 +84,7 @@ fun HomeScreen(
                     Text(
                         text = "TeleWalls",
                         style = MaterialTheme.typography.headlineMedium.copy(
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onBackground,
                             fontWeight = FontWeight.Black,
                             fontSize = 28.sp
                         )
@@ -89,7 +92,7 @@ fun HomeScreen(
                     Text(
                         text = "TDLib Vault Storage",
                         style = MaterialTheme.typography.labelSmall.copy(
-                            color = NeonCyan,
+                            color = primaryColor,
                             fontWeight = FontWeight.SemiBold
                         )
                     )
@@ -99,7 +102,7 @@ fun HomeScreen(
                 Box(
                     modifier = Modifier
                         .clip(CircleShape)
-                        .background(Color(0xFF191C24))
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
                         .clickable { viewModel.syncWallpapers() }
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
@@ -107,14 +110,14 @@ fun HomeScreen(
                         if (isRefreshing) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(14.dp),
-                                color = NeonCyan,
+                                color = primaryColor,
                                 strokeWidth = 2.dp
                             )
                         } else {
                             Icon(
                                 imageVector = Icons.Filled.CloudDone,
                                 contentDescription = "Sync",
-                                tint = NeonCyan,
+                                tint = primaryColor,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -122,7 +125,7 @@ fun HomeScreen(
                         Text(
                             text = if (isRefreshing) "Syncing..." else "Vault Live",
                             style = MaterialTheme.typography.labelSmall.copy(
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 11.sp
                             )
                         )
@@ -137,7 +140,7 @@ fun HomeScreen(
                 placeholder = {
                     Text(
                         text = "Search wallpapers, tags, AMOLED...",
-                        color = Color.White.copy(alpha = 0.5f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         fontSize = 14.sp
                     )
                 },
@@ -145,18 +148,18 @@ fun HomeScreen(
                     Icon(
                         imageVector = Icons.Filled.Search,
                         contentDescription = "Search",
-                        tint = NeonCyan
+                        tint = primaryColor
                     )
                 },
                 singleLine = true,
                 shape = RoundedCornerShape(24.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFF141720),
-                    unfocusedContainerColor = Color(0xFF141720),
-                    focusedBorderColor = NeonCyan,
-                    unfocusedBorderColor = Color(0x33FFFFFF),
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    focusedBorderColor = primaryColor,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -195,12 +198,12 @@ fun HomeScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = "No Wallpapers Found",
-                            style = MaterialTheme.typography.titleLarge.copy(color = Color.White)
+                            style = MaterialTheme.typography.titleLarge.copy(color = MaterialTheme.colorScheme.onBackground)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Upload high-res photos to your Telegram Vault channel!",
-                            style = MaterialTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = 0.6f))
+                            style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                         )
                     }
                 }
@@ -224,3 +227,4 @@ fun HomeScreen(
         }
     }
 }
+

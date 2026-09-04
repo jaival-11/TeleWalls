@@ -52,8 +52,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.jaival.telewalls.core.telegram.TelegramAuthState
 import me.jaival.telewalls.ui.components.glassmorphism
-import me.jaival.telewalls.ui.theme.NeonCyan
-import me.jaival.telewalls.ui.theme.VibrantMagenta
 import me.jaival.telewalls.viewmodel.AuthViewModel
 
 @Composable
@@ -63,6 +61,8 @@ fun AuthScreen(
     val authState by viewModel.authState.collectAsState()
     val channels by viewModel.channels.collectAsState()
     val activeChannelId by viewModel.activeChannelId.collectAsState()
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val secondaryColor = MaterialTheme.colorScheme.secondary
 
     var apiIdText by remember { mutableStateOf("") }
     var apiHashText by remember { mutableStateOf("") }
@@ -79,6 +79,17 @@ fun AuthScreen(
         }
     }
 
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+        focusedBorderColor = primaryColor,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+        focusedLabelColor = primaryColor,
+        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
@@ -92,7 +103,7 @@ fun AuthScreen(
             Text(
                 text = "Telegram Vault Setup",
                 style = MaterialTheme.typography.headlineMedium.copy(
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Black,
                     fontSize = 28.sp
                 )
@@ -100,7 +111,7 @@ fun AuthScreen(
             Text(
                 text = "Connect TDLib & configure private storage channel",
                 style = MaterialTheme.typography.labelSmall.copy(
-                    color = NeonCyan,
+                    color = primaryColor,
                     fontWeight = FontWeight.SemiBold
                 )
             )
@@ -113,8 +124,8 @@ fun AuthScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
                     .glassmorphism(
-                        backgroundColor = Color(0xFF141720),
-                        borderColor = Color(0x3300F0FF),
+                        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f),
+                        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
                         shape = RoundedCornerShape(24.dp)
                     )
                     .padding(20.dp)
@@ -123,7 +134,7 @@ fun AuthScreen(
                     Icon(
                         imageVector = if (authState is TelegramAuthState.Ready) Icons.Filled.CheckCircle else Icons.Filled.Lock,
                         contentDescription = null,
-                        tint = if (authState is TelegramAuthState.Ready) NeonCyan else VibrantMagenta,
+                        tint = if (authState is TelegramAuthState.Ready) primaryColor else secondaryColor,
                         modifier = Modifier.size(32.dp)
                     )
                     Spacer(modifier = Modifier.width(16.dp))
@@ -131,13 +142,13 @@ fun AuthScreen(
                         Text(
                             text = "Status: ${authState::class.simpleName}",
                             style = MaterialTheme.typography.titleMedium.copy(
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.Bold
                             )
                         )
                         Text(
                             text = if (authState is TelegramAuthState.Ready) "TDLib Client Active & Authorized" else "Action required for authentication",
-                            style = MaterialTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = 0.6f))
+                            style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                         )
                     }
                 }
@@ -147,15 +158,15 @@ fun AuthScreen(
 
             // Step 1: Credentials Setup
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF141720)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 shape = RoundedCornerShape(24.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Filled.Key, contentDescription = null, tint = NeonCyan)
+                        Icon(imageVector = Icons.Filled.Key, contentDescription = null, tint = primaryColor)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "1. Telegram Credentials", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text(text = "1. Telegram Credentials", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     OutlinedTextField(
@@ -165,14 +176,7 @@ fun AuthScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color(0xFF0F1117),
-                            unfocusedContainerColor = Color(0xFF0F1117),
-                            focusedBorderColor = NeonCyan,
-                            unfocusedBorderColor = Color(0x33FFFFFF),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        )
+                        colors = fieldColors
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     OutlinedTextField(
@@ -182,14 +186,7 @@ fun AuthScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color(0xFF0F1117),
-                            unfocusedContainerColor = Color(0xFF0F1117),
-                            focusedBorderColor = NeonCyan,
-                            unfocusedBorderColor = Color(0x33FFFFFF),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        )
+                        colors = fieldColors
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Button(
@@ -199,7 +196,7 @@ fun AuthScreen(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(20.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = Color(0xFF07080B))
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = MaterialTheme.colorScheme.onPrimary)
                     ) {
                         Text("Connect TDLib Engine", fontWeight = FontWeight.Bold)
                     }
@@ -212,15 +209,15 @@ fun AuthScreen(
             when (authState) {
                 is TelegramAuthState.WaitingForPhoneNumber -> {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF141720)),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                         shape = RoundedCornerShape(24.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Filled.Phone, contentDescription = null, tint = NeonCyan)
+                                Icon(imageVector = Icons.Filled.Phone, contentDescription = null, tint = primaryColor)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = "2. Phone Sign-In", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                Text(text = "2. Phone Sign-In", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                             }
                             Spacer(modifier = Modifier.height(12.dp))
                             OutlinedTextField(
@@ -230,21 +227,14 @@ fun AuthScreen(
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color(0xFF0F1117),
-                                    unfocusedContainerColor = Color(0xFF0F1117),
-                                    focusedBorderColor = NeonCyan,
-                                    unfocusedBorderColor = Color(0x33FFFFFF),
-                                    focusedTextColor = Color.White,
-                                    unfocusedTextColor = Color.White
-                                )
+                                colors = fieldColors
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Button(
                                 onClick = { viewModel.submitPhoneNumber(phoneNumber) },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(20.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = Color(0xFF07080B))
+                                colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = MaterialTheme.colorScheme.onPrimary)
                             ) {
                                 Text("Send Verification Code", fontWeight = FontWeight.Bold)
                             }
@@ -253,12 +243,12 @@ fun AuthScreen(
                 }
                 is TelegramAuthState.WaitingForCode -> {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF141720)),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                         shape = RoundedCornerShape(24.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
-                            Text(text = "Enter Telegram Code", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Text(text = "Enter Telegram Code", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                             Spacer(modifier = Modifier.height(12.dp))
                             OutlinedTextField(
                                 value = smsCode,
@@ -267,21 +257,14 @@ fun AuthScreen(
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color(0xFF0F1117),
-                                    unfocusedContainerColor = Color(0xFF0F1117),
-                                    focusedBorderColor = NeonCyan,
-                                    unfocusedBorderColor = Color(0x33FFFFFF),
-                                    focusedTextColor = Color.White,
-                                    unfocusedTextColor = Color.White
-                                )
+                                colors = fieldColors
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Button(
                                 onClick = { viewModel.submitCode(smsCode) },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(20.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = Color(0xFF07080B))
+                                colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = MaterialTheme.colorScheme.onPrimary)
                             ) {
                                 Text("Submit Code", fontWeight = FontWeight.Bold)
                             }
@@ -290,12 +273,12 @@ fun AuthScreen(
                 }
                 is TelegramAuthState.WaitingForPassword -> {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF141720)),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                         shape = RoundedCornerShape(24.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
-                            Text(text = "Two-Step Verification Password", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Text(text = "Two-Step Verification Password", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                             Spacer(modifier = Modifier.height(12.dp))
                             OutlinedTextField(
                                 value = password,
@@ -304,21 +287,14 @@ fun AuthScreen(
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color(0xFF0F1117),
-                                    unfocusedContainerColor = Color(0xFF0F1117),
-                                    focusedBorderColor = NeonCyan,
-                                    unfocusedBorderColor = Color(0x33FFFFFF),
-                                    focusedTextColor = Color.White,
-                                    unfocusedTextColor = Color.White
-                                )
+                                colors = fieldColors
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Button(
                                 onClick = { viewModel.submitPassword(password) },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(20.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = Color(0xFF07080B))
+                                colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = MaterialTheme.colorScheme.onPrimary)
                             ) {
                                 Text("Submit Password", fontWeight = FontWeight.Bold)
                             }
@@ -328,13 +304,13 @@ fun AuthScreen(
                 is TelegramAuthState.Ready -> {
                     // Storage Channel Manager
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF141720)),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                         shape = RoundedCornerShape(24.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
-                            Text(text = "Storage Vault Channels", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Text(text = "Select or create channel to store wallpapers", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
+                            Text(text = "Storage Vault Channels", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Text(text = "Select or create channel to store wallpapers", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
 
                             Spacer(modifier = Modifier.height(12.dp))
 
@@ -345,15 +321,15 @@ fun AuthScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clip(RoundedCornerShape(16.dp))
-                                            .background(if (isSelected) NeonCyan.copy(alpha = 0.15f) else Color(0xFF0F1117))
+                                            .background(if (isSelected) primaryColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerHigh)
                                             .clickable { viewModel.selectStorageChannel(ch.chatId) }
                                             .padding(14.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(text = ch.title, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                        Text(text = ch.title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
                                         if (isSelected) {
-                                            Icon(imageVector = Icons.Filled.CheckCircle, contentDescription = null, tint = NeonCyan)
+                                            Icon(imageVector = Icons.Filled.CheckCircle, contentDescription = null, tint = primaryColor)
                                         }
                                     }
                                     Spacer(modifier = Modifier.height(8.dp))
@@ -369,14 +345,7 @@ fun AuthScreen(
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color(0xFF0F1117),
-                                    unfocusedContainerColor = Color(0xFF0F1117),
-                                    focusedBorderColor = NeonCyan,
-                                    unfocusedBorderColor = Color(0x33FFFFFF),
-                                    focusedTextColor = Color.White,
-                                    unfocusedTextColor = Color.White
-                                )
+                                colors = fieldColors
                             )
                             Spacer(modifier = Modifier.height(10.dp))
                             Button(
@@ -388,7 +357,7 @@ fun AuthScreen(
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(20.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = Color(0xFF07080B))
+                                colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = MaterialTheme.colorScheme.onPrimary)
                             ) {
                                 Icon(imageVector = Icons.Filled.Add, contentDescription = null)
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -402,3 +371,4 @@ fun AuthScreen(
         }
     }
 }
+

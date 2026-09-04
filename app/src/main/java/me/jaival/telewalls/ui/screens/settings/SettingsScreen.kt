@@ -49,8 +49,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.jaival.telewalls.ui.components.glassmorphism
-import me.jaival.telewalls.ui.theme.NeonCyan
-import me.jaival.telewalls.ui.theme.VibrantMagenta
 import me.jaival.telewalls.viewmodel.AuthViewModel
 
 @Composable
@@ -60,6 +58,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val authState by authViewModel.authState.collectAsState()
     var dynamicColorsEnabled by remember { mutableStateOf(true) }
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
@@ -74,7 +73,7 @@ fun SettingsScreen(
             Text(
                 text = "Settings",
                 style = MaterialTheme.typography.headlineMedium.copy(
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Black,
                     fontSize = 28.sp
                 )
@@ -82,7 +81,7 @@ fun SettingsScreen(
             Text(
                 text = "TeleWalls Configuration & Storage",
                 style = MaterialTheme.typography.labelSmall.copy(
-                    color = NeonCyan,
+                    color = primaryColor,
                     fontWeight = FontWeight.SemiBold
                 )
             )
@@ -91,7 +90,7 @@ fun SettingsScreen(
 
             // UI Theme & Aesthetics Card
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF141720)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 shape = RoundedCornerShape(24.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -102,19 +101,19 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Filled.Palette, contentDescription = null, tint = NeonCyan)
+                            Icon(imageVector = Icons.Filled.Palette, contentDescription = null, tint = primaryColor)
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text(text = "Dynamic Palette Colors", color = Color.White, fontWeight = FontWeight.Bold)
-                                Text(text = "Extract palette swatches from wallpaper", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
+                                Text(text = "Monet Dynamic Colors", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                                Text(text = "Extract palette swatches from system & wallpapers", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                             }
                         }
                         Switch(
                             checked = dynamicColorsEnabled,
                             onCheckedChange = { dynamicColorsEnabled = it },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color(0xFF07080B),
-                                checkedTrackColor = NeonCyan
+                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                checkedTrackColor = primaryColor
                             )
                         )
                     }
@@ -125,7 +124,7 @@ fun SettingsScreen(
 
             // Cache Management Card
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF141720)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 shape = RoundedCornerShape(24.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -140,11 +139,11 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Filled.CleaningServices, contentDescription = null, tint = NeonCyan)
+                            Icon(imageVector = Icons.Filled.CleaningServices, contentDescription = null, tint = primaryColor)
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text(text = "Clear Image Cache", color = Color.White, fontWeight = FontWeight.Bold)
-                                Text(text = "Frees temporary document preview files", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
+                                Text(text = "Clear Image Cache", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                                Text(text = "Frees temporary document preview files", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                             }
                         }
                     }
@@ -155,18 +154,18 @@ fun SettingsScreen(
 
             // About TeleWalls Card
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF141720)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 shape = RoundedCornerShape(24.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Filled.Info, contentDescription = null, tint = NeonCyan)
+                        Icon(imageVector = Icons.Filled.Info, contentDescription = null, tint = primaryColor)
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            Text(text = "TeleWalls App", color = Color.White, fontWeight = FontWeight.Bold)
-                            Text(text = "Package: me.jaival.telewalls", color = NeonCyan, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                            Text(text = "Version 1.0.0 (TDLib Telegram Storage)", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
+                            Text(text = "TeleWalls App", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                            Text(text = "Package: me.jaival.telewalls", color = primaryColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            Text(text = "Version 1.0.0 (Monet Material You Engine)", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                         }
                     }
                 }
@@ -185,8 +184,8 @@ fun SettingsScreen(
                     .height(52.dp),
                 shape = RoundedCornerShape(26.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF2A1520),
-                    contentColor = VibrantMagenta
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer
                 )
             ) {
                 Icon(imageVector = Icons.Filled.Logout, contentDescription = null)
@@ -196,3 +195,4 @@ fun SettingsScreen(
         }
     }
 }
+

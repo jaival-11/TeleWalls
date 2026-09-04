@@ -62,8 +62,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.jaival.telewalls.core.telegram.TelegramAuthState
 import me.jaival.telewalls.ui.components.glassmorphism
-import me.jaival.telewalls.ui.theme.NeonCyan
-import me.jaival.telewalls.ui.theme.VibrantMagenta
 import me.jaival.telewalls.viewmodel.AuthViewModel
 
 @Composable
@@ -75,6 +73,7 @@ fun OnboardingScreen(
     val authState by viewModel.authState.collectAsState()
     val channels by viewModel.channels.collectAsState()
     val activeChannelId by viewModel.activeChannelId.collectAsState()
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     var currentStep by remember { mutableIntStateOf(1) }
 
@@ -84,6 +83,17 @@ fun OnboardingScreen(
     var smsCode by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var newChannelTitle by remember { mutableStateOf("TeleWalls Vault") }
+
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+        focusedBorderColor = primaryColor,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+        focusedLabelColor = primaryColor,
+        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
@@ -106,16 +116,16 @@ fun OnboardingScreen(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(NeonCyan.copy(alpha = 0.2f)),
+                            .background(primaryColor.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(imageVector = Icons.Filled.Wallpaper, contentDescription = null, tint = NeonCyan)
+                        Icon(imageVector = Icons.Filled.Wallpaper, contentDescription = null, tint = primaryColor)
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = "TeleWalls Setup",
                         style = MaterialTheme.typography.titleLarge.copy(
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onBackground,
                             fontWeight = FontWeight.Bold
                         )
                     )
@@ -123,7 +133,7 @@ fun OnboardingScreen(
 
                 Text(
                     text = "Step $currentStep of 3",
-                    color = NeonCyan,
+                    color = primaryColor,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp
                 )
@@ -143,7 +153,7 @@ fun OnboardingScreen(
                             Text(
                                 text = "1. Telegram API Credentials",
                                 style = MaterialTheme.typography.headlineMedium.copy(
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onBackground,
                                     fontWeight = FontWeight.Black,
                                     fontSize = 24.sp
                                 )
@@ -151,7 +161,7 @@ fun OnboardingScreen(
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "TeleWalls connects directly to your Telegram account via TDLib. You need your free API ID & API Hash from my.telegram.org.",
-                                style = MaterialTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = 0.7f))
+                                style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                             )
 
                             Spacer(modifier = Modifier.height(16.dp))
@@ -164,9 +174,9 @@ fun OnboardingScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp)
                             ) {
-                                Icon(imageVector = Icons.Filled.OpenInNew, contentDescription = null, tint = NeonCyan)
+                                Icon(imageVector = Icons.Filled.OpenInNew, contentDescription = null, tint = primaryColor)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Get Keys at my.telegram.org", color = NeonCyan)
+                                Text("Get Keys at my.telegram.org", color = primaryColor)
                             }
 
                             Spacer(modifier = Modifier.height(20.dp))
@@ -178,14 +188,7 @@ fun OnboardingScreen(
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color(0xFF141720),
-                                    unfocusedContainerColor = Color(0xFF141720),
-                                    focusedBorderColor = NeonCyan,
-                                    unfocusedBorderColor = Color(0x33FFFFFF),
-                                    focusedTextColor = Color.White,
-                                    unfocusedTextColor = Color.White
-                                )
+                                colors = fieldColors
                             )
 
                             Spacer(modifier = Modifier.height(12.dp))
@@ -197,14 +200,7 @@ fun OnboardingScreen(
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color(0xFF141720),
-                                    unfocusedContainerColor = Color(0xFF141720),
-                                    focusedBorderColor = NeonCyan,
-                                    unfocusedBorderColor = Color(0x33FFFFFF),
-                                    focusedTextColor = Color.White,
-                                    unfocusedTextColor = Color.White
-                                )
+                                colors = fieldColors
                             )
 
                             Spacer(modifier = Modifier.height(24.dp))
@@ -219,7 +215,7 @@ fun OnboardingScreen(
                                     .fillMaxWidth()
                                     .height(54.dp),
                                 shape = RoundedCornerShape(27.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = Color(0xFF07080B))
+                                colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = MaterialTheme.colorScheme.onPrimary)
                             ) {
                                 Text("Continue to Sign In", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -234,7 +230,7 @@ fun OnboardingScreen(
                             Text(
                                 text = "2. Telegram Sign-In",
                                 style = MaterialTheme.typography.headlineMedium.copy(
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onBackground,
                                     fontWeight = FontWeight.Black,
                                     fontSize = 24.sp
                                 )
@@ -242,7 +238,7 @@ fun OnboardingScreen(
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "Sign in to authorize TDLib on your device.",
-                                style = MaterialTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = 0.7f))
+                                style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                             )
 
                             Spacer(modifier = Modifier.height(20.dp))
@@ -256,21 +252,14 @@ fun OnboardingScreen(
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth(),
                                         shape = RoundedCornerShape(16.dp),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedContainerColor = Color(0xFF141720),
-                                            unfocusedContainerColor = Color(0xFF141720),
-                                            focusedBorderColor = NeonCyan,
-                                            unfocusedBorderColor = Color(0x33FFFFFF),
-                                            focusedTextColor = Color.White,
-                                            unfocusedTextColor = Color.White
-                                        )
+                                        colors = fieldColors
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
                                     Button(
                                         onClick = { viewModel.submitPhoneNumber(phoneNumber) },
                                         modifier = Modifier.fillMaxWidth().height(52.dp),
                                         shape = RoundedCornerShape(26.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = Color(0xFF07080B))
+                                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = MaterialTheme.colorScheme.onPrimary)
                                     ) {
                                         Text("Send Code", fontWeight = FontWeight.Bold)
                                     }
@@ -283,14 +272,7 @@ fun OnboardingScreen(
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth(),
                                         shape = RoundedCornerShape(16.dp),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedContainerColor = Color(0xFF141720),
-                                            unfocusedContainerColor = Color(0xFF141720),
-                                            focusedBorderColor = NeonCyan,
-                                            unfocusedBorderColor = Color(0x33FFFFFF),
-                                            focusedTextColor = Color.White,
-                                            unfocusedTextColor = Color.White
-                                        )
+                                        colors = fieldColors
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
                                     Button(
@@ -300,7 +282,7 @@ fun OnboardingScreen(
                                         },
                                         modifier = Modifier.fillMaxWidth().height(52.dp),
                                         shape = RoundedCornerShape(26.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = Color(0xFF07080B))
+                                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = MaterialTheme.colorScheme.onPrimary)
                                     ) {
                                         Text("Verify Code", fontWeight = FontWeight.Bold)
                                     }
@@ -313,14 +295,7 @@ fun OnboardingScreen(
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth(),
                                         shape = RoundedCornerShape(16.dp),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedContainerColor = Color(0xFF141720),
-                                            unfocusedContainerColor = Color(0xFF141720),
-                                            focusedBorderColor = NeonCyan,
-                                            unfocusedBorderColor = Color(0x33FFFFFF),
-                                            focusedTextColor = Color.White,
-                                            unfocusedTextColor = Color.White
-                                        )
+                                        colors = fieldColors
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
                                     Button(
@@ -330,7 +305,7 @@ fun OnboardingScreen(
                                         },
                                         modifier = Modifier.fillMaxWidth().height(52.dp),
                                         shape = RoundedCornerShape(26.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = Color(0xFF07080B))
+                                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = MaterialTheme.colorScheme.onPrimary)
                                     ) {
                                         Text("Verify Password", fontWeight = FontWeight.Bold)
                                     }
@@ -340,13 +315,13 @@ fun OnboardingScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clip(RoundedCornerShape(20.dp))
-                                            .background(NeonCyan.copy(alpha = 0.15f))
+                                            .background(primaryColor.copy(alpha = 0.15f))
                                             .padding(16.dp)
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(imageVector = Icons.Filled.CheckCircle, contentDescription = null, tint = NeonCyan)
+                                            Icon(imageVector = Icons.Filled.CheckCircle, contentDescription = null, tint = primaryColor)
                                             Spacer(modifier = Modifier.width(12.dp))
-                                            Text("Telegram Client Ready & Authorized!", color = Color.White, fontWeight = FontWeight.Bold)
+                                            Text("Telegram Client Ready & Authorized!", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                                         }
                                     }
                                     Spacer(modifier = Modifier.height(20.dp))
@@ -354,7 +329,7 @@ fun OnboardingScreen(
                                         onClick = { currentStep = 3 },
                                         modifier = Modifier.fillMaxWidth().height(52.dp),
                                         shape = RoundedCornerShape(26.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = Color(0xFF07080B))
+                                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = MaterialTheme.colorScheme.onPrimary)
                                     ) {
                                         Text("Continue to Vault Channel", fontWeight = FontWeight.Bold)
                                     }
@@ -370,7 +345,7 @@ fun OnboardingScreen(
                             Text(
                                 text = "3. Storage Channel Vault",
                                 style = MaterialTheme.typography.headlineMedium.copy(
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onBackground,
                                     fontWeight = FontWeight.Black,
                                     fontSize = 24.sp
                                 )
@@ -378,7 +353,7 @@ fun OnboardingScreen(
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "TeleWalls will upload all high-res photos to a private Telegram channel in your account.",
-                                style = MaterialTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = 0.7f))
+                                style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                             )
 
                             Spacer(modifier = Modifier.height(20.dp))
@@ -390,14 +365,7 @@ fun OnboardingScreen(
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color(0xFF141720),
-                                    unfocusedContainerColor = Color(0xFF141720),
-                                    focusedBorderColor = NeonCyan,
-                                    unfocusedBorderColor = Color(0x33FFFFFF),
-                                    focusedTextColor = Color.White,
-                                    unfocusedTextColor = Color.White
-                                )
+                                colors = fieldColors
                             )
 
                             Spacer(modifier = Modifier.height(16.dp))
@@ -411,7 +379,7 @@ fun OnboardingScreen(
                                     .fillMaxWidth()
                                     .height(54.dp),
                                 shape = RoundedCornerShape(27.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = Color(0xFF07080B))
+                                colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = MaterialTheme.colorScheme.onPrimary)
                             ) {
                                 Icon(imageVector = Icons.Filled.CloudDone, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -424,3 +392,4 @@ fun OnboardingScreen(
         }
     }
 }
+

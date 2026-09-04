@@ -55,7 +55,6 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.jaival.telewalls.ui.navigation.ScreenRoutes
-import me.jaival.telewalls.ui.theme.NeonCyan
 import kotlin.math.roundToInt
 
 data class NavItem(
@@ -105,6 +104,9 @@ fun AnimatedBottomBar(
         label = "pill_offset_x"
     )
 
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val unselectedTint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -112,8 +114,8 @@ fun AnimatedBottomBar(
             .height(68.dp)
             .clip(RoundedCornerShape(34.dp))
             .glassmorphism(
-                backgroundColor = Color(0xE60F1117),
-                borderColor = Color(0x2200F0FF),
+                backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f),
+                borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
                 shape = RoundedCornerShape(34.dp)
             )
     ) {
@@ -124,7 +126,7 @@ fun AnimatedBottomBar(
                     .align(Alignment.CenterStart)
                     .size(width = indicatorWidth, height = indicatorHeight)
                     .clip(CircleShape)
-                    .background(NeonCyan.copy(alpha = 0.2f))
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f))
             )
         }
 
@@ -148,7 +150,7 @@ fun AnimatedBottomBar(
                 )
 
                 val iconTint by animateColorAsState(
-                    targetValue = if (isSelected) NeonCyan else Color.White.copy(alpha = 0.6f),
+                    targetValue = if (isSelected) primaryColor else unselectedTint,
                     animationSpec = tween(250),
                     label = "nav_icon_tint"
                 )

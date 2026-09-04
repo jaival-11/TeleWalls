@@ -56,8 +56,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import me.jaival.telewalls.ui.components.CategoryChips
-import me.jaival.telewalls.ui.theme.NeonCyan
-import me.jaival.telewalls.ui.theme.VibrantMagenta
 import me.jaival.telewalls.viewmodel.UploadState
 import me.jaival.telewalls.viewmodel.UploadViewModel
 
@@ -71,6 +69,7 @@ fun UploadScreen(
     val selectedUri by viewModel.selectedImageUri.collectAsState()
     val detectedResolution by viewModel.detectedResolution.collectAsState()
     val detectedColors by viewModel.detectedColors.collectAsState()
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     var title by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("AMOLED") }
@@ -109,7 +108,7 @@ fun UploadScreen(
             Text(
                 text = "Upload Wallpaper",
                 style = MaterialTheme.typography.headlineMedium.copy(
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Black,
                     fontSize = 28.sp
                 )
@@ -117,7 +116,7 @@ fun UploadScreen(
             Text(
                 text = "Sends as Document to preserve original resolution",
                 style = MaterialTheme.typography.labelSmall.copy(
-                    color = NeonCyan,
+                    color = primaryColor,
                     fontWeight = FontWeight.SemiBold
                 )
             )
@@ -130,8 +129,8 @@ fun UploadScreen(
                     .fillMaxWidth()
                     .height(220.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0xFF141720))
-                    .border(2.dp, if (selectedUri != null) NeonCyan else Color(0x33FFFFFF), RoundedCornerShape(24.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                    .border(2.dp, if (selectedUri != null) primaryColor else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(24.dp))
                     .clickable { imagePickerLauncher.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
@@ -147,12 +146,12 @@ fun UploadScreen(
                             .align(Alignment.TopEnd)
                             .padding(12.dp)
                             .clip(CircleShape)
-                            .background(Color(0xAA07080B))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f))
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = detectedResolution,
-                            color = NeonCyan,
+                            color = primaryColor,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -162,13 +161,13 @@ fun UploadScreen(
                         Icon(
                             imageVector = Icons.Filled.AddPhotoAlternate,
                             contentDescription = "Pick Photo",
-                            tint = NeonCyan,
+                            tint = primaryColor,
                             modifier = Modifier.size(48.dp)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Tap to select photo from gallery",
-                            color = Color.White.copy(alpha = 0.8f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -181,11 +180,11 @@ fun UploadScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "Extracted Colors: ",
-                        style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.6f))
+                        style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     detectedColors.forEach { hex ->
-                        val color = try { Color(android.graphics.Color.parseColor(hex)) } catch (e: Exception) { NeonCyan }
+                        val color = try { Color(android.graphics.Color.parseColor(hex)) } catch (e: Exception) { primaryColor }
                         Box(
                             modifier = Modifier
                                 .size(18.dp)
@@ -200,6 +199,17 @@ fun UploadScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            val fieldColors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                focusedBorderColor = primaryColor,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedLabelColor = primaryColor,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
             // Title
             OutlinedTextField(
                 value = title,
@@ -208,15 +218,7 @@ fun UploadScreen(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFF141720),
-                    unfocusedContainerColor = Color(0xFF141720),
-                    focusedBorderColor = NeonCyan,
-                    unfocusedBorderColor = Color(0x33FFFFFF),
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedLabelColor = NeonCyan
-                )
+                colors = fieldColors
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -224,7 +226,7 @@ fun UploadScreen(
             // Category Selection
             Text(
                 text = "Select Category",
-                style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.7f))
+                style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
             )
             Spacer(modifier = Modifier.height(6.dp))
             CategoryChips(
@@ -242,15 +244,7 @@ fun UploadScreen(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFF141720),
-                    unfocusedContainerColor = Color(0xFF141720),
-                    focusedBorderColor = NeonCyan,
-                    unfocusedBorderColor = Color(0x33FFFFFF),
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedLabelColor = NeonCyan
-                )
+                colors = fieldColors
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -263,15 +257,7 @@ fun UploadScreen(
                 maxLines = 3,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFF141720),
-                    unfocusedContainerColor = Color(0xFF141720),
-                    focusedBorderColor = NeonCyan,
-                    unfocusedBorderColor = Color(0x33FFFFFF),
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedLabelColor = NeonCyan
-                )
+                colors = fieldColors
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -286,13 +272,13 @@ fun UploadScreen(
                     ) {
                         Text(
                             text = "Uploading Document to TDLib...",
-                            color = NeonCyan,
+                            color = primaryColor,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = "${state.progressPercent.toInt()}%",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onBackground,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -304,8 +290,8 @@ fun UploadScreen(
                             .fillMaxWidth()
                             .height(8.dp)
                             .clip(CircleShape),
-                        color = NeonCyan,
-                        trackColor = Color(0xFF191C24)
+                        color = primaryColor,
+                        trackColor = MaterialTheme.colorScheme.surfaceContainerHigh
                     )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -329,10 +315,10 @@ fun UploadScreen(
                     .height(54.dp),
                 shape = RoundedCornerShape(27.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = NeonCyan,
-                    contentColor = Color(0xFF07080B),
-                    disabledContainerColor = Color(0xFF191C24),
-                    disabledContentColor = Color.White.copy(alpha = 0.4f)
+                    containerColor = primaryColor,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                 )
             ) {
                 Icon(imageVector = Icons.Filled.CloudUpload, contentDescription = null)
@@ -346,3 +332,4 @@ fun UploadScreen(
         }
     }
 }
+

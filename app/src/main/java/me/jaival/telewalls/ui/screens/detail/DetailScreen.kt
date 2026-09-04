@@ -58,8 +58,6 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import me.jaival.telewalls.core.wallpaper.WallpaperTarget
 import me.jaival.telewalls.ui.components.glassmorphism
-import me.jaival.telewalls.ui.theme.NeonCyan
-import me.jaival.telewalls.ui.theme.VibrantMagenta
 import me.jaival.telewalls.viewmodel.DetailViewModel
 import me.jaival.telewalls.viewmodel.WallpaperApplyState
 
@@ -76,6 +74,8 @@ fun DetailScreen(
     val wallpaper by viewModel.wallpaper.collectAsState()
     val applyState by viewModel.applyState.collectAsState()
     val context = LocalContext.current
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val tertiaryColor = MaterialTheme.colorScheme.tertiary
 
     var showApplyDialog by remember { mutableStateOf(false) }
 
@@ -94,15 +94,15 @@ fun DetailScreen(
     val dynamicColors = currentWall.colors.mapNotNull { hex ->
         try { Color(android.graphics.Color.parseColor(hex)) } catch (e: Exception) { null }
     }
-    val topBgColor = dynamicColors.firstOrNull() ?: Color(0xFF0F1117)
-    val bottomBgColor = dynamicColors.getOrNull(1) ?: Color(0xFF07080B)
+    val topBgColor = dynamicColors.firstOrNull() ?: MaterialTheme.colorScheme.surface
+    val bottomBgColor = dynamicColors.getOrNull(1) ?: MaterialTheme.colorScheme.background
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(topBgColor.copy(alpha = 0.8f), bottomBgColor, Color(0xFF07080B))
+                    colors = listOf(topBgColor.copy(alpha = 0.8f), bottomBgColor, MaterialTheme.colorScheme.background)
                 )
             )
     ) {
@@ -117,7 +117,7 @@ fun DetailScreen(
             contentScale = ContentScale.Crop
         )
 
-        // Subtle gradient overlay for readibility
+        // Subtle gradient overlay for readability
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -140,7 +140,7 @@ fun DetailScreen(
                 onClick = onBackClick,
                 modifier = Modifier
                     .clip(CircleShape)
-                    .background(Color(0x880F1117))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f))
             ) {
                 Icon(
                     imageVector = Icons.Filled.ArrowBack,
@@ -154,12 +154,12 @@ fun DetailScreen(
                     onClick = { viewModel.toggleFavorite() },
                     modifier = Modifier
                         .clip(CircleShape)
-                        .background(Color(0x880F1117))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f))
                 ) {
                     Icon(
                         imageVector = if (currentWall.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                         contentDescription = "Favorite",
-                        tint = if (currentWall.isFavorite) VibrantMagenta else Color.White
+                        tint = if (currentWall.isFavorite) tertiaryColor else Color.White
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
@@ -169,7 +169,7 @@ fun DetailScreen(
                     },
                     modifier = Modifier
                         .clip(CircleShape)
-                        .background(Color(0x880F1117))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f))
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Delete,
@@ -188,8 +188,8 @@ fun DetailScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(32.dp))
                 .glassmorphism(
-                    backgroundColor = Color(0xE60F1117),
-                    borderColor = Color(0x3300F0FF),
+                    backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f),
+                    borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
                     shape = RoundedCornerShape(32.dp)
                 )
                 .padding(20.dp)
@@ -211,13 +211,13 @@ fun DetailScreen(
                     Box(
                         modifier = Modifier
                             .clip(CircleShape)
-                            .background(NeonCyan.copy(alpha = 0.2f))
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f))
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = currentWall.category,
                             style = MaterialTheme.typography.labelSmall.copy(
-                                color = NeonCyan,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
                                 fontWeight = FontWeight.Bold
                             )
                         )
@@ -269,7 +269,7 @@ fun DetailScreen(
                         )
                         Text(
                             text = currentWall.author.ifBlank { "TeleWalls" },
-                            style = MaterialTheme.typography.bodyMedium.copy(color = NeonCyan, fontWeight = FontWeight.SemiBold)
+                            style = MaterialTheme.typography.bodyMedium.copy(color = primaryColor, fontWeight = FontWeight.SemiBold)
                         )
                     }
                 }
@@ -284,7 +284,7 @@ fun DetailScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         currentWall.colors.forEach { hex ->
-                            val color = try { Color(android.graphics.Color.parseColor(hex)) } catch (e: Exception) { NeonCyan }
+                            val color = try { Color(android.graphics.Color.parseColor(hex)) } catch (e: Exception) { primaryColor }
                             Box(
                                 modifier = Modifier
                                     .size(16.dp)
@@ -311,12 +311,12 @@ fun DetailScreen(
                             .height(52.dp),
                         shape = RoundedCornerShape(26.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = NeonCyan,
-                            contentColor = Color(0xFF07080B)
+                            containerColor = primaryColor,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
                         if (applyState is WallpaperApplyState.Applying) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color(0xFF07080B))
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
                         } else {
                             Icon(imageVector = Icons.Filled.Wallpaper, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
@@ -331,7 +331,7 @@ fun DetailScreen(
                         modifier = Modifier
                             .size(52.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF191C24))
+                            .background(MaterialTheme.colorScheme.surfaceContainer)
                     ) {
                         Icon(imageVector = Icons.Filled.Download, contentDescription = "Download", tint = Color.White)
                     }
@@ -344,10 +344,10 @@ fun DetailScreen(
     if (showApplyDialog) {
         AlertDialog(
             onDismissRequest = { showApplyDialog = false },
-            title = { Text("Set Wallpaper", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = { Text("Set Wallpaper", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
             text = {
                 Column {
-                    Text("Select where to apply this wallpaper:", color = Color.White.copy(alpha = 0.8f))
+                    Text("Select where to apply this wallpaper:", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(12.dp))
                     Button(
                         onClick = {
@@ -355,9 +355,9 @@ fun DetailScreen(
                             viewModel.applyWallpaper(WallpaperTarget.HOME_SCREEN)
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF191C24))
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
                     ) {
-                        Text("Home Screen", color = NeonCyan)
+                        Text("Home Screen", color = primaryColor)
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Button(
@@ -366,9 +366,9 @@ fun DetailScreen(
                             viewModel.applyWallpaper(WallpaperTarget.LOCK_SCREEN)
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF191C24))
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
                     ) {
-                        Text("Lock Screen", color = NeonCyan)
+                        Text("Lock Screen", color = primaryColor)
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Button(
@@ -377,19 +377,20 @@ fun DetailScreen(
                             viewModel.applyWallpaper(WallpaperTarget.BOTH)
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = NeonCyan)
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
                     ) {
-                        Text("Both Screens", color = Color(0xFF07080B), fontWeight = FontWeight.Bold)
+                        Text("Both Screens", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                     }
                 }
             },
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showApplyDialog = false }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.6f))
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
-            containerColor = Color(0xFF0F1117)
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         )
     }
 }
+

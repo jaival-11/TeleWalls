@@ -19,12 +19,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.jaival.telewalls.ui.components.AnimatedWallpaperCard
-import me.jaival.telewalls.ui.theme.VibrantMagenta
 import me.jaival.telewalls.viewmodel.HomeViewModel
 
 @Composable
@@ -46,7 +44,7 @@ fun FavoritesScreen(
                 Text(
                     text = "Saved Favorites",
                     style = MaterialTheme.typography.headlineMedium.copy(
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Black,
                         fontSize = 28.sp
                     )
@@ -54,7 +52,7 @@ fun FavoritesScreen(
                 Text(
                     text = "${favorites.size} Wallpapers saved",
                     style = MaterialTheme.typography.labelSmall.copy(
-                        color = VibrantMagenta,
+                        color = MaterialTheme.colorScheme.tertiary,
                         fontWeight = FontWeight.SemiBold
                     )
                 )
@@ -70,12 +68,12 @@ fun FavoritesScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = "No Favorites Yet",
-                            style = MaterialTheme.typography.titleLarge.copy(color = Color.White)
+                            style = MaterialTheme.typography.titleLarge.copy(color = MaterialTheme.colorScheme.onBackground)
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = "Tap the heart icon on any wallpaper to add it here!",
-                            style = MaterialTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = 0.6f))
+                            style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                         )
                     }
                 }
@@ -99,3 +97,4 @@ fun FavoritesScreen(
         }
     }
 }
+

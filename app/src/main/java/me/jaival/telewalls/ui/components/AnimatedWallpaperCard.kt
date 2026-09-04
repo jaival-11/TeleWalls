@@ -53,8 +53,6 @@ import coil.request.ImageRequest
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.jaival.telewalls.data.repository.Wallpaper
-import me.jaival.telewalls.ui.theme.NeonCyan
-import me.jaival.telewalls.ui.theme.VibrantMagenta
 
 @Composable
 fun AnimatedWallpaperCard(
@@ -99,6 +97,9 @@ fun AnimatedWallpaperCard(
 
     val coroutineScope = rememberCoroutineScope()
     val imageModel = wallpaper.localPath ?: wallpaper.thumbnailPath ?: "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&q=80"
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+    val surfaceGradientEnd = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
 
     Box(
         modifier = modifier
@@ -140,7 +141,7 @@ fun AnimatedWallpaperCard(
                 .align(Alignment.BottomCenter)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color(0xE607080B))
+                        colors = listOf(Color.Transparent, surfaceGradientEnd)
                     )
                 )
         )
@@ -151,13 +152,13 @@ fun AnimatedWallpaperCard(
                 .align(Alignment.TopStart)
                 .padding(10.dp)
                 .clip(CircleShape)
-                .background(Color(0x990F1117))
+                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f))
                 .padding(horizontal = 10.dp, vertical = 4.dp)
         ) {
             Text(
                 text = wallpaper.category,
                 style = MaterialTheme.typography.labelSmall.copy(
-                    color = NeonCyan,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                     fontWeight = FontWeight.Bold,
                     fontSize = 10.sp
                 )
@@ -172,12 +173,12 @@ fun AnimatedWallpaperCard(
                 .padding(4.dp)
                 .size(36.dp)
                 .clip(CircleShape)
-                .background(Color(0x660F1117))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f))
         ) {
             Icon(
                 imageVector = if (wallpaper.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                 contentDescription = "Favorite",
-                tint = if (wallpaper.isFavorite) VibrantMagenta else Color.White,
+                tint = if (wallpaper.isFavorite) tertiaryColor else Color.White,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -216,7 +217,7 @@ fun AnimatedWallpaperCard(
                             val color = try {
                                 Color(android.graphics.Color.parseColor(hex))
                             } catch (e: Exception) {
-                                NeonCyan
+                                primaryColor
                             }
                             Box(
                                 modifier = Modifier

@@ -11,12 +11,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -35,10 +35,12 @@ fun ShimmerCard(
         label = "shimmer_translate"
     )
 
+    val baseColor = MaterialTheme.colorScheme.surfaceContainer
+    val highlightColor = MaterialTheme.colorScheme.surfaceContainerHigh
     val shimmerColors = listOf(
-        Color(0xFF141720),
-        Color(0xFF262C3D),
-        Color(0xFF141720)
+        baseColor,
+        highlightColor,
+        baseColor
     )
 
     val brush = Brush.linearGradient(
@@ -55,3 +57,4 @@ fun ShimmerCard(
             .background(brush)
     )
 }
+

@@ -19,10 +19,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import me.jaival.telewalls.ui.theme.NeonCyan
 
 val defaultCategories = listOf(
     "All", "AMOLED", "Nature", "Minimal", "Sci-Fi", "Architecture", "Abstract", "Cars"
@@ -35,6 +33,11 @@ fun CategoryChips(
     categories: List<String> = defaultCategories,
     modifier: Modifier = Modifier
 ) {
+    val selectedBg = MaterialTheme.colorScheme.primaryContainer
+    val selectedText = MaterialTheme.colorScheme.onPrimaryContainer
+    val unselectedBg = MaterialTheme.colorScheme.surfaceContainer
+    val unselectedText = MaterialTheme.colorScheme.onSurfaceVariant
+
     LazyRow(
         modifier = modifier,
         contentPadding = PaddingValues(horizontal = 16.dp),
@@ -43,12 +46,12 @@ fun CategoryChips(
         items(categories) { category ->
             val isSelected = category.equals(selectedCategory, ignoreCase = true)
             val chipBg by animateColorAsState(
-                targetValue = if (isSelected) NeonCyan else Color(0xFF191C24),
+                targetValue = if (isSelected) selectedBg else unselectedBg,
                 animationSpec = tween(250),
                 label = "chip_bg"
             )
             val chipText by animateColorAsState(
-                targetValue = if (isSelected) Color(0xFF07080B) else Color.White.copy(alpha = 0.8f),
+                targetValue = if (isSelected) selectedText else unselectedText,
                 animationSpec = tween(250),
                 label = "chip_text"
             )
@@ -76,3 +79,4 @@ fun CategoryChips(
         }
     }
 }
+
