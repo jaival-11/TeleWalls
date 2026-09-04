@@ -1,12 +1,17 @@
 package me.jaival.telewalls.ui.screens.detail
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,17 +46,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -62,6 +73,7 @@ import me.jaival.telewalls.ui.components.glassmorphism
 import me.jaival.telewalls.viewmodel.DetailViewModel
 import me.jaival.telewalls.viewmodel.WallpaperApplyState
 import me.jaival.telewalls.viewmodel.WallpaperDownloadState
+import java.io.File
 
 @Composable
 fun DetailScreen(
@@ -77,11 +89,22 @@ fun DetailScreen(
     val applyState by viewModel.applyState.collectAsState()
     val downloadState by viewModel.downloadState.collectAsState()
     val isLoadingFullImage by viewModel.isLoadingFullImage.collectAsState()
+    val imageRefreshKey by viewModel.imageRefreshKey.collectAsState()
     val context = LocalContext.current
     val primaryColor = MaterialTheme.colorScheme.primary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
 
     var showApplyDialog by remember { mutableStateOf(false) }
+    var controlsVisible by remember { mutableStateOf(true) }
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    var containerSize by remember { mutableStateOf(IntSize.Zero) }
+    var imageSize by remember { mutableStateOf(IntSize.Zero) }
+
+    // Intercept back action when controls are hidden to bring back controls
+    BackHandler(enabled = !controlsVisible) {
+        controlsVisible = true
+    }
 
     LaunchedEffect(applyState) {
         if (applyState is WallpaperApplyState.Success) {
@@ -105,14 +128,42 @@ fun DetailScreen(
 
     val currentWall = wallpaper ?: return
 
+    val parsedSize = remember(currentWall.resolution) {
+        try {
+            val parts = currentWall.resolution.lowercase().split("x")
+            if (parts.size == 2) {
+                val w = parts[0].trim().toInt()
+                val h = parts[1].trim().toInt()
+                if (w > 0 && h > 0) IntSize(w, h) else null
+            } else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    val activeImageSize = if (imageSize.width > 0 && imageSize.height > 0) imageSize else (parsedSize ?: IntSize.Zero)
+
+    val minAllowedScale = remember(containerSize, activeImageSize) {
+        if (containerSize.width > 0 && containerSize.height > 0 && activeImageSize.width > 0 && activeImageSize.height > 0) {
+            val containerAspect = containerSize.width.toFloat() / containerSize.height.toFloat()
+            val imageAspect = activeImageSize.width.toFloat() / activeImageSize.height.toFloat()
+            val fitScale = kotlin.math.min(containerAspect / imageAspect, imageAspect / containerAspect)
+            (fitScale * 0.85f).coerceIn(0.05f, 1.0f)
+        } else {
+            0.15f
+        }
+    }
+
     val dynamicColors = currentWall.colors.mapNotNull { hex ->
         try { Color(android.graphics.Color.parseColor(hex)) } catch (e: Exception) { null }
     }
     val topBgColor = dynamicColors.firstOrNull() ?: MaterialTheme.colorScheme.surface
     val bottomBgColor = dynamicColors.getOrNull(1) ?: MaterialTheme.colorScheme.background
 
-    val imageModel = remember(currentWall.localPath, currentWall.thumbnailPath) {
-        ImageUtils.resolveImageModel(currentWall.localPath, currentWall.thumbnailPath)
+    val fullImageModel = remember(currentWall.localPath, imageRefreshKey) {
+        currentWall.localPath?.takeIf { it.isNotBlank() && (it.startsWith("http") || (File(it).exists() && File(it).length() > 0)) }?.let {
+            if (it.startsWith("http") || it.startsWith("content://") || it.startsWith("file://")) it else File(it)
+        }
     }
 
     Box(
@@ -124,272 +175,373 @@ fun DetailScreen(
                 )
             )
     ) {
-        // High resolution wallpaper image (falls back to thumbnail while full image is loading)
-        if (imageModel != null) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(imageModel)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = currentWall.title,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        }
-
-        // Subtle gradient overlay for readability
+        // Zoomable and pannable wallpaper image display box
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color.Black.copy(alpha = 0.4f), Color.Transparent, Color.Black.copy(alpha = 0.85f))
+                .onSizeChanged { containerSize = it }
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = {
+                            controlsVisible = !controlsVisible
+                        },
+                        onDoubleTap = {
+                            if (scale != 1f || offset != Offset.Zero) {
+                                scale = 1f
+                                offset = Offset.Zero
+                            } else {
+                                scale = 2.5f
+                                offset = Offset.Zero
+                            }
+                        }
                     )
-                )
-        )
+                }
+                .pointerInput(minAllowedScale, containerSize, activeImageSize) {
+                    detectTransformGestures { _, pan, zoom, _ ->
+                        val newScale = (scale * zoom).coerceIn(minAllowedScale, 5f)
+                        scale = newScale
 
-        // Loading Full HD image indicator
-        if (isLoadingFullImage) {
+                        if (containerSize.width > 0 && containerSize.height > 0) {
+                            val cw = containerSize.width.toFloat()
+                            val ch = containerSize.height.toFloat()
+
+                            val (totalW, totalH) = if (activeImageSize.width > 0 && activeImageSize.height > 0) {
+                                val iw = activeImageSize.width.toFloat()
+                                val ih = activeImageSize.height.toFloat()
+                                val cropScale = kotlin.math.max(cw / iw, ch / ih)
+                                Pair(iw * cropScale * newScale, ih * cropScale * newScale)
+                            } else {
+                                Pair(cw * newScale, ch * newScale)
+                            }
+
+                            val maxX = kotlin.math.abs(totalW - cw) / 2f
+                            val maxY = kotlin.math.abs(totalH - ch) / 2f
+
+                            if (maxX > 0f || maxY > 0f) {
+                                val newX = (offset.x + pan.x).coerceIn(-maxX, maxX)
+                                val newY = (offset.y + pan.y).coerceIn(-maxY, maxY)
+                                offset = Offset(newX, newY)
+                            } else {
+                                offset = Offset.Zero
+                            }
+                        }
+                    }
+                }
+        ) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 96.dp)
-                    .clip(CircleShape)
-                    .glassmorphism(
-                        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f),
-                        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                        shape = CircleShape
-                    )
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                        translationX = offset.x
+                        translationY = offset.y
+                    }
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(14.dp),
-                        color = primaryColor,
-                        strokeWidth = 2.dp
+                if (!isLoadingFullImage && fullImageModel != null) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(fullImageModel)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = currentWall.title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        onSuccess = { state ->
+                            val w = state.result.drawable.intrinsicWidth
+                            val h = state.result.drawable.intrinsicHeight
+                            if (w > 0 && h > 0) {
+                                imageSize = IntSize(w, h)
+                            }
+                        }
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Fetching Full Image...",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = Color.White,
-                            fontWeight = FontWeight.SemiBold
+                } else if (isLoadingFullImage || fullImageModel == null) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(48.dp),
+                                color = primaryColor,
+                                strokeWidth = 4.dp
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Loading wallpaper...",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    color = Color.White,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 15.sp
+                                )
+                            )
+                        }
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Unable to load wallpaper",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontWeight = FontWeight.SemiBold
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
 
-        // Top Action Bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 40.dp, start = 16.dp, end = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        // Subtle gradient overlay for readability (fades out when controls are hidden)
+        AnimatedVisibility(
+            visible = controlsVisible,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.fillMaxSize()
         ) {
-            IconButton(
-                onClick = onBackClick,
+            Box(
                 modifier = Modifier
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f))
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.White
-                )
-            }
-
-            Row {
-                IconButton(
-                    onClick = { viewModel.toggleFavorite() },
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f))
-                ) {
-                    Icon(
-                        imageVector = if (currentWall.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                        contentDescription = "Favorite",
-                        tint = if (currentWall.isFavorite) tertiaryColor else Color.White
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Black.copy(alpha = 0.4f), Color.Transparent, Color.Black.copy(alpha = 0.85f))
+                        )
                     )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
+            )
+        }
+
+        // Top Action Bar
+        AnimatedVisibility(
+            visible = controlsVisible,
+            enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
+            exit = fadeOut() + slideOutVertically(targetOffsetY = { -it }),
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 40.dp, start = 16.dp, end = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 IconButton(
-                    onClick = {
-                        viewModel.deleteWallpaper(onDeleted = onBackClick)
-                    },
+                    onClick = onBackClick,
                     modifier = Modifier
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f))
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Delete,
-                        contentDescription = "Delete",
+                        imageVector = Icons.Filled.ArrowBack,
+                        contentDescription = "Back",
                         tint = Color.White
                     )
+                }
+
+                Row {
+                    IconButton(
+                        onClick = { viewModel.toggleFavorite() },
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f))
+                    ) {
+                        Icon(
+                            imageVector = if (currentWall.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                            contentDescription = "Favorite",
+                            tint = if (currentWall.isFavorite) tertiaryColor else Color.White
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                        onClick = {
+                            viewModel.deleteWallpaper(onDeleted = onBackClick)
+                        },
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Delete",
+                            tint = Color.White
+                        )
+                    }
                 }
             }
         }
 
         // Bottom Metadata & Actions Sheet
-        Box(
+        AnimatedVisibility(
+            visible = controlsVisible,
+            enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
+            exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(16.dp)
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(32.dp))
-                .glassmorphism(
-                    backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f),
-                    borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                    shape = RoundedCornerShape(32.dp)
-                )
-                .padding(20.dp)
         ) {
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = currentWall.title,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp
-                        )
+            Box(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(32.dp))
+                    .glassmorphism(
+                        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f),
+                        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                        shape = RoundedCornerShape(32.dp)
                     )
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f))
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    .padding(20.dp)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = currentWall.category,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.Bold
+                            text = currentWall.title,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp
+                            )
+                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = currentWall.category,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                    }
+
+                    if (currentWall.description.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = currentWall.description,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 13.sp
                             )
                         )
                     }
-                }
 
-                if (currentWall.description.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = currentWall.description,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 13.sp
-                        )
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Metadata Info Row (Resolution, Size, Author)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = "Resolution",
-                            style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
-                        )
-                        Text(
-                            text = currentWall.resolution,
-                            style = MaterialTheme.typography.bodyMedium.copy(color = Color.White, fontWeight = FontWeight.SemiBold)
-                        )
-                    }
-                    Column {
-                        Text(
-                            text = "File Size",
-                            style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
-                        )
-                        Text(
-                            text = "${(currentWall.sizeBytes / 1024 / 1024).coerceAtLeast(1)} MB",
-                            style = MaterialTheme.typography.bodyMedium.copy(color = Color.White, fontWeight = FontWeight.SemiBold)
-                        )
-                    }
-                    Column {
-                        Text(
-                            text = "Vault Credit",
-                            style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
-                        )
-                        Text(
-                            text = currentWall.author.ifBlank { "TeleWalls" },
-                            style = MaterialTheme.typography.bodyMedium.copy(color = primaryColor, fontWeight = FontWeight.SemiBold)
-                        )
-                    }
-                }
-
-                // Palette Swatches
-                if (currentWall.colors.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(12.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "Palette: ",
-                            style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        currentWall.colors.forEach { hex ->
-                            val color = try { Color(android.graphics.Color.parseColor(hex)) } catch (e: Exception) { primaryColor }
-                            Box(
-                                modifier = Modifier
-                                    .size(16.dp)
-                                    .clip(CircleShape)
-                                    .background(color)
-                                    .border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape)
+
+                    // Metadata Info Row (Resolution, Size, Author)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                text = "Resolution",
+                                style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
+                            )
+                            Text(
+                                text = currentWall.resolution,
+                                style = MaterialTheme.typography.bodyMedium.copy(color = Color.White, fontWeight = FontWeight.SemiBold)
+                            )
+                        }
+                        Column {
+                            Text(
+                                text = "File Size",
+                                style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
+                            )
+                            Text(
+                                text = "${(currentWall.sizeBytes / 1024 / 1024).coerceAtLeast(1)} MB",
+                                style = MaterialTheme.typography.bodyMedium.copy(color = Color.White, fontWeight = FontWeight.SemiBold)
+                            )
+                        }
+                        Column {
+                            Text(
+                                text = "Vault Credit",
+                                style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
+                            )
+                            Text(
+                                text = currentWall.author.ifBlank { "TeleWalls" },
+                                style = MaterialTheme.typography.bodyMedium.copy(color = primaryColor, fontWeight = FontWeight.SemiBold)
+                            )
+                        }
+                    }
+
+                    // Palette Swatches
+                    if (currentWall.colors.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Palette: ",
+                                style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Apply Action Buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = { showApplyDialog = true },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(52.dp),
-                        shape = RoundedCornerShape(26.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = primaryColor,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    ) {
-                        if (applyState is WallpaperApplyState.Applying) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
-                        } else {
-                            Icon(imageVector = Icons.Filled.Wallpaper, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = "Apply Wallpaper", fontWeight = FontWeight.Bold)
+                            currentWall.colors.forEach { hex ->
+                                val color = try { Color(android.graphics.Color.parseColor(hex)) } catch (e: Exception) { primaryColor }
+                                Box(
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .clip(CircleShape)
+                                        .background(color)
+                                        .border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                            }
                         }
                     }
 
-                    IconButton(
-                        onClick = {
-                            viewModel.downloadWallpaperToGallery(context)
-                        },
-                        enabled = downloadState !is WallpaperDownloadState.Downloading,
-                        modifier = Modifier
-                            .size(52.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceContainer)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Apply Action Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        if (downloadState is WallpaperDownloadState.Downloading) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
-                        } else {
-                            Icon(imageVector = Icons.Filled.Download, contentDescription = "Download", tint = Color.White)
+                        Button(
+                            onClick = { showApplyDialog = true },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp),
+                            shape = RoundedCornerShape(26.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = primaryColor,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
+                            if (applyState is WallpaperApplyState.Applying) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
+                            } else {
+                                Icon(imageVector = Icons.Filled.Wallpaper, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = "Apply Wallpaper", fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        IconButton(
+                            onClick = {
+                                viewModel.downloadWallpaperToGallery(context)
+                            },
+                            enabled = downloadState !is WallpaperDownloadState.Downloading,
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceContainer)
+                        ) {
+                            if (downloadState is WallpaperDownloadState.Downloading) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                            } else {
+                                Icon(imageVector = Icons.Filled.Download, contentDescription = "Download", tint = Color.White)
+                            }
                         }
                     }
                 }
@@ -450,4 +602,5 @@ fun DetailScreen(
         )
     }
 }
+
 

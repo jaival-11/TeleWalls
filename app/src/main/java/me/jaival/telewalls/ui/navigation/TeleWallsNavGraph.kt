@@ -44,7 +44,6 @@ fun TeleWallsNavGraph(
     val homeViewModel: HomeViewModel = hiltViewModel()
     val uploadViewModel: UploadViewModel = hiltViewModel()
     val authViewModel: AuthViewModel = hiltViewModel()
-    val detailViewModel: DetailViewModel = hiltViewModel()
 
     val isSetupCompleted by authViewModel.isSetupCompleted.collectAsState()
 
@@ -144,6 +143,7 @@ fun TeleWallsNavGraph(
                     exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Down, tween(350)) }
                 ) { backStackEntry ->
                     val wallpaperId = backStackEntry.arguments?.getString("wallpaperId") ?: ""
+                    val detailViewModel: DetailViewModel = hiltViewModel(backStackEntry)
                     DetailScreen(
                         wallpaperId = wallpaperId,
                         viewModel = detailViewModel,

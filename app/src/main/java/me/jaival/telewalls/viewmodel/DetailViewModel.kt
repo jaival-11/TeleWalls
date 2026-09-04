@@ -45,6 +45,9 @@ class DetailViewModel @Inject constructor(
     private val _isLoadingFullImage = MutableStateFlow(false)
     val isLoadingFullImage: StateFlow<Boolean> = _isLoadingFullImage.asStateFlow()
 
+    private val _imageRefreshKey = MutableStateFlow(0L)
+    val imageRefreshKey: StateFlow<Long> = _imageRefreshKey.asStateFlow()
+
     private val _applyState = MutableStateFlow<WallpaperApplyState>(WallpaperApplyState.Idle)
     val applyState: StateFlow<WallpaperApplyState> = _applyState.asStateFlow()
 
@@ -56,15 +59,28 @@ class DetailViewModel @Inject constructor(
             val loaded = wallpaperRepository.getWallpaperById(id)
             _wallpaper.value = loaded
             if (loaded != null) {
-                val hasFullImage = loaded.localPath != null && (loaded.localPath.startsWith("http") || File(loaded.localPath).exists())
+                val hasFullImage = !loaded.localPath.isNullOrBlank() && (loaded.localPath.startsWith("http") || (File(loaded.localPath).exists() && File(loaded.localPath).length() > 0))
                 if (!hasFullImage) {
+                    val hasThumb = !loaded.thumbnailPath.isNullOrBlank() && (loaded.thumbnailPath.startsWith("http") || (File(loaded.thumbnailPath).exists() && File(loaded.thumbnailPath).length() > 0))
+                    if (!hasThumb) {
+                        val thumbPath = wallpaperRepository.loadThumbnailOnDemand(loaded)
+                        if (thumbPath != null) {
+                            _wallpaper.value = wallpaperRepository.getWallpaperById(id)
+                        }
+                    }
                     _isLoadingFullImage.value = true
                     val fullPath = wallpaperRepository.downloadFullWallpaper(loaded)
-                    if (fullPath != null) {
-                        _wallpaper.value = wallpaperRepository.getWallpaperById(id)
+                    val updated = wallpaperRepository.getWallpaperById(id)
+                    if (updated != null) {
+                        _wallpaper.value = updated
                     }
+                    _imageRefreshKey.value = System.currentTimeMillis()
+                    _isLoadingFullImage.value = false
+                } else {
                     _isLoadingFullImage.value = false
                 }
+            } else {
+                _isLoadingFullImage.value = false
             }
         }
     }
@@ -83,7 +99,7 @@ class DetailViewModel @Inject constructor(
             _applyState.value = WallpaperApplyState.Applying
 
             var imagePath = current.localPath
-            if (imagePath.isNullOrBlank() || (!imagePath.startsWith("http") && !File(imagePath).exists())) {
+            if (imagePath.isNullOrBlank() || (!imagePath.startsWith("http") && (!File(imagePath).exists() || File(imagePath).length() == 0L))) {
                 _isLoadingFullImage.value = true
                 imagePath = wallpaperRepository.downloadFullWallpaper(current)
                 _isLoadingFullImage.value = false
@@ -93,6 +109,7 @@ class DetailViewModel @Inject constructor(
                 val updated = wallpaperRepository.getWallpaperById(current.id)
                 if (updated != null) {
                     _wallpaper.value = updated
+                    _imageRefreshKey.value = System.currentTimeMillis()
                 }
             }
 
@@ -145,7 +162,7 @@ class DetailViewModel @Inject constructor(
             _downloadState.value = WallpaperDownloadState.Downloading
 
             var imagePath = current.localPath
-            if (imagePath.isNullOrBlank() || (!imagePath.startsWith("http") && !File(imagePath).exists())) {
+            if (imagePath.isNullOrBlank() || (!imagePath.startsWith("http") && (!File(imagePath).exists() || File(imagePath).length() == 0L))) {
                 _isLoadingFullImage.value = true
                 imagePath = wallpaperRepository.downloadFullWallpaper(current)
                 _isLoadingFullImage.value = false
@@ -155,6 +172,7 @@ class DetailViewModel @Inject constructor(
                 val updated = wallpaperRepository.getWallpaperById(current.id)
                 if (updated != null) {
                     _wallpaper.value = updated
+                    _imageRefreshKey.value = System.currentTimeMillis()
                 }
             }
 

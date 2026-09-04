@@ -25,6 +25,18 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
+    - name: Set up Debug Keystore
+      env:
+        DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+      run: |
+        if [ -n "$DEBUG_KEYSTORE_BASE64" ]; then
+          echo "Restoring debug keystore from secret..."
+          echo "$DEBUG_KEYSTORE_BASE64" | base64 -d > app/debug.keystore
+        else
+          echo "DEBUG_KEYSTORE_BASE64 secret not set, generating fallback keystore..."
+          keytool -genkey -v -keystore app/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+        fi
+
     - name: Build Debug APK
       run: ./gradlew assembleDebug --no-daemon
 

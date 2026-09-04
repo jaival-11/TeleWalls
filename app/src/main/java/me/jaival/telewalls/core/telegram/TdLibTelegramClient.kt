@@ -706,10 +706,10 @@ class TdLibTelegramClient @Inject constructor(
         return null
     }
 
-    private suspend fun downloadTdFile(file: TdApi.File, destinationPath: String, timeoutMs: Long = 5000): String? {
+    private suspend fun downloadTdFile(file: TdApi.File, destinationPath: String, timeoutMs: Long = 15000): String? {
         try {
             val initialPath = file.local?.path
-            if (file.local?.isDownloadingCompleted == true && !initialPath.isNullOrBlank() && File(initialPath).exists()) {
+            if (file.local?.isDownloadingCompleted == true && !initialPath.isNullOrBlank() && File(initialPath).exists() && File(initialPath).length() > 0) {
                 return copyToDestinationIfNeeded(initialPath, destinationPath)
             }
 
@@ -720,10 +720,10 @@ class TdLibTelegramClient @Inject constructor(
             for (i in 0..maxIterations) {
                 delay(100)
                 val updatedFile = sendTd<TdApi.File>(TdApi.GetFile(tdFileId))
-                if (updatedFile.local?.isDownloadingCompleted == true && !updatedFile.local.path.isNullOrBlank()) {
-                    val downloadedLocalPath = updatedFile.local.path
-                    if (File(downloadedLocalPath).exists()) {
-                        return copyToDestinationIfNeeded(downloadedLocalPath, destinationPath)
+                val currentPath = updatedFile.local?.path
+                if (!currentPath.isNullOrBlank() && File(currentPath).exists() && File(currentPath).length() > 0) {
+                    if (updatedFile.local?.isDownloadingCompleted == true || updatedFile.local?.downloadedSize == updatedFile.expectedSize) {
+                        return copyToDestinationIfNeeded(currentPath, destinationPath)
                     }
                 }
             }
@@ -733,21 +733,23 @@ class TdLibTelegramClient @Inject constructor(
         return null
     }
 
-    private fun copyToDestinationIfNeeded(srcPath: String, destinationPath: String): String {
+    private fun copyToDestinationIfNeeded(srcPath: String, destinationPath: String): String? {
         if (destinationPath.isNotBlank() && destinationPath != srcPath) {
             try {
                 val srcFile = File(srcPath)
                 val destFile = File(destinationPath)
-                if (srcFile.exists()) {
+                if (srcFile.exists() && srcFile.length() > 0) {
                     destFile.parentFile?.mkdirs()
                     srcFile.copyTo(destFile, overwrite = true)
-                    return destFile.absolutePath
+                    if (destFile.exists() && destFile.length() > 0) {
+                        return destFile.absolutePath
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed copying downloaded file $srcPath to destinationPath $destinationPath", e)
             }
         }
-        return srcPath
+        return if (srcPath.isNotBlank() && File(srcPath).exists() && File(srcPath).length() > 0) srcPath else null
     }
 
     private fun getMockFullImagePath(fileId: String, fallbackPath: String): String {

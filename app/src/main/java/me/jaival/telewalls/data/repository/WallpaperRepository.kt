@@ -208,20 +208,22 @@ class WallpaperRepository @Inject constructor(
     }
 
     suspend fun downloadWallpaperFile(fileId: String, fileName: String): String? = withContext(Dispatchers.IO) {
-        val destFile = File(context.cacheDir, fileName)
+        val safeName = if (fileName.isNotBlank()) "${fileId}_$fileName" else "wallpaper_$fileId.jpg"
+        val destFile = File(context.cacheDir, safeName)
         telegramClient.downloadWallpaperFile(fileId, destFile.absolutePath)
     }
 
     suspend fun downloadFullWallpaper(wallpaper: Wallpaper): String? = withContext(Dispatchers.IO) {
         val currentLocal = wallpaper.localPath
-        if (!currentLocal.isNullOrBlank() && (currentLocal.startsWith("http") || File(currentLocal).exists())) {
+        if (!currentLocal.isNullOrBlank() && (currentLocal.startsWith("http") || (File(currentLocal).exists() && File(currentLocal).length() > 0))) {
             return@withContext currentLocal
         }
         val downloadedPath = downloadWallpaperFile(wallpaper.fileId, wallpaper.fileName)
-        if (downloadedPath != null) {
+        if (!downloadedPath.isNullOrBlank() && (downloadedPath.startsWith("http") || (File(downloadedPath).exists() && File(downloadedPath).length() > 0))) {
             wallpaperDao.updateLocalPath(wallpaper.id, downloadedPath)
+            return@withContext downloadedPath
         }
-        downloadedPath
+        null
     }
 
     suspend fun loadThumbnailOnDemand(wallpaper: Wallpaper): String? = withContext(Dispatchers.IO) {
