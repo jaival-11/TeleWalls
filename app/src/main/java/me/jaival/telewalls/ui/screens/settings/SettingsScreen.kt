@@ -48,7 +48,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import me.jaival.telewalls.ui.components.Glassmorphism
+import me.jaival.telewalls.ui.components.glassmorphism
 import me.jaival.telewalls.ui.theme.NeonCyan
 import me.jaival.telewalls.ui.theme.VibrantMagenta
 import me.jaival.telewalls.viewmodel.AuthViewModel

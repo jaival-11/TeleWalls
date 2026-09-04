@@ -45,7 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.jaival.telewalls.ui.components.AnimatedWallpaperCard
 import me.jaival.telewalls.ui.components.CategoryChips
-import me.jaival.telewalls.ui.components.Glassmorphism
+import me.jaival.telewalls.ui.components.glassmorphism
 import me.jaival.telewalls.ui.components.ShimmerCard
 import me.jaival.telewalls.ui.theme.NeonCyan
 import me.jaival.telewalls.ui.theme.VibrantMagenta

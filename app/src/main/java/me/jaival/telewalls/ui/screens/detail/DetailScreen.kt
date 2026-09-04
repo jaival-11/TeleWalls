@@ -57,7 +57,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import me.jaival.telewalls.core.wallpaper.WallpaperTarget
-import me.jaival.telewalls.ui.components.Glassmorphism
+import me.jaival.telewalls.ui.components.glassmorphism
 import me.jaival.telewalls.ui.theme.NeonCyan
 import me.jaival.telewalls.ui.theme.VibrantMagenta
 import me.jaival.telewalls.viewmodel.DetailViewModel

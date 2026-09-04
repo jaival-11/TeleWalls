@@ -13,6 +13,7 @@ import me.jaival.telewalls.core.telegram.WallpaperMetadata
 import me.jaival.telewalls.data.local.dao.WallpaperDao
 import me.jaival.telewalls.data.local.entity.FavoriteEntity
 import me.jaival.telewalls.data.local.entity.WallpaperEntity
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -41,7 +42,7 @@ data class Wallpaper(
 
 @Singleton
 class WallpaperRepository @Inject constructor(
-    private val context: Context,
+    @ApplicationContext private val context: Context,
     private val telegramClient: TelegramClient,
     private val wallpaperDao: WallpaperDao
 ) {

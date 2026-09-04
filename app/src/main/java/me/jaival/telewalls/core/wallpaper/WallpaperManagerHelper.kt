@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.os.Build
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.io.InputStream
 import javax.inject.Inject
@@ -20,7 +21,7 @@ enum class WallpaperTarget {
 
 @Singleton
 class WallpaperManagerHelper @Inject constructor(
-    private val context: Context
+    @ApplicationContext private val context: Context
 ) {
     suspend fun setWallpaperFromFile(
         imageFile: File,

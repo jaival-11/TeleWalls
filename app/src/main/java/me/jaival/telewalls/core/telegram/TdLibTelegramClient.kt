@@ -7,6 +7,9 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
@@ -20,6 +23,7 @@ import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import dagger.hilt.android.qualifiers.ApplicationContext
 import org.drinkless.tdlib.Client
 import org.drinkless.tdlib.TdApi
 import java.io.File
@@ -28,7 +32,7 @@ import javax.inject.Singleton
 
 @Singleton
 class TdLibTelegramClient @Inject constructor(
-    private val context: Context,
+    @ApplicationContext private val context: Context,
     private val gson: Gson
 ) : TelegramClient {
 
@@ -123,7 +127,7 @@ class TdLibTelegramClient @Inject constructor(
                     systemVersion = android.os.Build.VERSION.RELEASE
                     applicationVersion = "1.0.0"
                 }
-                sendTd(params) { }
+                client?.send(params, null)
             }
             is TdApi.AuthorizationStateWaitPhoneNumber -> _authState.value = TelegramAuthState.WaitingForPhoneNumber
             is TdApi.AuthorizationStateWaitCode -> {
@@ -188,7 +192,7 @@ class TdLibTelegramClient @Inject constructor(
             _authState.value = TelegramAuthState.WaitingForQrScan("https://t.me/loginQRDemo")
             return
         }
-        sendTd<TdApi.Ok>(TdApi.RequestQrCodeAuthentication(emptyArray()))
+        sendTd<TdApi.Ok>(TdApi.RequestQrCodeAuthentication(longArrayOf()))
     }
 
     override suspend fun logout() {
@@ -312,7 +316,7 @@ class TdLibTelegramClient @Inject constructor(
                     }
                     is TdApi.UpdateMessageSendFailed -> {
                         if (pendingMsgId.isCompleted && update.oldMessageId == pendingMsgId.await()) {
-                            trySend(TelegramUploadEvent.Failed(update.errorMessage))
+                            trySend(TelegramUploadEvent.Failed(update.error?.message ?: "Upload failed"))
                             close()
                         }
                     }
@@ -321,7 +325,7 @@ class TdLibTelegramClient @Inject constructor(
         }
 
         try {
-            val msg = sendTd<TdApi.Message>(TdApi.SendMessage(chatId, 0, null, null, null, content))
+            val msg = sendTd<TdApi.Message>(TdApi.SendMessage(chatId, null, null, null, null, content))
             pendingMsgId.complete(msg.id)
             if (msg.content is TdApi.MessageDocument) {
                 val file = (msg.content as TdApi.MessageDocument).document.document
@@ -419,7 +423,7 @@ class TdLibTelegramClient @Inject constructor(
         val metadata = parseMetadataFromCaption(captionText) ?: fallbackMetadata ?: WallpaperMetadata(
             title = doc.fileName.substringBeforeLast("."),
             category = "General",
-            sizeBytes = doc.size
+            sizeBytes = doc.document.size
         )
 
         return WallpaperDocument(
@@ -428,9 +432,9 @@ class TdLibTelegramClient @Inject constructor(
             fileId = doc.document.id.toString(),
             fileName = doc.fileName,
             mimeType = doc.mimeType,
-            sizeBytes = doc.size,
+            sizeBytes = doc.document.size,
             localPath = doc.document.local.path.ifEmpty { null },
-            thumbnailPath = docContent.thumbnail?.file?.local?.path?.ifEmpty { null },
+            thumbnailPath = doc.thumbnail?.file?.local?.path?.ifEmpty { null },
             metadata = metadata
         )
     }
@@ -453,8 +457,8 @@ class TdLibTelegramClient @Inject constructor(
             activeClient.send(query) { result ->
                 when (result) {
                     is T -> continuation.resume(result)
-                    is TdApi.Error -> continuation.resumeWith(Result.failure(Exception(result.message)))
-                    else -> continuation.resumeWith(Result.failure(Exception("Unexpected response: $result")))
+                    is TdApi.Error -> continuation.resumeWithException(Exception(result.message))
+                    else -> continuation.resumeWithException(Exception("Unexpected response: $result"))
                 }
             }
         }
