@@ -382,7 +382,7 @@ class TdLibTelegramClient @Inject constructor(
         fromMessageId: Long,
         limit: Int
     ): List<WallpaperDocument> {
-        if (isMockMode) return emptyList()
+        if (isMockMode) return getMockWallpapers(chatId)
 
         val documents = mutableListOf<WallpaperDocument>()
         try {
@@ -408,6 +408,137 @@ class TdLibTelegramClient @Inject constructor(
             Log.e(TAG, "Error fetching wallpapers from channel", e)
         }
         return documents
+    }
+
+    private fun getMockWallpapers(chatId: Long): List<WallpaperDocument> {
+        return listOf(
+            WallpaperDocument(
+                messageId = 1001L,
+                chatId = chatId,
+                fileId = "mock_file_1",
+                fileName = "neon_cyberpunk.jpg",
+                mimeType = "image/jpeg",
+                sizeBytes = 3456789L,
+                localPath = "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=1080",
+                thumbnailPath = "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=400",
+                metadata = WallpaperMetadata(
+                    title = "Neon Cyberpunk Skyline",
+                    category = "Sci-Fi",
+                    tags = listOf("AMOLED", "Neon", "City", "Futuristic"),
+                    resolution = "1440x3200",
+                    aspectRatio = "9:20",
+                    colors = listOf("#0F0C20", "#FF007F", "#00F0FF"),
+                    description = "A stunning futuristic cyberpunk cityscape with vivid neon glows.",
+                    author = "TeleWalls Curator",
+                    timestamp = System.currentTimeMillis() - 86400000L
+                )
+            ),
+            WallpaperDocument(
+                messageId = 1002L,
+                chatId = chatId,
+                fileId = "mock_file_2",
+                fileName = "cosmic_nebula.jpg",
+                mimeType = "image/jpeg",
+                sizeBytes = 4123456L,
+                localPath = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1080",
+                thumbnailPath = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=400",
+                metadata = WallpaperMetadata(
+                    title = "Deep Space Nebula",
+                    category = "AMOLED",
+                    tags = listOf("AMOLED", "Space", "Stars", "Dark"),
+                    resolution = "1440x3200",
+                    aspectRatio = "9:20",
+                    colors = listOf("#05050A", "#4B0082", "#8A2BE2"),
+                    description = "Pure black AMOLED space landscape featuring vibrant purple interstellar gas clouds.",
+                    author = "TeleWalls Curator",
+                    timestamp = System.currentTimeMillis() - 172800000L
+                )
+            ),
+            WallpaperDocument(
+                messageId = 1003L,
+                chatId = chatId,
+                fileId = "mock_file_3",
+                fileName = "misty_forest_peaks.jpg",
+                mimeType = "image/jpeg",
+                sizeBytes = 2987654L,
+                localPath = "https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=1080",
+                thumbnailPath = "https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=400",
+                metadata = WallpaperMetadata(
+                    title = "Misty Pine Forest",
+                    category = "Nature",
+                    tags = listOf("Nature", "Forest", "Mist", "Green"),
+                    resolution = "1440x3200",
+                    aspectRatio = "9:20",
+                    colors = listOf("#1E2D24", "#3B5249", "#8AA29E"),
+                    description = "Serene pine trees shrouded in morning mountain fog.",
+                    author = "Nature Photography",
+                    timestamp = System.currentTimeMillis() - 259200000L
+                )
+            ),
+            WallpaperDocument(
+                messageId = 1004L,
+                chatId = chatId,
+                fileId = "mock_file_4",
+                fileName = "minimal_geometry.jpg",
+                mimeType = "image/jpeg",
+                sizeBytes = 1876543L,
+                localPath = "https://images.unsplash.com/photo-1541701494587-cb58502866ab?q=80&w=1080",
+                thumbnailPath = "https://images.unsplash.com/photo-1541701494587-cb58502866ab?q=80&w=400",
+                metadata = WallpaperMetadata(
+                    title = "Abstract Geometric Waves",
+                    category = "Minimal",
+                    tags = listOf("Minimal", "Clean", "Vector", "Modern"),
+                    resolution = "1440x3200",
+                    aspectRatio = "9:20",
+                    colors = listOf("#121212", "#E0E0E0", "#FF6B6B"),
+                    description = "Clean aesthetic geometric composition with minimal lines.",
+                    author = "Design Studio",
+                    timestamp = System.currentTimeMillis() - 345600000L
+                )
+            ),
+            WallpaperDocument(
+                messageId = 1005L,
+                chatId = chatId,
+                fileId = "mock_file_5",
+                fileName = "hypercar_night.jpg",
+                mimeType = "image/jpeg",
+                sizeBytes = 3890123L,
+                localPath = "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1080",
+                thumbnailPath = "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=400",
+                metadata = WallpaperMetadata(
+                    title = "Midnight Supercar",
+                    category = "Cars",
+                    tags = listOf("Cars", "Speed", "Black", "AMOLED"),
+                    resolution = "1440x3200",
+                    aspectRatio = "9:20",
+                    colors = listOf("#080808", "#D32F2F", "#FFFFFF"),
+                    description = "Sleek sports car lit by subtle atmospheric night lighting.",
+                    author = "AutoVision",
+                    timestamp = System.currentTimeMillis() - 432000000L
+                )
+            ),
+            WallpaperDocument(
+                messageId = 1006L,
+                chatId = chatId,
+                fileId = "mock_file_6",
+                fileName = "gothic_cathedral.jpg",
+                mimeType = "image/jpeg",
+                sizeBytes = 4500123L,
+                localPath = "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=1080",
+                thumbnailPath = "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=400",
+                metadata = WallpaperMetadata(
+                    title = "Monochrome Architecture",
+                    category = "Architecture",
+                    tags = listOf("Architecture", "Monochrome", "Structures", "Lines"),
+                    resolution = "1440x3200",
+                    aspectRatio = "9:20",
+                    colors = listOf("#1A1A1A", "#777777", "#FFFFFF"),
+                    description = "Dramatic architectural angles in black and white high contrast.",
+                    author = "ArchDaily",
+                    timestamp = System.currentTimeMillis() - 518400000L
+                )
+            )
+        )
     }
 
     override suspend fun downloadWallpaperFile(fileId: String, destinationPath: String): String? {
@@ -445,7 +576,8 @@ class TdLibTelegramClient @Inject constructor(
         if (isMockMode) {
             val prefs = context.getSharedPreferences("telewalls_mock_prefs", Context.MODE_PRIVATE)
             val saved = prefs.getStringSet("mock_categories", emptySet()) ?: emptySet()
-            return (mockCategories + saved).toList()
+            val defaults = listOf("AMOLED", "Nature", "Minimal", "Sci-Fi", "Architecture", "Abstract", "Cars")
+            return (defaults + mockCategories + saved).distinct()
         }
 
         try {
@@ -461,11 +593,13 @@ class TdLibTelegramClient @Inject constructor(
                     null
                 )
             )
+            val combinedCategories = mutableSetOf<String>()
             for (msg in searchResult.messages) {
                 val categories = parseCategoriesFromMessage(msg)
-                if (categories.isNotEmpty()) {
-                    return categories
-                }
+                combinedCategories.addAll(categories)
+            }
+            if (combinedCategories.isNotEmpty()) {
+                return combinedCategories.toList()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching categories message from Telegram channel", e)
@@ -484,12 +618,50 @@ class TdLibTelegramClient @Inject constructor(
         return try {
             val json = gson.toJson(categories)
             val messageText = "$CATEGORIES_HASHTAG\n$json"
-            val content = TdApi.InputMessageText(
+            val inputContent = TdApi.InputMessageText(
                 TdApi.FormattedText(messageText, emptyArray()),
                 null,
                 true
             )
-            sendTd<TdApi.Message>(TdApi.SendMessage(chatId, null, null, null, null, content))
+
+            val searchResult = try {
+                sendTd<TdApi.FoundChatMessages>(
+                    TdApi.SearchChatMessages(
+                        chatId,
+                        null,
+                        CATEGORIES_HASHTAG,
+                        null,
+                        0L,
+                        0,
+                        1,
+                        null
+                    )
+                )
+            } catch (e: Exception) { null }
+
+            val existingMsg = searchResult?.messages?.firstOrNull()
+
+            if (existingMsg != null) {
+                sendTd<TdApi.Message>(
+                    TdApi.EditMessageText(
+                        chatId,
+                        existingMsg.id,
+                        null,
+                        inputContent
+                    )
+                )
+            } else {
+                sendTd<TdApi.Message>(
+                    TdApi.SendMessage(
+                        chatId,
+                        null,
+                        null,
+                        null,
+                        null,
+                        inputContent
+                    )
+                )
+            }
             true
         } catch (e: Exception) {
             Log.e(TAG, "Error saving categories message to Telegram channel", e)

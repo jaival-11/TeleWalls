@@ -96,6 +96,19 @@ class WallpaperRepository @Inject constructor(
         return wallpaperDao.getWallpaperById(id)?.toDomain()
     }
 
+    suspend fun reindexFromChannel(chatId: Long): Result<Pair<Int, Int>> = withContext(Dispatchers.IO) {
+        try {
+            val catResult = syncCategoriesFromChannel(chatId)
+            val wpResult = syncWallpapersFromChannel(chatId)
+            val categoriesCount = catResult.getOrDefault(0)
+            val wallpapersCount = wpResult.getOrDefault(0)
+            Result.success(Pair(wallpapersCount, categoriesCount))
+        } catch (e: Exception) {
+            Log.e(TAG, "Error reindexing from channel", e)
+            Result.failure(e)
+        }
+    }
+
     suspend fun syncWallpapersFromChannel(chatId: Long): Result<Int> = withContext(Dispatchers.IO) {
         try {
             syncCategoriesFromChannel(chatId)

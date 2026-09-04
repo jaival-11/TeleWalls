@@ -18,6 +18,11 @@ import javax.inject.Inject
 
 import kotlinx.coroutines.flow.map
 
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.firstOrNull
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -42,6 +47,9 @@ class HomeViewModel @Inject constructor(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
+    private val _toastEvent = MutableSharedFlow<String>()
+    val toastEvent: SharedFlow<String> = _toastEvent.asSharedFlow()
+
     val wallpapers: StateFlow<List<Wallpaper>> = _selectedCategory
         .flatMapLatest { category ->
             if (_searchQuery.value.isNotBlank()) {
@@ -64,7 +72,7 @@ class HomeViewModel @Inject constructor(
         )
 
     init {
-        syncWallpapers()
+        reindexChannel()
     }
 
     fun selectCategory(category: String) {
@@ -78,12 +86,21 @@ class HomeViewModel @Inject constructor(
     }
 
     fun syncWallpapers() {
+        reindexChannel()
+    }
+
+    fun reindexChannel() {
+        if (_isRefreshing.value) return
         viewModelScope.launch {
             _isRefreshing.value = true
-            authRepository.activeChannelIdFlow.collect { chatId ->
-                val channel = chatId ?: 99999L
-                wallpaperRepository.syncWallpapersFromChannel(channel)
-                _isRefreshing.value = false
+            val chatId = authRepository.activeChannelIdFlow.firstOrNull() ?: 99999L
+            val result = wallpaperRepository.reindexFromChannel(chatId)
+            _isRefreshing.value = false
+
+            result.onSuccess { (wallpapersCount, categoriesCount) ->
+                _toastEvent.emit("Vault reindexed: $wallpapersCount wallpapers & $categoriesCount categories updated")
+            }.onFailure { error ->
+                _toastEvent.emit("Failed to reindex Vault channel: ${error.message ?: "Unknown error"}")
             }
         }
     }

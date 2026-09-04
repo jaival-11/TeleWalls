@@ -53,17 +53,28 @@ import me.jaival.telewalls.ui.components.glassmorphism
 import me.jaival.telewalls.ui.components.ShimmerCard
 import me.jaival.telewalls.viewmodel.HomeViewModel
 
+import android.widget.Toast
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
     onWallpaperClick: (String) -> Unit
 ) {
+    val context = LocalContext.current
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val wallpapers by viewModel.wallpapers.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val primaryColor = MaterialTheme.colorScheme.primary
+
+    LaunchedEffect(Unit) {
+        viewModel.toastEvent.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
@@ -104,7 +115,7 @@ fun HomeScreen(
                     modifier = Modifier
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceContainer)
-                        .clickable { viewModel.syncWallpapers() }
+                        .clickable { viewModel.reindexChannel() }
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -117,14 +128,14 @@ fun HomeScreen(
                         } else {
                             Icon(
                                 imageVector = Icons.Filled.CloudDone,
-                                contentDescription = "Sync",
+                                contentDescription = "Reindex Vault",
                                 tint = primaryColor,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (isRefreshing) "Syncing..." else "Vault Live",
+                            text = if (isRefreshing) "Reindexing..." else "Vault Live",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 11.sp
