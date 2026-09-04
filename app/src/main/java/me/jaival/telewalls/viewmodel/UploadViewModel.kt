@@ -3,6 +3,8 @@ package me.jaival.telewalls.viewmodel
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.provider.OpenableColumns
+import android.webkit.MimeTypeMap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -52,6 +54,9 @@ class UploadViewModel @Inject constructor(
     private val _selectedImageUri = MutableStateFlow<Uri?>(null)
     val selectedImageUri: StateFlow<Uri?> = _selectedImageUri.asStateFlow()
 
+    private val _selectedFileName = MutableStateFlow<String?>(null)
+    val selectedFileName: StateFlow<String?> = _selectedFileName.asStateFlow()
+
     private val _detectedResolution = MutableStateFlow("1440x3200")
     val detectedResolution: StateFlow<String> = _detectedResolution.asStateFlow()
 
@@ -70,8 +75,43 @@ class UploadViewModel @Inject constructor(
         }
     }
 
+    fun getFileNameFromUri(context: Context, uri: Uri): String? {
+        var name: String? = null
+        if (uri.scheme == "content") {
+            try {
+                context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                        if (index != -1) {
+                            name = cursor.getString(index)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore query errors
+            }
+        }
+        if (name.isNullOrBlank()) {
+            name = uri.path?.let { File(it).name }
+        }
+        return name?.takeIf { it.isNotBlank() }
+    }
+
+    private fun getMimeTypeFromUri(context: Context, uri: Uri): String? {
+        return if (uri.scheme == "content") {
+            context.contentResolver.getType(uri)
+        } else {
+            val extension = MimeTypeMap.getFileExtensionFromUrl(uri.toString())
+            if (extension != null) {
+                MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.lowercase())
+            } else null
+        }
+    }
+
     fun selectImage(context: Context, uri: Uri) {
         _selectedImageUri.value = uri
+        val extractedFileName = getFileNameFromUri(context, uri)
+        _selectedFileName.value = extractedFileName
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 context.contentResolver.openInputStream(uri)?.use { inputStream ->
@@ -102,13 +142,17 @@ class UploadViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uploadState.value = UploadState.Processing("Preparing document file...")
-            val file = copyUriToTempFile(context, uri) ?: run {
+            val extractedFileName = getFileNameFromUri(context, uri)
+            val file = copyUriToTempFile(context, uri, extractedFileName) ?: run {
                 _uploadState.value = UploadState.Error("Failed to process image file")
                 return@launch
             }
 
+            val finalFileName = extractedFileName ?: file.name
+            val wallpaperTitle = title.trim().ifBlank { finalFileName }
+
             val metadata = WallpaperMetadata(
-                title = title.ifBlank { "Untitled Wallpaper" },
+                title = wallpaperTitle,
                 category = category,
                 tags = tags.split(",").map { it.trim() }.filter { it.isNotBlank() },
                 resolution = _detectedResolution.value,
@@ -120,13 +164,15 @@ class UploadViewModel @Inject constructor(
                 timestamp = System.currentTimeMillis()
             )
 
+            val mimeType = getMimeTypeFromUri(context, uri) ?: "image/jpeg"
+
             authRepository.activeChannelIdFlow.collect { chatId ->
                 val targetChatId = chatId ?: 99999L
                 wallpaperRepository.uploadWallpaper(
                     chatId = targetChatId,
                     localPath = file.absolutePath,
-                    fileName = file.name,
-                    mimeType = "image/jpeg",
+                    fileName = finalFileName,
+                    mimeType = mimeType,
                     metadata = metadata
                 ).collect { event ->
                     when (event) {
@@ -151,12 +197,14 @@ class UploadViewModel @Inject constructor(
     fun resetState() {
         _uploadState.value = UploadState.Idle
         _selectedImageUri.value = null
+        _selectedFileName.value = null
         _detectedColors.value = emptyList()
     }
 
-    private suspend fun copyUriToTempFile(context: Context, uri: Uri): File? = withContext(Dispatchers.IO) {
+    private suspend fun copyUriToTempFile(context: Context, uri: Uri, customFileName: String?): File? = withContext(Dispatchers.IO) {
         try {
-            val tempFile = File(context.cacheDir, "upload_${System.currentTimeMillis()}.jpg")
+            val safeFileName = customFileName?.takeIf { it.isNotBlank() } ?: "upload_${System.currentTimeMillis()}.jpg"
+            val tempFile = File(context.cacheDir, safeFileName)
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 FileOutputStream(tempFile).use { outputStream ->
                     inputStream.copyTo(outputStream)

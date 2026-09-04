@@ -72,6 +72,7 @@ fun UploadScreen(
     val uploadState by viewModel.uploadState.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val selectedUri by viewModel.selectedImageUri.collectAsState()
+    val selectedFileName by viewModel.selectedFileName.collectAsState()
     val detectedResolution by viewModel.detectedResolution.collectAsState()
     val detectedColors by viewModel.detectedColors.collectAsState()
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -93,10 +94,21 @@ fun UploadScreen(
         }
     }
 
+    LaunchedEffect(selectedFileName) {
+        val name = selectedFileName
+        if (!name.isNullOrBlank() && title.isBlank()) {
+            title = name
+        }
+    }
+
     LaunchedEffect(uploadState) {
         if (uploadState is UploadState.Success) {
             Toast.makeText(context, "Photo uploaded as high-res document to Telegram Vault!", Toast.LENGTH_LONG).show()
             viewModel.resetState()
+            title = ""
+            author = ""
+            tags = ""
+            description = ""
             onUploadSuccess()
         } else if (uploadState is UploadState.Error) {
             Toast.makeText(context, (uploadState as UploadState.Error).message, Toast.LENGTH_SHORT).show()
