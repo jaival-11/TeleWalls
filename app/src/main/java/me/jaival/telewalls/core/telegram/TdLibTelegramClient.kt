@@ -329,29 +329,7 @@ class TdLibTelegramClient @Inject constructor(
             try {
                 // Step 1: Create a compressed 600px thumbnail file from localPath
                 val thumbFile = createThumbnailFile(localPath)
-                var thumbRemoteId: String? = null
-
-                if (thumbFile != null && thumbFile.exists()) {
-                    trySend(TelegramUploadEvent.Progress(100000L, 10000000L))
-                    val photoInput = TdApi.InputMessagePhoto().apply {
-                        photo = TdApi.InputFileLocal(thumbFile.absolutePath)
-                        caption = TdApi.FormattedText("#thumb", emptyArray())
-                    }
-                    try {
-                        val photoMsg = sendTd<TdApi.Message>(TdApi.SendMessage(chatId, null, null, null, null, photoInput))
-                        if (photoMsg.content is TdApi.MessagePhoto) {
-                            val photo = (photoMsg.content as TdApi.MessagePhoto).photo
-                            val bestSize = photo.sizes.maxByOrNull { it.photo.size }
-                            thumbRemoteId = bestSize?.photo?.remote?.id?.takeIf { it.isNotBlank() } ?: bestSize?.photo?.id?.toString()
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed uploading standalone thumbnail photo, falling back to embedded thumbnail", e)
-                    }
-                }
-
-                // Step 2: Include thumbnailFileId in metadata
-                val updatedMetadata = metadata.copy(thumbnailFileId = thumbRemoteId)
-                val jsonCaption = buildCaptionString(updatedMetadata)
+                val jsonCaption = buildCaptionString(metadata)
 
                 val inputThumbnail = thumbFile?.let {
                     val opts = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -381,7 +359,7 @@ class TdLibTelegramClient @Inject constructor(
                             }
                             is TdApi.UpdateMessageSendSucceeded -> {
                                 if (pendingMsgId.isCompleted && update.oldMessageId == pendingMsgId.await()) {
-                                    val doc = parseWallpaperFromMessage(update.message, updatedMetadata)
+                                    val doc = parseWallpaperFromMessage(update.message, metadata)
                                     if (doc != null) {
                                         val finalDoc = doc.copy(
                                             localPath = localPath,
@@ -467,88 +445,99 @@ class TdLibTelegramClient @Inject constructor(
                     null
                 )
             )
-            val docsWithThumbs = coroutineScope {
-                searchResult.messages.map { msg ->
-                    async(Dispatchers.IO) {
-                        val doc = parseWallpaperFromMessage(msg, null)
-                        if (doc != null) {
-                            val thumbnailPath = fetchThumbnailForMessage(msg) ?: doc.thumbnailPath
-                            doc.copy(localPath = doc.localPath, thumbnailPath = thumbnailPath)
-                        } else null
-                    }
-                }.awaitAll().filterNotNull()
+            for (msg in searchResult.messages) {
+                val doc = parseWallpaperFromMessage(msg, null)
+                if (doc != null) {
+                    documents.add(doc)
+                }
             }
-            documents.addAll(docsWithThumbs)
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching wallpapers from channel", e)
         }
         return documents
     }
 
-    private suspend fun fetchThumbnailForMessage(msg: TdApi.Message): String? {
-        val docParsed = parseWallpaperFromMessage(msg, null)
-        val thumbFileIdFromMeta = docParsed?.metadata?.thumbnailFileId
-
-        if (!thumbFileIdFromMeta.isNullOrBlank()) {
-            val cacheFile = File(context.cacheDir, "thumb_meta_${msg.id}.jpg")
+    override suspend fun fetchThumbnail(chatId: Long, messageId: Long): String? {
+        if (isMockMode) return null
+        return try {
+            val cacheFile = File(context.cacheDir, "thumb_${chatId}_${messageId}.jpg")
             if (cacheFile.exists() && cacheFile.length() > 0) {
                 return cacheFile.absolutePath
             }
-            val downloaded = downloadWallpaperFile(thumbFileIdFromMeta, cacheFile.absolutePath)
-            if (!downloaded.isNullOrBlank() && File(downloaded).exists() && File(downloaded).length() > 0) {
-                return downloaded
-            }
-        }
 
-        when (val content = msg.content) {
-            is TdApi.MessageDocument -> {
-                val thumbnail = content.document.thumbnail
-                if (thumbnail != null) {
-                    val thumbFile = thumbnail.file
-                    if (thumbFile.local?.isDownloadingCompleted == true && !thumbFile.local.path.isNullOrBlank() && File(thumbFile.local.path).exists()) {
-                        return thumbFile.local.path
-                    }
-                    val cacheFile = File(context.cacheDir, "thumb_${msg.id}.jpg")
-                    val downloaded = downloadTdFile(thumbFile, cacheFile.absolutePath, timeoutMs = 3000)
-                    if (!downloaded.isNullOrBlank() && File(downloaded).exists()) {
-                        return downloaded
-                    }
-                }
+            val msg = sendTd<TdApi.Message>(TdApi.GetMessage(chatId, messageId))
+            val docParsed = parseWallpaperFromMessage(msg, null)
 
-                val doc = content.document
-                val docFile = doc.document
-                val mime = doc.mimeType.orEmpty()
-                val docFileName = doc.fileName.orEmpty()
-                if (mime.startsWith("image/", ignoreCase = true) || docFileName.endsWith(".jpg", ignoreCase = true) || docFileName.endsWith(".png", ignoreCase = true) || docFileName.endsWith(".jpeg", ignoreCase = true) || docFileName.endsWith(".webp", ignoreCase = true)) {
-                    if (docFile.local?.isDownloadingCompleted == true && !docFile.local.path.isNullOrBlank() && File(docFile.local.path).exists()) {
-                        return docFile.local.path
+            // 1. Check thumbnailFileId in metadata if present
+            val thumbFileIdFromMeta = docParsed?.metadata?.thumbnailFileId
+            if (!thumbFileIdFromMeta.isNullOrBlank()) {
+                val downloaded = downloadWallpaperFile(thumbFileIdFromMeta, cacheFile.name)
+                if (!downloaded.isNullOrBlank() && File(downloaded).exists() && File(downloaded).length() > 0) {
+                    return downloaded
+                }
+            }
+
+            // 2. Check Document thumbnail
+            when (val content = msg.content) {
+                is TdApi.MessageDocument -> {
+                    val thumbnail = content.document.thumbnail
+                    if (thumbnail != null) {
+                        val thumbFile = thumbnail.file
+                        if (thumbFile.local?.isDownloadingCompleted == true && !thumbFile.local.path.isNullOrBlank() && File(thumbFile.local.path).exists()) {
+                            return thumbFile.local.path
+                        }
+                        val downloaded = sendTd<TdApi.File>(
+                            TdApi.DownloadFile(thumbFile.id, 32, 0, 0, true)
+                        )
+                        val path = downloaded.local?.path?.takeIf { it.isNotBlank() }
+                        if (path != null && File(path).exists() && File(path).length() > 0) {
+                            return path
+                        }
                     }
-                    val cacheFile = File(context.cacheDir, "thumb_doc_${msg.id}.jpg")
-                    val downloaded = downloadTdFile(docFile, cacheFile.absolutePath, timeoutMs = 4000)
-                    if (!downloaded.isNullOrBlank() && File(downloaded).exists()) {
-                        return downloaded
+
+                    // 3. Fallback: Download Document file if image
+                    val doc = content.document
+                    val docFile = doc.document
+                    val mime = doc.mimeType.orEmpty()
+                    val docFileName = doc.fileName.orEmpty()
+                    if (mime.startsWith("image/", ignoreCase = true) || docFileName.endsWith(".jpg", ignoreCase = true) || docFileName.endsWith(".png", ignoreCase = true) || docFileName.endsWith(".jpeg", ignoreCase = true) || docFileName.endsWith(".webp", ignoreCase = true)) {
+                        if (docFile.local?.isDownloadingCompleted == true && !docFile.local.path.isNullOrBlank() && File(docFile.local.path).exists()) {
+                            return docFile.local.path
+                        }
+                        val downloaded = sendTd<TdApi.File>(
+                            TdApi.DownloadFile(docFile.id, 32, 0, 0, true)
+                        )
+                        val path = downloaded.local?.path?.takeIf { it.isNotBlank() }
+                        if (path != null && File(path).exists() && File(path).length() > 0) {
+                            return path
+                        }
+                    }
+                }
+                is TdApi.MessagePhoto -> {
+                    val sizes = content.photo.sizes
+                    val targetSize = sizes.minByOrNull { kotlin.math.abs(it.width - 600) }
+                        ?: sizes.find { it.type == "m" || it.type == "x" || it.type == "y" }
+                        ?: sizes.maxByOrNull { it.photo.size }
+                    if (targetSize != null) {
+                        val thumbFile = targetSize.photo
+                        if (thumbFile.local?.isDownloadingCompleted == true && !thumbFile.local.path.isNullOrBlank() && File(thumbFile.local.path).exists()) {
+                            return thumbFile.local.path
+                        }
+                        val downloaded = sendTd<TdApi.File>(
+                            TdApi.DownloadFile(thumbFile.id, 32, 0, 0, true)
+                        )
+                        val path = downloaded.local?.path?.takeIf { it.isNotBlank() }
+                        if (path != null && File(path).exists() && File(path).length() > 0) {
+                            return path
+                        }
                     }
                 }
             }
-            is TdApi.MessagePhoto -> {
-                val sizes = content.photo.sizes
-                val targetSize = sizes.minByOrNull { kotlin.math.abs(it.width - 600) }
-                    ?: sizes.find { it.type == "m" || it.type == "x" || it.type == "y" }
-                    ?: sizes.maxByOrNull { it.photo.size }
-                if (targetSize != null) {
-                    val thumbFile = targetSize.photo
-                    if (thumbFile.local?.isDownloadingCompleted == true && !thumbFile.local.path.isNullOrBlank() && File(thumbFile.local.path).exists()) {
-                        return thumbFile.local.path
-                    }
-                    val cacheFile = File(context.cacheDir, "thumb_${msg.id}.jpg")
-                    val downloaded = downloadTdFile(thumbFile, cacheFile.absolutePath, timeoutMs = 3000)
-                    if (!downloaded.isNullOrBlank() && File(downloaded).exists()) {
-                        return downloaded
-                    }
-                }
-            }
+            null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching thumbnail on demand for message $messageId", e)
+            null
         }
-        return null
     }
 
     private fun saveByteArrayToCache(fileName: String, data: ByteArray): String? {
@@ -958,14 +947,22 @@ class TdLibTelegramClient @Inject constructor(
 
         val remoteId = file.remote?.id?.takeIf { it.isNotBlank() } ?: file.id.toString()
 
-        val metadata = parseMetadataFromCaption(captionText) ?: fallbackMetadata ?: WallpaperMetadata(
-            title = fileName.substringBeforeLast("."),
-            category = "General",
-            sizeBytes = file.size
-        )
+        val parsedMeta = parseMetadataFromCaption(captionText)
+        if (parsedMeta == null && fallbackMetadata == null) {
+            return null
+        }
+        val metadata = parsedMeta ?: fallbackMetadata!!
 
         val localPath = file.local?.path?.takeIf {
             file.local?.isDownloadingCompleted == true && it.isNotBlank() && File(it).exists()
+        }
+
+        var existingThumbPath: String? = null
+        if (msg.content is TdApi.MessageDocument) {
+            val thumb = (msg.content as TdApi.MessageDocument).document.thumbnail
+            if (thumb != null && thumb.file.local?.isDownloadingCompleted == true && !thumb.file.local.path.isNullOrBlank() && File(thumb.file.local.path).exists()) {
+                existingThumbPath = thumb.file.local.path
+            }
         }
 
         return WallpaperDocument(
@@ -976,7 +973,7 @@ class TdLibTelegramClient @Inject constructor(
             mimeType = mimeType,
             sizeBytes = file.size,
             localPath = localPath,
-            thumbnailPath = null,
+            thumbnailPath = existingThumbPath,
             metadata = metadata
         )
     }

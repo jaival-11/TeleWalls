@@ -110,4 +110,10 @@ class HomeViewModel @Inject constructor(
             wallpaperRepository.toggleFavorite(wallpaperId)
         }
     }
+
+    fun loadThumbnailOnDemand(wallpaper: Wallpaper) {
+        viewModelScope.launch {
+            wallpaperRepository.loadThumbnailOnDemand(wallpaper)
+        }
+    }
 }

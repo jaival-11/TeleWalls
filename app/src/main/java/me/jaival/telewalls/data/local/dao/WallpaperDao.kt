@@ -41,6 +41,9 @@ interface WallpaperDao {
     @Query("UPDATE wallpapers SET localPath = :localPath WHERE id = :id")
     suspend fun updateLocalPath(id: String, localPath: String)
 
+    @Query("UPDATE wallpapers SET thumbnailPath = :thumbnailPath WHERE id = :id")
+    suspend fun updateThumbnailPath(id: String, thumbnailPath: String)
+
     @Query("DELETE FROM wallpapers WHERE id = :id")
     suspend fun deleteWallpaperById(id: String)
 

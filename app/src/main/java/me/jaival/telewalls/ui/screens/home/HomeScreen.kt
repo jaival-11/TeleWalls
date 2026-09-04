@@ -228,7 +228,8 @@ fun HomeScreen(
                             wallpaper = wallpaper,
                             index = index,
                             onClick = { onWallpaperClick(wallpaper.id) },
-                            onFavoriteToggle = { viewModel.toggleFavorite(wallpaper.id) }
+                            onFavoriteToggle = { viewModel.toggleFavorite(wallpaper.id) },
+                            onLoadThumbnail = { viewModel.loadThumbnailOnDemand(it) }
                         )
                     }
                 }

@@ -61,6 +61,7 @@ fun AnimatedWallpaperCard(
     index: Int,
     onClick: () -> Unit,
     onFavoriteToggle: () -> Unit,
+    onLoadThumbnail: (Wallpaper) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var visible by remember { mutableStateOf(false) }
@@ -100,6 +101,13 @@ fun AnimatedWallpaperCard(
     val imageModel = remember(wallpaper.localPath, wallpaper.thumbnailPath) {
         ImageUtils.resolveImageModel(wallpaper.localPath, wallpaper.thumbnailPath)
     }
+
+    LaunchedEffect(wallpaper.id, imageModel) {
+        if (imageModel == null) {
+            onLoadThumbnail(wallpaper)
+        }
+    }
+
     val primaryColor = MaterialTheme.colorScheme.primary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
     val surfaceGradientEnd = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)

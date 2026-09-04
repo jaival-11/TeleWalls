@@ -38,6 +38,8 @@ interface TelegramClient {
         destinationPath: String
     ): String?
 
+    suspend fun fetchThumbnail(chatId: Long, messageId: Long): String?
+
     suspend fun deleteWallpaper(chatId: Long, messageId: Long): Boolean
 
     suspend fun fetchCategoriesMessage(chatId: Long): List<String>

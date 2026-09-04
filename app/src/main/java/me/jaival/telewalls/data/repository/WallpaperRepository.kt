@@ -224,6 +224,23 @@ class WallpaperRepository @Inject constructor(
         downloadedPath
     }
 
+    suspend fun loadThumbnailOnDemand(wallpaper: Wallpaper): String? = withContext(Dispatchers.IO) {
+        val currentThumb = wallpaper.thumbnailPath
+        if (!currentThumb.isNullOrBlank() && (currentThumb.startsWith("http") || (File(currentThumb).exists() && File(currentThumb).length() > 0))) {
+            return@withContext currentThumb
+        }
+        val currentLocal = wallpaper.localPath
+        if (!currentLocal.isNullOrBlank() && (currentLocal.startsWith("http") || (File(currentLocal).exists() && File(currentLocal).length() > 0))) {
+            return@withContext currentLocal
+        }
+
+        val downloadedPath = telegramClient.fetchThumbnail(wallpaper.chatId, wallpaper.messageId)
+        if (!downloadedPath.isNullOrBlank()) {
+            wallpaperDao.updateThumbnailPath(wallpaper.id, downloadedPath)
+        }
+        downloadedPath
+    }
+
     private fun WallpaperEntity.toDomain(): Wallpaper = Wallpaper(
         id = id,
         messageId = messageId,
