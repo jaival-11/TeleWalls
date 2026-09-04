@@ -56,10 +56,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import me.jaival.telewalls.core.util.ImageUtils
 import me.jaival.telewalls.core.wallpaper.WallpaperTarget
 import me.jaival.telewalls.ui.components.glassmorphism
 import me.jaival.telewalls.viewmodel.DetailViewModel
 import me.jaival.telewalls.viewmodel.WallpaperApplyState
+import me.jaival.telewalls.viewmodel.WallpaperDownloadState
 
 @Composable
 fun DetailScreen(
@@ -73,6 +75,7 @@ fun DetailScreen(
 
     val wallpaper by viewModel.wallpaper.collectAsState()
     val applyState by viewModel.applyState.collectAsState()
+    val downloadState by viewModel.downloadState.collectAsState()
     val isLoadingFullImage by viewModel.isLoadingFullImage.collectAsState()
     val context = LocalContext.current
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -90,6 +93,16 @@ fun DetailScreen(
         }
     }
 
+    LaunchedEffect(downloadState) {
+        if (downloadState is WallpaperDownloadState.Success) {
+            Toast.makeText(context, "Wallpaper saved to Gallery!", Toast.LENGTH_SHORT).show()
+            viewModel.resetDownloadState()
+        } else if (downloadState is WallpaperDownloadState.Error) {
+            Toast.makeText(context, (downloadState as WallpaperDownloadState.Error).message, Toast.LENGTH_SHORT).show()
+            viewModel.resetDownloadState()
+        }
+    }
+
     val currentWall = wallpaper ?: return
 
     val dynamicColors = currentWall.colors.mapNotNull { hex ->
@@ -97,6 +110,10 @@ fun DetailScreen(
     }
     val topBgColor = dynamicColors.firstOrNull() ?: MaterialTheme.colorScheme.surface
     val bottomBgColor = dynamicColors.getOrNull(1) ?: MaterialTheme.colorScheme.background
+
+    val imageModel = remember(currentWall.localPath, currentWall.thumbnailPath) {
+        ImageUtils.resolveImageModel(currentWall.localPath, currentWall.thumbnailPath)
+    }
 
     Box(
         modifier = Modifier
@@ -108,15 +125,17 @@ fun DetailScreen(
             )
     ) {
         // High resolution wallpaper image (falls back to thumbnail while full image is loading)
-        AsyncImage(
-            model = ImageRequest.Builder(context)
-                .data(currentWall.localPath ?: currentWall.thumbnailPath ?: "")
-                .crossfade(true)
-                .build(),
-            contentDescription = currentWall.title,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
+        if (imageModel != null) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(imageModel)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = currentWall.title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
 
         // Subtle gradient overlay for readability
         Box(
@@ -359,14 +378,19 @@ fun DetailScreen(
 
                     IconButton(
                         onClick = {
-                            Toast.makeText(context, "Saved to Gallery!", Toast.LENGTH_SHORT).show()
+                            viewModel.downloadWallpaperToGallery(context)
                         },
+                        enabled = downloadState !is WallpaperDownloadState.Downloading,
                         modifier = Modifier
                             .size(52.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceContainer)
                     ) {
-                        Icon(imageVector = Icons.Filled.Download, contentDescription = "Download", tint = Color.White)
+                        if (downloadState is WallpaperDownloadState.Downloading) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                        } else {
+                            Icon(imageVector = Icons.Filled.Download, contentDescription = "Download", tint = Color.White)
+                        }
                     }
                 }
             }

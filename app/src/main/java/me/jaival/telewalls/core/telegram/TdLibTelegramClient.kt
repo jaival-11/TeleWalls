@@ -416,10 +416,11 @@ class TdLibTelegramClient @Inject constructor(
         val docContent = msg.content as TdApi.MessageDocument
         val thumbnail = docContent.document.thumbnail ?: return null
         val thumbnailFile = thumbnail.file
-        if (thumbnailFile.local.isDownloadingCompleted && thumbnailFile.local.path.isNotBlank()) {
+        if (thumbnailFile.local.isDownloadingCompleted && thumbnailFile.local.path.isNotBlank() && File(thumbnailFile.local.path).exists()) {
             return thumbnailFile.local.path
         }
-        return downloadWallpaperFile(thumbnailFile.id.toString(), "thumb_${msg.id}.jpg")
+        val cacheFile = File(context.cacheDir, "thumb_${msg.id}.jpg")
+        return downloadWallpaperFile(thumbnailFile.id.toString(), cacheFile.absolutePath)
     }
 
     private fun getMockWallpapers(chatId: Long): List<WallpaperDocument> {
@@ -565,8 +566,22 @@ class TdLibTelegramClient @Inject constructor(
             for (i in 0..100) {
                 delay(200)
                 val fileInfo = sendTd<TdApi.File>(TdApi.GetFile(fileIdInt))
-                if (fileInfo.local?.isDownloadingCompleted == true) {
-                    return fileInfo.local.path
+                if (fileInfo.local?.isDownloadingCompleted == true && !fileInfo.local.path.isNullOrBlank()) {
+                    val localPath = fileInfo.local.path
+                    if (destinationPath.isNotBlank() && destinationPath != localPath) {
+                        try {
+                            val srcFile = File(localPath)
+                            val destFile = File(destinationPath)
+                            if (srcFile.exists()) {
+                                destFile.parentFile?.mkdirs()
+                                srcFile.copyTo(destFile, overwrite = true)
+                                return destFile.absolutePath
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed copying downloaded file to destinationPath $destinationPath", e)
+                        }
+                    }
+                    return localPath
                 }
             }
         } catch (e: Exception) {
@@ -583,7 +598,15 @@ class TdLibTelegramClient @Inject constructor(
             "mock_file_4" -> "https://images.unsplash.com/photo-1541701494587-cb58502866ab?q=80&w=1080"
             "mock_file_5" -> "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1080"
             "mock_file_6" -> "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=1080"
-            else -> fallbackPath.ifBlank { "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=1080" }
+            else -> {
+                if (fallbackPath.startsWith("/") && File(fallbackPath).exists()) {
+                    fallbackPath
+                } else if (fallbackPath.startsWith("http://") || fallbackPath.startsWith("https://")) {
+                    fallbackPath
+                } else {
+                    "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=1080"
+                }
+            }
         }
     }
 
@@ -757,8 +780,8 @@ class TdLibTelegramClient @Inject constructor(
             fileName = doc.fileName,
             mimeType = doc.mimeType,
             sizeBytes = doc.document.size,
-            localPath = null,
-            thumbnailPath = doc.thumbnail?.file?.local?.path?.ifEmpty { null },
+            localPath = doc.document.local?.path?.takeIf { doc.document.local?.isDownloadingCompleted == true && it.isNotBlank() && File(it).exists() },
+            thumbnailPath = doc.thumbnail?.file?.local?.path?.takeIf { doc.thumbnail?.file?.local?.isDownloadingCompleted == true && it.isNotBlank() && File(it).exists() },
             metadata = metadata
         )
     }

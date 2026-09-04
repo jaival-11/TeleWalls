@@ -52,7 +52,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import me.jaival.telewalls.data.repository.Wallpaper
+import me.jaival.telewalls.core.util.ImageUtils
 
 @Composable
 fun AnimatedWallpaperCard(
@@ -96,7 +96,9 @@ fun AnimatedWallpaperCard(
     )
 
     val coroutineScope = rememberCoroutineScope()
-    val imageModel = wallpaper.thumbnailPath ?: wallpaper.localPath ?: ""
+    val imageModel = remember(wallpaper.thumbnailPath, wallpaper.localPath) {
+        ImageUtils.resolveImageModel(wallpaper.thumbnailPath, wallpaper.localPath)
+    }
     val primaryColor = MaterialTheme.colorScheme.primary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
     val surfaceGradientEnd = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
@@ -121,17 +123,26 @@ fun AnimatedWallpaperCard(
                 onClick()
             }
     ) {
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(imageModel)
-                .crossfade(true)
-                .build(),
-            contentDescription = wallpaper.title,
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(0.65f),
-            contentScale = ContentScale.Crop
-        )
+        if (imageModel != null) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(imageModel)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = wallpaper.title,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(0.65f),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            ShimmerCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(0.65f),
+                aspectRatio = 0.65f
+            )
+        }
 
         // Gradient overlay for bottom title and category
         Box(

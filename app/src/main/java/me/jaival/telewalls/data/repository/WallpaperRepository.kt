@@ -121,7 +121,17 @@ class WallpaperRepository @Inject constructor(
                     val existingLocalPath = existingEntity?.localPath?.takeIf {
                         it.isNotBlank() && (it.startsWith("http") || File(it).exists())
                     }
-                    doc.toEntity(isFav = isFav, localPathOverride = existingLocalPath)
+                    val existingThumbnailPath = existingEntity?.thumbnailPath?.takeIf {
+                        it.isNotBlank() && (it.startsWith("http") || File(it).exists())
+                    }
+                    val finalThumbnailPath = doc.thumbnailPath?.takeIf {
+                        it.isNotBlank() && (it.startsWith("http") || File(it).exists())
+                    } ?: existingThumbnailPath
+                    doc.toEntity(
+                        isFav = isFav,
+                        localPathOverride = existingLocalPath,
+                        thumbnailPathOverride = finalThumbnailPath
+                    )
                 }
                 wallpaperDao.insertWallpapers(entities)
                 Result.success(documents.size)
@@ -238,7 +248,8 @@ class WallpaperRepository @Inject constructor(
 
     private fun WallpaperDocument.toEntity(
         isFav: Boolean,
-        localPathOverride: String? = this.localPath
+        localPathOverride: String? = this.localPath,
+        thumbnailPathOverride: String? = this.thumbnailPath
     ): WallpaperEntity = WallpaperEntity(
         id = "${chatId}_${messageId}",
         messageId = messageId,
@@ -257,7 +268,7 @@ class WallpaperRepository @Inject constructor(
         author = metadata.author,
         timestamp = metadata.timestamp,
         localPath = localPathOverride,
-        thumbnailPath = thumbnailPath,
+        thumbnailPath = thumbnailPathOverride,
         isFavorite = isFav
     )
 }

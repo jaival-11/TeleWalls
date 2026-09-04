@@ -1,17 +1,22 @@
 package me.jaival.telewalls.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import me.jaival.telewalls.core.util.ImageUtils
 import me.jaival.telewalls.core.wallpaper.WallpaperManagerHelper
 import me.jaival.telewalls.core.wallpaper.WallpaperTarget
 import me.jaival.telewalls.data.repository.Wallpaper
 import me.jaival.telewalls.data.repository.WallpaperRepository
 import java.io.File
+import java.net.URL
 import javax.inject.Inject
 
 sealed interface WallpaperApplyState {
@@ -19,6 +24,13 @@ sealed interface WallpaperApplyState {
     data object Applying : WallpaperApplyState
     data object Success : WallpaperApplyState
     data class Error(val message: String) : WallpaperApplyState
+}
+
+sealed interface WallpaperDownloadState {
+    data object Idle : WallpaperDownloadState
+    data object Downloading : WallpaperDownloadState
+    data object Success : WallpaperDownloadState
+    data class Error(val message: String) : WallpaperDownloadState
 }
 
 @HiltViewModel
@@ -35,6 +47,9 @@ class DetailViewModel @Inject constructor(
 
     private val _applyState = MutableStateFlow<WallpaperApplyState>(WallpaperApplyState.Idle)
     val applyState: StateFlow<WallpaperApplyState> = _applyState.asStateFlow()
+
+    private val _downloadState = MutableStateFlow<WallpaperDownloadState>(WallpaperDownloadState.Idle)
+    val downloadState: StateFlow<WallpaperDownloadState> = _downloadState.asStateFlow()
 
     fun loadWallpaper(id: String) {
         viewModelScope.launch {
@@ -66,14 +81,83 @@ class DetailViewModel @Inject constructor(
         val current = _wallpaper.value ?: return
         viewModelScope.launch {
             _applyState.value = WallpaperApplyState.Applying
-            val imagePath = current.localPath
-            if (imagePath != null && imagePath.startsWith("/")) {
+
+            var imagePath = current.localPath
+            if (imagePath.isNullOrBlank() || (!imagePath.startsWith("http") && !File(imagePath).exists())) {
+                _isLoadingFullImage.value = true
+                imagePath = wallpaperRepository.downloadFullWallpaper(current)
+                _isLoadingFullImage.value = false
+            }
+
+            if (imagePath.isNullOrBlank()) {
+                imagePath = current.thumbnailPath
+            }
+
+            if (imagePath.isNullOrBlank()) {
+                _applyState.value = WallpaperApplyState.Error("Image file not available to set wallpaper")
+                return@launch
+            }
+
+            if (imagePath.startsWith("/")) {
                 val file = File(imagePath)
-                val result = wallpaperManagerHelper.setWallpaperFromFile(file, target)
-                _applyState.value = if (result.isSuccess) WallpaperApplyState.Success else WallpaperApplyState.Error(result.exceptionOrNull()?.message ?: "Failed")
+                if (file.exists()) {
+                    val result = wallpaperManagerHelper.setWallpaperFromFile(file, target)
+                    _applyState.value = if (result.isSuccess) {
+                        WallpaperApplyState.Success
+                    } else {
+                        WallpaperApplyState.Error(result.exceptionOrNull()?.message ?: "Failed to set wallpaper")
+                    }
+                } else {
+                    _applyState.value = WallpaperApplyState.Error("Local wallpaper file not found")
+                }
+            } else if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+                withContext(Dispatchers.IO) {
+                    try {
+                        val url = URL(imagePath)
+                        url.openStream().use { stream ->
+                            val result = wallpaperManagerHelper.setWallpaperFromInputStream(stream, target)
+                            _applyState.value = if (result.isSuccess) {
+                                WallpaperApplyState.Success
+                            } else {
+                                WallpaperApplyState.Error(result.exceptionOrNull()?.message ?: "Failed to set wallpaper")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        _applyState.value = WallpaperApplyState.Error(e.message ?: "Failed to download image to set wallpaper")
+                    }
+                }
             } else {
-                // Download file first or set default success for demo remote URLs
-                _applyState.value = WallpaperApplyState.Success
+                _applyState.value = WallpaperApplyState.Error("Invalid wallpaper image path")
+            }
+        }
+    }
+
+    fun downloadWallpaperToGallery(context: Context) {
+        val current = _wallpaper.value ?: return
+        viewModelScope.launch {
+            _downloadState.value = WallpaperDownloadState.Downloading
+
+            var imagePath = current.localPath
+            if (imagePath.isNullOrBlank() || (!imagePath.startsWith("http") && !File(imagePath).exists())) {
+                _isLoadingFullImage.value = true
+                imagePath = wallpaperRepository.downloadFullWallpaper(current)
+                _isLoadingFullImage.value = false
+            }
+
+            if (imagePath.isNullOrBlank()) {
+                imagePath = current.thumbnailPath
+            }
+
+            if (imagePath.isNullOrBlank()) {
+                _downloadState.value = WallpaperDownloadState.Error("Image file not available to download")
+                return@launch
+            }
+
+            val result = ImageUtils.saveImageToGallery(context, imagePath, current.title, current.mimeType)
+            if (result.isSuccess) {
+                _downloadState.value = WallpaperDownloadState.Success
+            } else {
+                _downloadState.value = WallpaperDownloadState.Error(result.exceptionOrNull()?.message ?: "Failed to save image to gallery")
             }
         }
     }
@@ -90,5 +174,9 @@ class DetailViewModel @Inject constructor(
 
     fun resetApplyState() {
         _applyState.value = WallpaperApplyState.Idle
+    }
+
+    fun resetDownloadState() {
+        _downloadState.value = WallpaperDownloadState.Idle
     }
 }
