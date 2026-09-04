@@ -13,6 +13,7 @@ import me.jaival.telewalls.core.telegram.WallpaperMetadata
 import me.jaival.telewalls.data.local.dao.WallpaperDao
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import me.jaival.telewalls.core.util.CharacterAuthorUtils
 import me.jaival.telewalls.core.util.ColorSearchUtils
 import me.jaival.telewalls.data.local.dao.CategoryDao
 import me.jaival.telewalls.data.local.entity.CategoryEntity
@@ -221,7 +222,7 @@ class WallpaperRepository @Inject constructor(
         description: String
     ): Boolean = withContext(Dispatchers.IO) {
         val cleanTitle = title.ifBlank { "Untitled Wallpaper" }
-        val cleanAuthor = author.ifBlank { "TeleWalls User" }
+        val cleanAuthor = author.trim().ifBlank { CharacterAuthorUtils.getRandomCharacterName() }
         val cleanCategory = category.ifBlank { "AMOLED" }
         val cleanTags = tags.map { it.trim() }.filter { it.isNotBlank() }
         val tagsCsv = cleanTags.joinToString(",")

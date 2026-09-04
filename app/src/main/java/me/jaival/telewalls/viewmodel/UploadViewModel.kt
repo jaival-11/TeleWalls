@@ -17,6 +17,7 @@ import kotlinx.coroutines.withContext
 import me.jaival.telewalls.core.palette.PaletteExtractor
 import me.jaival.telewalls.core.telegram.TelegramUploadEvent
 import me.jaival.telewalls.core.telegram.WallpaperMetadata
+import me.jaival.telewalls.core.util.CharacterAuthorUtils
 import me.jaival.telewalls.data.repository.AuthRepository
 import me.jaival.telewalls.data.repository.WallpaperRepository
 import java.io.File
@@ -160,7 +161,7 @@ class UploadViewModel @Inject constructor(
                 sizeBytes = file.length(),
                 colors = _detectedColors.value,
                 description = description,
-                author = author.ifBlank { "TeleWalls User" },
+                author = author.trim().ifBlank { CharacterAuthorUtils.getRandomCharacterName() },
                 timestamp = System.currentTimeMillis()
             )
 
