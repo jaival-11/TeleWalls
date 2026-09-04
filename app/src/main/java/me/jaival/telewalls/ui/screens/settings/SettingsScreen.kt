@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.sp
 import me.jaival.telewalls.ui.components.glassmorphism
 import androidx.compose.runtime.LaunchedEffect
 import androidx.hilt.navigation.compose.hiltViewModel
+import me.jaival.telewalls.viewmodel.AuthViewModel
 import me.jaival.telewalls.viewmodel.SettingsViewModel
 
 @Composable

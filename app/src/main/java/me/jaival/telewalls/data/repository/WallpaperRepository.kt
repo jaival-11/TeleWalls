@@ -120,6 +120,30 @@ class WallpaperRepository @Inject constructor(
         try {
             syncCategoriesFromChannel(chatId)
             val documents = telegramClient.fetchWallpapers(chatId, fromMessageId = 0L, limit = 50)
+            val fetchedIds = documents.map { "${it.chatId}_${it.messageId}" }.toSet()
+
+            val existingEntities = wallpaperDao.getWallpapersByChatId(chatId)
+            val deletedEntities = existingEntities.filter { it.id !in fetchedIds }
+
+            if (deletedEntities.isNotEmpty()) {
+                val deletedIds = deletedEntities.map { it.id }
+                wallpaperDao.deleteWallpapersByIds(deletedIds)
+                wallpaperDao.deleteOrphanFavorites()
+
+                deletedEntities.forEach { entity ->
+                    entity.localPath?.let { path ->
+                        if (path.startsWith("/") && !path.startsWith("http")) {
+                            try { File(path).delete() } catch (e: Exception) { Log.e(TAG, "Error deleting local cached file", e) }
+                        }
+                    }
+                    entity.thumbnailPath?.let { path ->
+                        if (path.startsWith("/") && !path.startsWith("http")) {
+                            try { File(path).delete() } catch (e: Exception) { Log.e(TAG, "Error deleting local thumbnail file", e) }
+                        }
+                    }
+                }
+            }
+
             if (documents.isNotEmpty()) {
                 val entities = documents.map { doc ->
                     val id = "${doc.chatId}_${doc.messageId}"
@@ -141,10 +165,8 @@ class WallpaperRepository @Inject constructor(
                     )
                 }
                 wallpaperDao.insertWallpapers(entities)
-                Result.success(documents.size)
-            } else {
-                Result.success(0)
             }
+            Result.success(documents.size)
         } catch (e: Exception) {
             Log.e(TAG, "Error syncing wallpapers from channel", e)
             Result.failure(e)
@@ -210,6 +232,7 @@ class WallpaperRepository @Inject constructor(
         val success = telegramClient.deleteWallpaper(wallpaper.chatId, wallpaper.messageId)
         if (success) {
             wallpaperDao.deleteWallpaperById(wallpaper.id)
+            wallpaperDao.removeFavorite(wallpaper.id)
         }
         success
     }

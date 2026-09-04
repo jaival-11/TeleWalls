@@ -60,6 +60,15 @@ interface WallpaperDao {
     @Query("DELETE FROM wallpapers WHERE id = :id")
     suspend fun deleteWallpaperById(id: String)
 
+    @Query("SELECT * FROM wallpapers WHERE chatId = :chatId OR id LIKE :chatId || '_%'")
+    suspend fun getWallpapersByChatId(chatId: Long): List<WallpaperEntity>
+
+    @Query("DELETE FROM wallpapers WHERE id IN (:ids)")
+    suspend fun deleteWallpapersByIds(ids: List<String>)
+
+    @Query("DELETE FROM favorites WHERE wallpaperId NOT IN (SELECT id FROM wallpapers)")
+    suspend fun deleteOrphanFavorites()
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun addFavorite(favorite: FavoriteEntity)
 
