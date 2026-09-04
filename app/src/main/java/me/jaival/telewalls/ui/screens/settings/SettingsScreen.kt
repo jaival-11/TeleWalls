@@ -18,17 +18,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.CleaningServices
-import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Restore
-import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -67,41 +61,6 @@ fun SettingsScreen(
     val authState by authViewModel.authState.collectAsState()
     var dynamicColorsEnabled by remember { mutableStateOf(true) }
     val primaryColor = MaterialTheme.colorScheme.primary
-
-    var isExporting by remember { mutableStateOf(false) }
-    var isRestoring by remember { mutableStateOf(false) }
-
-    val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json")
-    ) { uri ->
-        if (uri != null) {
-            isExporting = true
-            authViewModel.exportBackup(uri) { success, error ->
-                isExporting = false
-                if (success) {
-                    Toast.makeText(context, "Full app backup exported successfully!", Toast.LENGTH_LONG).show()
-                } else {
-                    Toast.makeText(context, error ?: "Backup export failed.", Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-    }
-
-    val restoreLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            isRestoring = true
-            authViewModel.restoreBackup(uri) { success, error ->
-                isRestoring = false
-                if (success) {
-                    Toast.makeText(context, "App state restored successfully!", Toast.LENGTH_LONG).show()
-                } else {
-                    Toast.makeText(context, error ?: "Backup restore failed.", Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
@@ -159,80 +118,6 @@ fun SettingsScreen(
                                 checkedTrackColor = primaryColor
                             )
                         )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Backup & Restore Card
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-                shape = RoundedCornerShape(24.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Filled.Backup, contentDescription = null, tint = primaryColor)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = "Backup & Restore App State",
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Export or import API credentials, session keys, storage channel & database state",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                exportLauncher.launch("telewalls_backup_${System.currentTimeMillis() / 1000}.json")
-                            },
-                            enabled = !isExporting && !isRestoring,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(46.dp),
-                            shape = RoundedCornerShape(23.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
-                        ) {
-                            if (isExporting) {
-                                CircularProgressIndicator(modifier = Modifier.size(18.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
-                            } else {
-                                Icon(imageVector = Icons.Filled.SaveAlt, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Backup", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            }
-                        }
-
-                        OutlinedButton(
-                            onClick = {
-                                restoreLauncher.launch(arrayOf("application/json", "*/*"))
-                            },
-                            enabled = !isExporting && !isRestoring,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(46.dp),
-                            shape = RoundedCornerShape(23.dp)
-                        ) {
-                            if (isRestoring) {
-                                CircularProgressIndicator(modifier = Modifier.size(18.dp), color = primaryColor, strokeWidth = 2.dp)
-                            } else {
-                                Icon(imageVector = Icons.Filled.Restore, contentDescription = null, tint = primaryColor, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Restore", color = primaryColor, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            }
-                        }
                     }
                 }
             }

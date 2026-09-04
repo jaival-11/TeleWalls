@@ -9,7 +9,6 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import dagger.hilt.android.qualifiers.ApplicationContext
 import me.jaival.telewalls.core.telegram.TelegramCredentials
@@ -72,42 +71,6 @@ class AuthRepository @Inject constructor(
             prefs.remove(API_HASH_KEY)
             prefs.remove(ACTIVE_CHANNEL_ID_KEY)
             prefs.remove(IS_SETUP_COMPLETED_KEY)
-        }
-    }
-
-    suspend fun getPreferencesSnapshot(): BackupPreferencesData {
-        val prefs = context.dataStore.data.first()
-        val apiIdStr = prefs[API_ID_KEY]
-        val apiId = apiIdStr?.toIntOrNull()
-        val apiHash = prefs[API_HASH_KEY]
-        val activeChannelId = prefs[ACTIVE_CHANNEL_ID_KEY]
-        val isSetupCompleted = prefs[IS_SETUP_COMPLETED_KEY] ?: false
-        return BackupPreferencesData(
-            apiId = apiId,
-            apiHash = apiHash,
-            activeChannelId = activeChannelId,
-            isSetupCompleted = isSetupCompleted
-        )
-    }
-
-    suspend fun restorePreferences(data: BackupPreferencesData) {
-        context.dataStore.edit { prefs ->
-            if (data.apiId != null) {
-                prefs[API_ID_KEY] = data.apiId.toString()
-            } else {
-                prefs.remove(API_ID_KEY)
-            }
-            if (!data.apiHash.isNullOrBlank()) {
-                prefs[API_HASH_KEY] = data.apiHash
-            } else {
-                prefs.remove(API_HASH_KEY)
-            }
-            if (data.activeChannelId != null) {
-                prefs[ACTIVE_CHANNEL_ID_KEY] = data.activeChannelId
-            } else {
-                prefs.remove(ACTIVE_CHANNEL_ID_KEY)
-            }
-            prefs[IS_SETUP_COMPLETED_KEY] = data.isSetupCompleted
         }
     }
 }
