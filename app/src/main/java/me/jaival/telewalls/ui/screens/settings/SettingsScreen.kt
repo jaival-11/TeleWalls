@@ -53,17 +53,27 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.jaival.telewalls.ui.components.glassmorphism
-import me.jaival.telewalls.viewmodel.AuthViewModel
+import androidx.compose.runtime.LaunchedEffect
+import androidx.hilt.navigation.compose.hiltViewModel
+import me.jaival.telewalls.viewmodel.SettingsViewModel
 
 @Composable
 fun SettingsScreen(
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel,
+    settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val authState by authViewModel.authState.collectAsState()
+    val cacheSizeBytes by settingsViewModel.cacheSizeBytes.collectAsState()
+    val isClearingCache by settingsViewModel.isClearingCache.collectAsState()
+
     var dynamicColorsEnabled by remember { mutableStateOf(true) }
     var showLogoutConfirmationDialog by remember { mutableStateOf(false) }
     val primaryColor = MaterialTheme.colorScheme.primary
+
+    LaunchedEffect(Unit) {
+        settingsViewModel.refreshCacheSize()
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
@@ -137,18 +147,59 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
-                                Toast.makeText(context, "Image cache cleared!", Toast.LENGTH_SHORT).show()
+                            .clickable(enabled = !isClearingCache) {
+                                settingsViewModel.clearCache {
+                                    Toast.makeText(context, "All stored thumbnails and full images cleared!", Toast.LENGTH_SHORT).show()
+                                }
                             },
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
                             Icon(imageVector = Icons.Filled.CleaningServices, contentDescription = null, tint = primaryColor)
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text(text = "Clear Image Cache", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
-                                Text(text = "Frees temporary document preview files", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                                Text(
+                                    text = "Clear Image Cache",
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Frees all stored thumbnails & full images",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 12.sp
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = settingsViewModel.formatCacheSize(cacheSizeBytes),
+                                    color = primaryColor,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        if (isClearingCache) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp,
+                                color = primaryColor
+                            )
+                        } else {
+                            TextButton(
+                                onClick = {
+                                    settingsViewModel.clearCache {
+                                        Toast.makeText(context, "All stored thumbnails and full images cleared!", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            ) {
+                                Text(
+                                    text = "Clear",
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }

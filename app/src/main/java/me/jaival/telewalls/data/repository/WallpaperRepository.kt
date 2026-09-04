@@ -20,6 +20,7 @@ import me.jaival.telewalls.data.local.entity.CategoryEntity
 import me.jaival.telewalls.data.local.entity.FavoriteEntity
 import me.jaival.telewalls.data.local.entity.WallpaperEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
+import coil.imageLoader
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -293,6 +294,87 @@ class WallpaperRepository @Inject constructor(
             wallpaperDao.updateThumbnailPath(wallpaper.id, downloadedPath)
         }
         downloadedPath
+    }
+
+    suspend fun getCacheSizeBytes(): Long = withContext(Dispatchers.IO) {
+        var total = 0L
+
+        fun getFolderSize(dir: File?): Long {
+            if (dir == null || !dir.exists()) return 0L
+            if (dir.isFile) return dir.length()
+            var size = 0L
+            val files = dir.listFiles() ?: return 0L
+            for (f in files) {
+                size += getFolderSize(f)
+            }
+            return size
+        }
+
+        total += getFolderSize(context.cacheDir)
+        context.externalCacheDir?.let { total += getFolderSize(it) }
+
+        val tdlibDir = File(context.filesDir, "tdlib")
+        if (tdlibDir.exists() && tdlibDir.isDirectory) {
+            val mediaFolders = listOf("files", "photos", "thumbnails", "documents")
+            for (folderName in mediaFolders) {
+                val folder = File(tdlibDir, folderName)
+                if (folder.exists()) {
+                    total += getFolderSize(folder)
+                }
+            }
+        }
+
+        total
+    }
+
+    suspend fun clearImageCache(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            // 1. Clear Coil memory and disk caches
+            try {
+                val loader = context.imageLoader
+                loader.diskCache?.clear()
+                loader.memoryCache?.clear()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error clearing Coil cache", e)
+            }
+
+            // 2. Clear cacheDir
+            fun deleteContents(dir: File?) {
+                if (dir == null || !dir.exists()) return
+                val files = dir.listFiles() ?: return
+                for (f in files) {
+                    if (f.isDirectory) {
+                        f.deleteRecursively()
+                    } else {
+                        f.delete()
+                    }
+                }
+            }
+
+            deleteContents(context.cacheDir)
+
+            // 3. Clear externalCacheDir if present
+            deleteContents(context.externalCacheDir)
+
+            // 4. Clear downloaded TDLib media subfolders
+            val tdlibDir = File(context.filesDir, "tdlib")
+            if (tdlibDir.exists() && tdlibDir.isDirectory) {
+                val mediaFolders = listOf("files", "photos", "thumbnails", "documents")
+                for (folderName in mediaFolders) {
+                    val folder = File(tdlibDir, folderName)
+                    if (folder.exists()) {
+                        deleteContents(folder)
+                    }
+                }
+            }
+
+            // 5. Clear cached image paths in Room database
+            wallpaperDao.clearCachedPaths()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error clearing image cache", e)
+            false
+        }
     }
 
     private fun WallpaperEntity.toDomain(): Wallpaper = Wallpaper(
