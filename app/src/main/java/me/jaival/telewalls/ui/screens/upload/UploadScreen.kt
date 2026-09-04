@@ -223,6 +223,19 @@ fun UploadScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // Author
+            OutlinedTextField(
+                value = author,
+                onValueChange = { author = it },
+                label = { Text("Author Name") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = fieldColors
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             // Category Selection
             Text(
                 text = "Select Category",
