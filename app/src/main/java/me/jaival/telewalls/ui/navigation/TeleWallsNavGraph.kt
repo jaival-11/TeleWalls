@@ -123,7 +123,30 @@ fun TeleWallsNavGraph(
                     )
                 }
 
-                composable(ScreenRoutes.UPLOAD) {
+                composable(
+                    route = ScreenRoutes.UPLOAD,
+                    enterTransition = {
+                        slideIntoContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Up,
+                            animationSpec = tween(380)
+                        ) + fadeIn(animationSpec = tween(300))
+                    },
+                    exitTransition = {
+                        slideOutOfContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Down,
+                            animationSpec = tween(350)
+                        ) + fadeOut(animationSpec = tween(300))
+                    },
+                    popEnterTransition = {
+                        fadeIn(animationSpec = tween(300))
+                    },
+                    popExitTransition = {
+                        slideOutOfContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Down,
+                            animationSpec = tween(350)
+                        ) + fadeOut(animationSpec = tween(300))
+                    }
+                ) {
                     UploadScreen(
                         viewModel = uploadViewModel,
                         onUploadSuccess = {
