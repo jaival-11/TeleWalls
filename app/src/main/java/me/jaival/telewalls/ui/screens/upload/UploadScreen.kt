@@ -299,15 +299,17 @@ fun UploadScreen(
                     trailingIcon = {
                         Icon(
                             imageVector = Icons.Default.ArrowDropDown,
-                            contentDescription = "Select Type",
-                            modifier = Modifier.clickable { wallpaperTypeExpanded = true }
+                            contentDescription = "Select Type"
                         )
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { wallpaperTypeExpanded = true },
+                    modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = fieldColors
+                )
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clickable { wallpaperTypeExpanded = true }
                 )
                 DropdownMenu(
                     expanded = wallpaperTypeExpanded,

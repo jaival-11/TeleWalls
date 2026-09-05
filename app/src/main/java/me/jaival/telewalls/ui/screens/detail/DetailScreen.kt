@@ -780,15 +780,17 @@ fun DetailScreen(
                             trailingIcon = {
                                 Icon(
                                     imageVector = Icons.Default.ArrowDropDown,
-                                    contentDescription = "Select Type",
-                                    modifier = Modifier.clickable { typeDropdownExpanded = true }
+                                    contentDescription = "Select Type"
                                 )
                             },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { typeDropdownExpanded = true },
+                            modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
                             colors = fieldColors
+                        )
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable { typeDropdownExpanded = true }
                         )
                         DropdownMenu(
                             expanded = typeDropdownExpanded,
