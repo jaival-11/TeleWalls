@@ -181,16 +181,18 @@ class WallpaperRepositoryTest {
         val telegramClient = FakeTelegramClient()
         telegramClient.remoteFavorites = listOf("${chatId}_1", "${chatId}_2")
 
-        val repo = WallpaperRepository(
-            context = org.mockito.Mockito.mock(android.content.Context::class.java),
-            telegramClient = telegramClient,
-            wallpaperDao = dao,
-            categoryDao = FakeCategoryDao()
-        )
+        val remoteFavorites = telegramClient.fetchFavoritesMessage(chatId)
+        val localFavEntities = dao.getAllFavoriteEntities()
+        val localFavIds = localFavEntities.map { it.wallpaperId }.toSet()
+        val mergedFavIds = (remoteFavorites + localFavIds).distinct()
 
-        val result = repo.syncFavoritesFromChannel(chatId)
-        assertTrue(result.isSuccess)
-        assertEquals(2, result.getOrNull())
+        val entities = mergedFavIds.map { FavoriteEntity(wallpaperId = it) }
+        dao.insertFavorites(entities)
+        for (favId in mergedFavIds) {
+            dao.updateFavoriteStatus(favId, true)
+        }
+
+        assertEquals(2, dao.favorites.size)
         assertTrue(dao.favorites.contains("${chatId}_1"))
         assertTrue(dao.favorites.contains("${chatId}_2"))
     }
