@@ -27,6 +27,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import me.jaival.telewalls.ui.components.AnimatedBottomBar
 import me.jaival.telewalls.ui.screens.auth.AuthScreen
+import me.jaival.telewalls.ui.screens.collections.CategoryDetailScreen
+import me.jaival.telewalls.ui.screens.collections.CollectionsScreen
 import me.jaival.telewalls.ui.screens.detail.DetailScreen
 import me.jaival.telewalls.ui.screens.favorites.FavoritesScreen
 import me.jaival.telewalls.ui.screens.home.HomeScreen
@@ -34,6 +36,8 @@ import me.jaival.telewalls.ui.screens.onboarding.OnboardingScreen
 import me.jaival.telewalls.ui.screens.settings.SettingsScreen
 import me.jaival.telewalls.ui.screens.upload.UploadScreen
 import me.jaival.telewalls.viewmodel.AuthViewModel
+import me.jaival.telewalls.viewmodel.CategoryDetailViewModel
+import me.jaival.telewalls.viewmodel.CollectionsViewModel
 import me.jaival.telewalls.viewmodel.DetailViewModel
 import me.jaival.telewalls.viewmodel.HomeViewModel
 import me.jaival.telewalls.viewmodel.UploadViewModel
@@ -46,6 +50,7 @@ fun TeleWallsNavGraph(
     val currentRoute = navBackStackEntry?.destination?.route ?: ScreenRoutes.HOME
 
     val homeViewModel: HomeViewModel = hiltViewModel()
+    val collectionsViewModel: CollectionsViewModel = hiltViewModel()
     val uploadViewModel: UploadViewModel = hiltViewModel()
     val authViewModel: AuthViewModel = hiltViewModel()
 
@@ -78,6 +83,7 @@ fun TeleWallsNavGraph(
 
     val showBottomBar = isSetupCompleted && currentRoute in listOf(
         ScreenRoutes.HOME,
+        ScreenRoutes.COLLECTIONS,
         ScreenRoutes.FAVORITES,
         ScreenRoutes.SETTINGS
     )
@@ -132,6 +138,31 @@ fun TeleWallsNavGraph(
                         onUploadClick = {
                             navController.navigate(ScreenRoutes.UPLOAD)
                         }
+                    )
+                }
+
+                composable(ScreenRoutes.COLLECTIONS) {
+                    CollectionsScreen(
+                        viewModel = collectionsViewModel,
+                        onCollectionClick = { categoryName ->
+                            navController.navigate(ScreenRoutes.categoryDetailRoute(categoryName))
+                        }
+                    )
+                }
+
+                composable(
+                    route = ScreenRoutes.CATEGORY_DETAIL,
+                    arguments = listOf(navArgument("categoryName") { type = NavType.StringType }),
+                    enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Up, tween(350)) },
+                    exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Down, tween(350)) }
+                ) { backStackEntry ->
+                    val categoryDetailViewModel: CategoryDetailViewModel = hiltViewModel(backStackEntry)
+                    CategoryDetailScreen(
+                        viewModel = categoryDetailViewModel,
+                        onWallpaperClick = { id ->
+                            navController.navigate(ScreenRoutes.detailRoute(id))
+                        },
+                        onBackClick = { navController.popBackStack() }
                     )
                 }
 
