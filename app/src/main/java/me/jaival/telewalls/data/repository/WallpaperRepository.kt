@@ -111,24 +111,25 @@ class WallpaperRepository @Inject constructor(
         }
         try {
             val catResult = syncCategoriesFromChannel(chatId)
-            val favResult = syncFavoritesFromChannel(chatId)
             val wpResult = syncWallpapersFromChannel(chatId)
+            val favResult = syncFavoritesFromChannel(chatId)
             if (catResult.isFailure) {
                 val err = catResult.exceptionOrNull() ?: Exception("Failed to sync categories")
-                return@withContext Result.failure(err)
-            }
-            if (favResult.isFailure) {
-                val err = favResult.exceptionOrNull() ?: Exception("Failed to sync favorites")
                 return@withContext Result.failure(err)
             }
             if (wpResult.isFailure) {
                 val err = wpResult.exceptionOrNull() ?: Exception("Failed to sync wallpapers")
                 return@withContext Result.failure(err)
             }
+            if (favResult.isFailure) {
+                val err = favResult.exceptionOrNull() ?: Exception("Failed to sync favorites")
+                return@withContext Result.failure(err)
+            }
             val categoriesCount = catResult.getOrDefault(0)
             val wallpapersCount = wpResult.getOrDefault(0)
+            val favoritesCount = favResult.getOrDefault(0)
             if (BuildConfig.DEBUG) {
-                Log.d(TAG, "[REINDEX DEBUG] Reindex finished successfully: $wallpapersCount wallpapers, $categoriesCount categories for chatId=$chatId")
+                Log.d(TAG, "[REINDEX DEBUG] Reindex finished successfully: $wallpapersCount wallpapers, $categoriesCount categories, $favoritesCount favorites for chatId=$chatId")
             }
             Result.success(Pair(wallpapersCount, categoriesCount))
         } catch (e: Exception) {
@@ -260,20 +261,26 @@ class WallpaperRepository @Inject constructor(
             Log.d(TAG, "[REINDEX DEBUG] Starting syncFavoritesFromChannel for chatId=$chatId")
         }
         try {
-            val remoteFavorites = telegramClient.fetchFavoritesMessage(chatId)
+            val remoteFavorites = telegramClient.fetchFavoritesMessage(chatId).map { it.trim() }.filter { it.isNotBlank() }
             if (BuildConfig.DEBUG) {
                 Log.d(TAG, "[REINDEX DEBUG] Fetched remote favorites count=${remoteFavorites.size}: $remoteFavorites")
             }
+
+            wallpaperDao.clearFavorites()
+            wallpaperDao.clearAllFavoriteFlags()
+
             if (remoteFavorites.isNotEmpty()) {
-                val entities = remoteFavorites.map { FavoriteEntity(wallpaperId = it.trim()) }
+                val entities = remoteFavorites.map { FavoriteEntity(wallpaperId = it) }
                 wallpaperDao.insertFavorites(entities)
-                for (favId in remoteFavorites) {
-                    wallpaperDao.updateFavoriteStatus(favId.trim(), true)
+
+                val stringIds = remoteFavorites
+                val numericIds = remoteFavorites.mapNotNull { fav ->
+                    fav.substringAfter("_").toLongOrNull()
                 }
-                Result.success(remoteFavorites.size)
-            } else {
-                Result.success(0)
+                wallpaperDao.setFavoriteFlags(stringIds, numericIds)
             }
+            wallpaperDao.deleteOrphanFavorites()
+            Result.success(remoteFavorites.size)
         } catch (e: Exception) {
             if (BuildConfig.DEBUG) {
                 Log.d(TAG, "[REINDEX DEBUG] Exception in syncFavoritesFromChannel for chatId=$chatId: ${e.message}", e)

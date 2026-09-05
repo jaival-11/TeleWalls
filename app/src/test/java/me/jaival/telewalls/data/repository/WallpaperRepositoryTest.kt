@@ -75,6 +75,19 @@ class WallpaperRepositoryTest {
         override suspend fun getAllFavoriteEntities(): List<FavoriteEntity> = favorites.map { FavoriteEntity(it) }
         override suspend fun clearWallpapers() { wallpapers.clear() }
         override suspend fun clearFavorites() { favorites.clear() }
+        override suspend fun clearAllFavoriteFlags() {
+            wallpapers.keys.forEach { id ->
+                wallpapers[id]?.let { wallpapers[id] = it.copy(isFavorite = false) }
+            }
+        }
+        override suspend fun setFavoriteFlags(ids: List<String>, messageIds: List<Long>) {
+            ids.forEach { id ->
+                wallpapers[id]?.let { wallpapers[id] = it.copy(isFavorite = true) }
+            }
+            wallpapers.values.filter { it.messageId in messageIds }.forEach { w ->
+                wallpapers[w.id] = w.copy(isFavorite = true)
+            }
+        }
         override suspend fun insertFavorites(favorites: List<FavoriteEntity>) { favorites.forEach { this.favorites.add(it.wallpaperId) } }
     }
 

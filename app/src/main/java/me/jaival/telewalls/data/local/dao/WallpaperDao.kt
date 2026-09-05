@@ -91,6 +91,12 @@ interface WallpaperDao {
     @Query("DELETE FROM favorites")
     suspend fun clearFavorites()
 
+    @Query("UPDATE wallpapers SET isFavorite = 0")
+    suspend fun clearAllFavoriteFlags()
+
+    @Query("UPDATE wallpapers SET isFavorite = 1 WHERE id IN (:ids) OR messageId IN (:messageIds)")
+    suspend fun setFavoriteFlags(ids: List<String>, messageIds: List<Long>)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFavorites(favorites: List<FavoriteEntity>)
 }
