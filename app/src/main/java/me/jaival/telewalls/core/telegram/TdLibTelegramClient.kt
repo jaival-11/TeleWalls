@@ -62,12 +62,14 @@ class TdLibTelegramClient @Inject constructor(
 
     private var isMockMode = false
     private val mockCategories = mutableSetOf<String>()
+    private val mockFavorites = mutableSetOf<String>()
 
     companion object {
         private const val TAG = "TdLibTelegramClient"
         private const val VAULT_CHANNEL_TITLE = "TeleWalls Vault"
         private const val METADATA_PREFIX = "{"
         private const val CATEGORIES_HASHTAG = "#Categories"
+        private const val FAVORITES_HASHTAG = "#Favorites"
     }
 
     override suspend fun start(credentials: TelegramCredentials) {
@@ -993,6 +995,150 @@ class TdLibTelegramClient @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed parsing JSON category list from message", e)
+        }
+
+        return afterHashtag.lines()
+            .map { it.trim().removePrefix("-").removePrefix("*").trim() }
+            .filter { it.isNotBlank() && !it.startsWith("#") }
+    }
+
+    override suspend fun fetchFavoritesMessage(chatId: Long): List<String> {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "[REINDEX DEBUG] fetchFavoritesMessage starting for chatId=$chatId, isMockMode=$isMockMode")
+        }
+        if (isMockMode) {
+            val prefs = context.getSharedPreferences("telewalls_mock_prefs", Context.MODE_PRIVATE)
+            val saved = prefs.getStringSet("mock_favorites", emptySet()) ?: emptySet()
+            return (mockFavorites + saved).distinct()
+        }
+
+        ensureChatLoaded(chatId)
+
+        try {
+            val searchResult = sendTd<TdApi.FoundChatMessages>(
+                TdApi.SearchChatMessages(
+                    chatId,
+                    null,
+                    FAVORITES_HASHTAG,
+                    null,
+                    0L,
+                    0,
+                    20,
+                    null
+                )
+            )
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] fetchFavoritesMessage found ${searchResult.messages.size} messages with hashtag '$FAVORITES_HASHTAG'")
+            }
+            val combinedFavorites = mutableSetOf<String>()
+            for (msg in searchResult.messages) {
+                val favorites = parseFavoritesFromMessage(msg)
+                combinedFavorites.addAll(favorites)
+            }
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] Parsed favorites list: $combinedFavorites")
+            }
+            if (combinedFavorites.isNotEmpty()) {
+                return combinedFavorites.toList()
+            }
+        } catch (e: Exception) {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] Exception in fetchFavoritesMessage for chatId=$chatId: ${e.message}", e)
+            }
+            Log.e(TAG, "Error fetching favorites message from Telegram channel", e)
+            throw e
+        }
+        return emptyList()
+    }
+
+    override suspend fun saveFavoritesMessage(chatId: Long, favorites: List<String>): Boolean {
+        if (isMockMode) {
+            mockFavorites.clear()
+            mockFavorites.addAll(favorites)
+            val prefs = context.getSharedPreferences("telewalls_mock_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putStringSet("mock_favorites", mockFavorites.toSet()).apply()
+            return true
+        }
+
+        return try {
+            val json = gson.toJson(favorites)
+            val messageText = "$FAVORITES_HASHTAG\n$json"
+            val inputContent = TdApi.InputMessageText(
+                TdApi.FormattedText(messageText, emptyArray()),
+                null,
+                true
+            )
+
+            val searchResult = try {
+                sendTd<TdApi.FoundChatMessages>(
+                    TdApi.SearchChatMessages(
+                        chatId,
+                        null,
+                        FAVORITES_HASHTAG,
+                        null,
+                        0L,
+                        0,
+                        1,
+                        null
+                    )
+                )
+            } catch (e: Exception) { null }
+
+            val existingMsg = searchResult?.messages?.firstOrNull()
+
+            if (existingMsg != null) {
+                sendTd<TdApi.Message>(
+                    TdApi.EditMessageText(
+                        chatId,
+                        existingMsg.id,
+                        null,
+                        inputContent
+                    )
+                )
+            } else {
+                sendTd<TdApi.Message>(
+                    TdApi.SendMessage(
+                        chatId,
+                        null,
+                        null,
+                        null,
+                        null,
+                        inputContent
+                    )
+                )
+            }
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving favorites message to Telegram channel", e)
+            false
+        }
+    }
+
+    private fun parseFavoritesFromMessage(msg: TdApi.Message): List<String> {
+        val text = when (val content = msg.content) {
+            is TdApi.MessageText -> content.text.text.orEmpty()
+            is TdApi.MessageDocument -> content.caption.text.orEmpty()
+            is TdApi.MessagePhoto -> content.caption.text.orEmpty()
+            else -> ""
+        }
+        if (!text.contains(FAVORITES_HASHTAG, ignoreCase = true)) return emptyList()
+
+        val index = text.indexOf(FAVORITES_HASHTAG, ignoreCase = true)
+        val afterHashtag = text.substring(index + FAVORITES_HASHTAG.length).trim()
+
+        try {
+            val jsonStart = afterHashtag.indexOf("[")
+            val jsonEnd = afterHashtag.lastIndexOf("]")
+            if (jsonStart != -1 && jsonEnd != -1 && jsonEnd > jsonStart) {
+                val jsonStr = afterHashtag.substring(jsonStart, jsonEnd + 1)
+                val listType = object : com.google.gson.reflect.TypeToken<List<String>>() {}.type
+                val parsed: List<String>? = gson.fromJson(jsonStr, listType)
+                if (!parsed.isNullOrEmpty()) {
+                    return parsed.map { it.trim() }.filter { it.isNotBlank() }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed parsing JSON favorites list from message", e)
         }
 
         return afterHashtag.lines()

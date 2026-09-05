@@ -111,6 +111,14 @@ class WallpaperRepositoryTest {
         override suspend fun editWallpaperMetadata(chatId: Long, messageId: Long, metadata: WallpaperMetadata): Boolean = true
         override suspend fun fetchCategoriesMessage(chatId: Long): List<String> = emptyList()
         override suspend fun saveCategoriesMessage(chatId: Long, categories: List<String>): Boolean = true
+
+        var remoteFavorites: List<String> = emptyList()
+        var savedFavorites: List<String> = emptyList()
+        override suspend fun fetchFavoritesMessage(chatId: Long): List<String> = remoteFavorites
+        override suspend fun saveFavoritesMessage(chatId: Long, favorites: List<String>): Boolean {
+            savedFavorites = favorites
+            return true
+        }
     }
 
     @Test
@@ -165,4 +173,26 @@ class WallpaperRepositoryTest {
         assertFalse(dao.wallpapers.containsKey("${chatId}_2"))
         assertFalse(dao.favorites.contains("${chatId}_2"))
     }
+
+    @Test
+    fun testFavoritesSyncWithTelegramChannel() = runBlocking {
+        val chatId = 12345L
+        val dao = FakeWallpaperDao()
+        val telegramClient = FakeTelegramClient()
+        telegramClient.remoteFavorites = listOf("${chatId}_1", "${chatId}_2")
+
+        val repo = WallpaperRepository(
+            context = org.mockito.Mockito.mock(android.content.Context::class.java),
+            telegramClient = telegramClient,
+            wallpaperDao = dao,
+            categoryDao = FakeCategoryDao()
+        )
+
+        val result = repo.syncFavoritesFromChannel(chatId)
+        assertTrue(result.isSuccess)
+        assertEquals(2, result.getOrNull())
+        assertTrue(dao.favorites.contains("${chatId}_1"))
+        assertTrue(dao.favorites.contains("${chatId}_2"))
+    }
 }
+

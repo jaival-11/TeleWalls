@@ -111,9 +111,14 @@ class WallpaperRepository @Inject constructor(
         }
         try {
             val catResult = syncCategoriesFromChannel(chatId)
+            val favResult = syncFavoritesFromChannel(chatId)
             val wpResult = syncWallpapersFromChannel(chatId)
             if (catResult.isFailure) {
                 val err = catResult.exceptionOrNull() ?: Exception("Failed to sync categories")
+                return@withContext Result.failure(err)
+            }
+            if (favResult.isFailure) {
+                val err = favResult.exceptionOrNull() ?: Exception("Failed to sync favorites")
                 return@withContext Result.failure(err)
             }
             if (wpResult.isFailure) {
@@ -141,6 +146,7 @@ class WallpaperRepository @Inject constructor(
         }
         try {
             syncCategoriesFromChannel(chatId)
+            syncFavoritesFromChannel(chatId)
             val documents = telegramClient.fetchWallpapers(chatId, fromMessageId = 0L, limit = 50)
             val fetchedIds = documents.map { "${it.chatId}_${it.messageId}" }.toSet()
 
@@ -162,6 +168,8 @@ class WallpaperRepository @Inject constructor(
                 }
                 wallpaperDao.deleteWallpapersByIds(deletedIds)
                 wallpaperDao.deleteOrphanFavorites()
+                val currentFavs = wallpaperDao.getAllFavoriteEntities().map { it.wallpaperId }
+                telegramClient.saveFavoritesMessage(chatId, currentFavs)
 
                 deletedEntities.forEach { entity ->
                     entity.localPath?.let { path ->
@@ -181,7 +189,7 @@ class WallpaperRepository @Inject constructor(
                 val entities = documents.map { doc ->
                     val id = "${doc.chatId}_${doc.messageId}"
                     val existingEntity = wallpaperDao.getWallpaperById(id)
-                    val isFav = existingEntity?.isFavorite ?: false
+                    val isFav = wallpaperDao.isFavorite(id) || (existingEntity?.isFavorite ?: false)
                     val existingLocalPath = existingEntity?.localPath?.takeIf {
                         it.isNotBlank() && (it.startsWith("http") || File(it).exists())
                     }
@@ -251,6 +259,43 @@ class WallpaperRepository @Inject constructor(
         }
     }
 
+    suspend fun syncFavoritesFromChannel(chatId: Long): Result<Int> = withContext(Dispatchers.IO) {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "[REINDEX DEBUG] Starting syncFavoritesFromChannel for chatId=$chatId")
+        }
+        try {
+            val remoteFavorites = telegramClient.fetchFavoritesMessage(chatId)
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] Fetched remote favorites count=${remoteFavorites.size}: $remoteFavorites")
+            }
+            val localFavEntities = wallpaperDao.getAllFavoriteEntities()
+            val localFavIds = localFavEntities.map { it.wallpaperId }.toSet()
+
+            val mergedFavIds = (remoteFavorites + localFavIds).distinct()
+
+            if (mergedFavIds.isNotEmpty()) {
+                val entities = mergedFavIds.map { FavoriteEntity(wallpaperId = it) }
+                wallpaperDao.insertFavorites(entities)
+                for (favId in mergedFavIds) {
+                    wallpaperDao.updateFavoriteStatus(favId, true)
+                }
+
+                if (mergedFavIds.size > remoteFavorites.size && chatId != 0L) {
+                    telegramClient.saveFavoritesMessage(chatId, mergedFavIds)
+                }
+                Result.success(mergedFavIds.size)
+            } else {
+                Result.success(0)
+            }
+        } catch (e: Exception) {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] Exception in syncFavoritesFromChannel for chatId=$chatId: ${e.message}", e)
+            }
+            Log.e(TAG, "Error syncing favorites from channel", e)
+            Result.failure(e)
+        }
+    }
+
     fun uploadWallpaper(
         chatId: Long,
         localPath: String,
@@ -265,7 +310,7 @@ class WallpaperRepository @Inject constructor(
         wallpaperDao.insertWallpaper(doc.toEntity(isFav = false))
     }
 
-    suspend fun toggleFavorite(wallpaperId: String) = withContext(Dispatchers.IO) {
+    suspend fun toggleFavorite(wallpaperId: String, chatId: Long? = null) = withContext(Dispatchers.IO) {
         val currentlyFav = wallpaperDao.isFavorite(wallpaperId)
         val newFavState = !currentlyFav
         wallpaperDao.updateFavoriteStatus(wallpaperId, newFavState)
@@ -274,6 +319,12 @@ class WallpaperRepository @Inject constructor(
         } else {
             wallpaperDao.removeFavorite(wallpaperId)
         }
+
+        val targetChatId = chatId ?: wallpaperDao.getWallpaperById(wallpaperId)?.chatId
+        if (targetChatId != null && targetChatId != 0L) {
+            val currentFavs = wallpaperDao.getAllFavoriteEntities().map { it.wallpaperId }
+            telegramClient.saveFavoritesMessage(targetChatId, currentFavs)
+        }
     }
 
     suspend fun deleteWallpaper(wallpaper: Wallpaper): Boolean = withContext(Dispatchers.IO) {
@@ -281,6 +332,10 @@ class WallpaperRepository @Inject constructor(
         if (success) {
             wallpaperDao.deleteWallpaperById(wallpaper.id)
             wallpaperDao.removeFavorite(wallpaper.id)
+            if (wallpaper.chatId != 0L) {
+                val currentFavs = wallpaperDao.getAllFavoriteEntities().map { it.wallpaperId }
+                telegramClient.saveFavoritesMessage(wallpaper.chatId, currentFavs)
+            }
         }
         success
     }

@@ -45,4 +45,8 @@ interface TelegramClient {
 
     suspend fun fetchCategoriesMessage(chatId: Long): List<String>
     suspend fun saveCategoriesMessage(chatId: Long, categories: List<String>): Boolean
+
+    suspend fun fetchFavoritesMessage(chatId: Long): List<String>
+    suspend fun saveFavoritesMessage(chatId: Long, favorites: List<String>): Boolean
 }
+
