@@ -63,10 +63,14 @@ import me.jaival.telewalls.ui.components.CategoryChips
 import me.jaival.telewalls.viewmodel.UploadState
 import me.jaival.telewalls.viewmodel.UploadViewModel
 
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.IconButton
+
 @Composable
 fun UploadScreen(
     viewModel: UploadViewModel,
-    onUploadSuccess: () -> Unit
+    onUploadSuccess: () -> Unit,
+    onBackClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val uploadState by viewModel.uploadState.collectAsState()
@@ -125,21 +129,37 @@ fun UploadScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp)
         ) {
-            Text(
-                text = "Upload Wallpaper",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 28.sp
-                )
-            )
-            Text(
-                text = "Sends as Document to preserve original resolution",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    color = primaryColor,
-                    fontWeight = FontWeight.SemiBold
-                )
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onBackClick,
+                    modifier = Modifier.padding(end = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+                Column {
+                    Text(
+                        text = "Upload Wallpaper",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 26.sp
+                        )
+                    )
+                    Text(
+                        text = "Sends as Document to preserve original resolution",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = primaryColor,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(20.dp))
 

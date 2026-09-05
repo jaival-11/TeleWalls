@@ -58,7 +58,6 @@ fun TeleWallsNavGraph(
     val showBottomBar = isSetupCompleted && currentRoute in listOf(
         ScreenRoutes.HOME,
         ScreenRoutes.FAVORITES,
-        ScreenRoutes.UPLOAD,
         ScreenRoutes.SETTINGS
     )
 
@@ -108,6 +107,9 @@ fun TeleWallsNavGraph(
                         viewModel = homeViewModel,
                         onWallpaperClick = { id ->
                             navController.navigate(ScreenRoutes.detailRoute(id))
+                        },
+                        onUploadClick = {
+                            navController.navigate(ScreenRoutes.UPLOAD)
                         }
                     )
                 }
@@ -128,6 +130,9 @@ fun TeleWallsNavGraph(
                             navController.navigate(ScreenRoutes.HOME) {
                                 popUpTo(ScreenRoutes.HOME) { inclusive = true }
                             }
+                        },
+                        onBackClick = {
+                            navController.popBackStack()
                         }
                     )
                 }

@@ -1,6 +1,14 @@
 package me.jaival.telewalls.ui.screens.home
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,13 +26,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +48,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,7 +69,8 @@ import me.jaival.telewalls.viewmodel.HomeViewModel
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    onWallpaperClick: (String) -> Unit
+    onWallpaperClick: (String) -> Unit,
+    onUploadClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val selectedCategory by viewModel.selectedCategory.collectAsState()
@@ -61,6 +79,33 @@ fun HomeScreen(
     val wallpapers by viewModel.wallpapers.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val primaryColor = MaterialTheme.colorScheme.primary
+
+    val gridState = rememberLazyGridState()
+    var isFabVisible by remember { mutableStateOf(true) }
+    var previousIndex by remember { mutableIntStateOf(0) }
+    var previousScrollOffset by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(gridState) {
+        snapshotFlow { Pair(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) }
+            .collect { (currentIndex, currentOffset) ->
+                if (currentIndex == 0 && currentOffset == 0) {
+                    isFabVisible = true
+                } else {
+                    val indexDelta = currentIndex - previousIndex
+                    val offsetDelta = currentOffset - previousScrollOffset
+
+                    if (indexDelta > 0 || (indexDelta == 0 && offsetDelta > 10)) {
+                        // Scrolling down: FAB slides down & disappears
+                        isFabVisible = false
+                    } else if (indexDelta < 0 || (indexDelta == 0 && offsetDelta < -10)) {
+                        // Scrolling up: FAB slides back up & appears
+                        isFabVisible = true
+                    }
+                }
+                previousIndex = currentIndex
+                previousScrollOffset = currentOffset
+            }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.toastEvent.collect { message ->
@@ -71,180 +116,226 @@ fun HomeScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Header bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.fillMaxSize()
             ) {
-                Column {
-                    Text(
-                        text = "TeleWalls",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 28.sp
-                        )
-                    )
-                    Text(
-                        text = "TDLib Vault Storage",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = primaryColor,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    )
-                }
-
-                // Vault Sync Status Indicator
-                Box(
+                // Header bar
+                Row(
                     modifier = Modifier
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceContainer)
-                        .clickable { viewModel.reindexChannel() }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (isRefreshing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(14.dp),
-                                color = primaryColor,
-                                strokeWidth = 2.dp
+                    Column {
+                        Text(
+                            text = "TeleWalls",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 28.sp
                             )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Filled.CloudDone,
-                                contentDescription = "Reindex Vault",
-                                tint = primaryColor,
-                                modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "TDLib Vault Storage",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = primaryColor,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+                    }
+
+                    // Vault Sync Status Indicator
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceContainer)
+                            .clickable { viewModel.reindexChannel() }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (isRefreshing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(14.dp),
+                                    color = primaryColor,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Filled.CloudDone,
+                                    contentDescription = "Reindex Vault",
+                                    tint = primaryColor,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (isRefreshing) "Reindexing..." else "Vault Live",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontSize = 11.sp
+                                )
                             )
                         }
-                        Spacer(modifier = Modifier.width(6.dp))
+                    }
+                }
+
+                // Search Bar
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { viewModel.updateSearchQuery(it) },
+                    placeholder = {
                         Text(
-                            text = if (isRefreshing) "Reindexing..." else "Vault Live",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontSize = 11.sp
-                            )
+                            text = "Search title, tags, color code (#FF007A, red)...",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            fontSize = 14.sp
                         )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.Search,
+                            contentDescription = "Search",
+                            tint = primaryColor
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.updateSearchQuery("") }) {
+                                Icon(
+                                    imageVector = Icons.Filled.Clear,
+                                    contentDescription = "Clear search",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(24.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        focusedBorderColor = primaryColor,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Category Chips Row
+                CategoryChips(
+                    selectedCategory = selectedCategory,
+                    onCategorySelected = { viewModel.selectCategory(it) },
+                    categories = categories
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Wallpaper Staggered Grid
+                if (wallpapers.isEmpty() && isRefreshing) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        state = gridState,
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(6) {
+                            ShimmerCard()
+                        }
+                    }
+                } else if (wallpapers.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = if (searchQuery.isNotBlank()) "No Matching Wallpapers" else "No Wallpapers Found",
+                                style = MaterialTheme.typography.titleLarge.copy(color = MaterialTheme.colorScheme.onBackground)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = if (searchQuery.isNotBlank())
+                                    "Try searching another term or color code (e.g. #FF007A, blue)"
+                                else
+                                    "Upload high-res photos to your Telegram Vault channel!",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                            )
+                        }
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        state = gridState,
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        itemsIndexed(wallpapers, key = { _, item -> item.id }) { index, wallpaper ->
+                            AnimatedWallpaperCard(
+                                wallpaper = wallpaper,
+                                index = index,
+                                onClick = { onWallpaperClick(wallpaper.id) },
+                                onFavoriteToggle = { viewModel.toggleFavorite(wallpaper.id) },
+                                onLoadThumbnail = { viewModel.loadThumbnailOnDemand(it) }
+                            )
+                        }
                     }
                 }
             }
 
-            // Search Bar
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { viewModel.updateSearchQuery(it) },
-                placeholder = {
-                    Text(
-                        text = "Search title, tags, color code (#FF007A, red)...",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        fontSize = 14.sp
+            // Google Drive style Floating Action Button
+            AnimatedVisibility(
+                visible = isFabVisible,
+                enter = slideInVertically(
+                    initialOffsetY = { it * 2 },
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        stiffness = Spring.StiffnessMediumLow
                     )
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Filled.Search,
-                        contentDescription = "Search",
-                        tint = primaryColor
+                ) + fadeIn(animationSpec = tween(200)),
+                exit = slideOutVertically(
+                    targetOffsetY = { it * 2 },
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMedium
                     )
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.updateSearchQuery("") }) {
-                            Icon(
-                                imageVector = Icons.Filled.Clear,
-                                contentDescription = "Clear search",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(24.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    focusedBorderColor = primaryColor,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                ),
+                ) + fadeOut(animationSpec = tween(200)),
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Category Chips Row
-            CategoryChips(
-                selectedCategory = selectedCategory,
-                onCategorySelected = { viewModel.selectCategory(it) },
-                categories = categories
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Wallpaper Staggered Grid
-            if (wallpapers.isEmpty() && isRefreshing) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 20.dp, bottom = 20.dp)
+            ) {
+                FloatingActionButton(
+                    onClick = onUploadClick,
+                    shape = RoundedCornerShape(16.dp),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 6.dp,
+                        pressedElevation = 12.dp
+                    ),
+                    modifier = Modifier.size(56.dp)
                 ) {
-                    items(6) {
-                        ShimmerCard()
-                    }
-                }
-            } else if (wallpapers.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = if (searchQuery.isNotBlank()) "No Matching Wallpapers" else "No Wallpapers Found",
-                            style = MaterialTheme.typography.titleLarge.copy(color = MaterialTheme.colorScheme.onBackground)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = if (searchQuery.isNotBlank())
-                                "Try searching another term or color code (e.g. #FF007A, blue)"
-                            else
-                                "Upload high-res photos to your Telegram Vault channel!",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
-                        )
-                    }
-                }
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    itemsIndexed(wallpapers, key = { _, item -> item.id }) { index, wallpaper ->
-                        AnimatedWallpaperCard(
-                            wallpaper = wallpaper,
-                            index = index,
-                            onClick = { onWallpaperClick(wallpaper.id) },
-                            onFavoriteToggle = { viewModel.toggleFavorite(wallpaper.id) },
-                            onLoadThumbnail = { viewModel.loadThumbnailOnDemand(it) }
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = "Upload Wallpaper",
+                        modifier = Modifier.size(28.dp)
+                    )
                 }
             }
         }
