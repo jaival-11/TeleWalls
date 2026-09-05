@@ -4,15 +4,19 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -45,7 +49,24 @@ fun TeleWallsNavGraph(
     val uploadViewModel: UploadViewModel = hiltViewModel()
     val authViewModel: AuthViewModel = hiltViewModel()
 
-    val isSetupCompleted by authViewModel.isSetupCompleted.collectAsState()
+    val isSetupCompletedState by authViewModel.isSetupCompleted.collectAsState()
+
+    if (isSetupCompletedState == null) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 3.dp
+            )
+        }
+        return
+    }
+
+    val isSetupCompleted = isSetupCompletedState == true
 
     androidx.compose.runtime.LaunchedEffect(isSetupCompleted) {
         if (!isSetupCompleted && currentRoute != ScreenRoutes.ONBOARDING) {

@@ -24,8 +24,8 @@ class AuthViewModel @Inject constructor(
 
     val authState: StateFlow<TelegramAuthState> = telegramClient.authState
 
-    val isSetupCompleted: StateFlow<Boolean> = authRepository.isSetupCompletedFlow
-        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val isSetupCompleted: StateFlow<Boolean?> = authRepository.isSetupCompletedFlow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val _channels = MutableStateFlow<List<StorageChannel>>(emptyList())
     val channels: StateFlow<List<StorageChannel>> = _channels.asStateFlow()
