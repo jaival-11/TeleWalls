@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import dagger.hilt.android.qualifiers.ApplicationContext
+import me.jaival.telewalls.BuildConfig
 import org.drinkless.tdlib.Client
 import org.drinkless.tdlib.TdApi
 import java.io.File
@@ -429,6 +430,9 @@ class TdLibTelegramClient @Inject constructor(
         fromMessageId: Long,
         limit: Int
     ): List<WallpaperDocument> {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "[REINDEX DEBUG] fetchWallpapers starting for chatId=$chatId, fromMessageId=$fromMessageId, limit=$limit, isMockMode=$isMockMode")
+        }
         if (isMockMode) return getMockWallpapers(chatId)
 
         val documents = mutableListOf<WallpaperDocument>()
@@ -445,13 +449,24 @@ class TdLibTelegramClient @Inject constructor(
                     null
                 )
             )
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] SearchChatMessages returned ${searchResult.messages.size} raw messages from Telegram for chatId=$chatId")
+            }
             for (msg in searchResult.messages) {
                 val doc = parseWallpaperFromMessage(msg, null)
                 if (doc != null) {
                     documents.add(doc)
+                } else if (BuildConfig.DEBUG) {
+                    Log.d(TAG, "[REINDEX DEBUG] Message #${msg.id} in chatId=$chatId could not be parsed into WallpaperDocument")
                 }
             }
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] Successfully parsed ${documents.size} / ${searchResult.messages.size} valid WallpaperDocuments for chatId=$chatId")
+            }
         } catch (e: Exception) {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] Exception in fetchWallpapers for chatId=$chatId: ${e.message}", e)
+            }
             Log.e(TAG, "Error fetching wallpapers from channel", e)
         }
         return documents
@@ -808,6 +823,9 @@ class TdLibTelegramClient @Inject constructor(
     }
 
     override suspend fun fetchCategoriesMessage(chatId: Long): List<String> {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "[REINDEX DEBUG] fetchCategoriesMessage starting for chatId=$chatId, isMockMode=$isMockMode")
+        }
         if (isMockMode) {
             val prefs = context.getSharedPreferences("telewalls_mock_prefs", Context.MODE_PRIVATE)
             val saved = prefs.getStringSet("mock_categories", emptySet()) ?: emptySet()
@@ -828,15 +846,24 @@ class TdLibTelegramClient @Inject constructor(
                     null
                 )
             )
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] fetchCategoriesMessage found ${searchResult.messages.size} messages with hashtag '$CATEGORIES_HASHTAG'")
+            }
             val combinedCategories = mutableSetOf<String>()
             for (msg in searchResult.messages) {
                 val categories = parseCategoriesFromMessage(msg)
                 combinedCategories.addAll(categories)
             }
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] Parsed categories list: $combinedCategories")
+            }
             if (combinedCategories.isNotEmpty()) {
                 return combinedCategories.toList()
             }
         } catch (e: Exception) {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] Exception in fetchCategoriesMessage for chatId=$chatId: ${e.message}", e)
+            }
             Log.e(TAG, "Error fetching categories message from Telegram channel", e)
         }
         return emptyList()
@@ -975,9 +1002,28 @@ class TdLibTelegramClient @Inject constructor(
 
         val parsedMeta = parseMetadataFromCaption(captionText)
         if (parsedMeta == null && fallbackMetadata == null) {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] Msg #${msg.id} caption metadata parsing returned null. Raw caption: '$captionText'")
+            }
             return null
         }
         val metadata = parsedMeta ?: fallbackMetadata!!
+
+        val resolvedType = if (metadata.wallpaperType.isNotBlank()) {
+            metadata.wallpaperType
+        } else {
+            val parts = metadata.resolution.lowercase().split("x")
+            if (parts.size == 2) {
+                val w = parts[0].trim().toIntOrNull() ?: 0
+                val h = parts[1].trim().toIntOrNull() ?: 0
+                if (w >= h && w > 0 && h > 0) "Desktop/Tablet" else "Phone"
+            } else "Phone"
+        }
+        val finalMetadata = metadata.copy(wallpaperType = resolvedType)
+
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "[REINDEX DEBUG] Msg #${msg.id} parsed: title='${finalMetadata.title}', category='${finalMetadata.category}', type='${finalMetadata.wallpaperType}', resolution='${finalMetadata.resolution}'")
+        }
 
         val localPath = file.local?.path?.takeIf {
             file.local?.isDownloadingCompleted == true && it.isNotBlank() && File(it).exists()
@@ -1000,7 +1046,7 @@ class TdLibTelegramClient @Inject constructor(
             sizeBytes = file.size,
             localPath = localPath,
             thumbnailPath = existingThumbPath,
-            metadata = metadata
+            metadata = finalMetadata
         )
     }
 

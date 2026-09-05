@@ -10,7 +10,7 @@ import me.jaival.telewalls.data.local.entity.WallpaperEntity
 
 @Database(
     entities = [WallpaperEntity::class, FavoriteEntity::class, CategoryEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class TeleWallsDatabase : RoomDatabase() {

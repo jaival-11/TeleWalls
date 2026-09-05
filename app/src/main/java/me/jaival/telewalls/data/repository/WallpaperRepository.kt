@@ -21,6 +21,7 @@ import me.jaival.telewalls.data.local.entity.FavoriteEntity
 import me.jaival.telewalls.data.local.entity.WallpaperEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import coil.imageLoader
+import me.jaival.telewalls.BuildConfig
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -44,7 +45,8 @@ data class Wallpaper(
     val timestamp: Long,
     val localPath: String?,
     val thumbnailPath: String?,
-    val isFavorite: Boolean
+    val isFavorite: Boolean,
+    val wallpaperType: String = "Phone"
 )
 
 @Singleton
@@ -104,29 +106,52 @@ class WallpaperRepository @Inject constructor(
     }
 
     suspend fun reindexFromChannel(chatId: Long): Result<Pair<Int, Int>> = withContext(Dispatchers.IO) {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "[REINDEX DEBUG] Starting reindexFromChannel for chatId=$chatId")
+        }
         try {
             val catResult = syncCategoriesFromChannel(chatId)
             val wpResult = syncWallpapersFromChannel(chatId)
             val categoriesCount = catResult.getOrDefault(0)
             val wallpapersCount = wpResult.getOrDefault(0)
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] Reindex finished successfully: $wallpapersCount wallpapers, $categoriesCount categories for chatId=$chatId")
+            }
             Result.success(Pair(wallpapersCount, categoriesCount))
         } catch (e: Exception) {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] Error reindexing from channel for chatId=$chatId: ${e.message}", e)
+            }
             Log.e(TAG, "Error reindexing from channel", e)
             Result.failure(e)
         }
     }
 
     suspend fun syncWallpapersFromChannel(chatId: Long): Result<Int> = withContext(Dispatchers.IO) {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "[REINDEX DEBUG] Starting syncWallpapersFromChannel for chatId=$chatId")
+        }
         try {
             syncCategoriesFromChannel(chatId)
             val documents = telegramClient.fetchWallpapers(chatId, fromMessageId = 0L, limit = 50)
             val fetchedIds = documents.map { "${it.chatId}_${it.messageId}" }.toSet()
 
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] Fetched ${documents.size} wallpaper documents from Telegram channel chatId=$chatId. Remote IDs: $fetchedIds")
+            }
+
             val existingEntities = wallpaperDao.getWallpapersByChatId(chatId)
             val deletedEntities = existingEntities.filter { it.id !in fetchedIds }
 
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] Existing DB entities count=${existingEntities.size}, Orphaned/Deleted entities count=${deletedEntities.size}")
+            }
+
             if (deletedEntities.isNotEmpty()) {
                 val deletedIds = deletedEntities.map { it.id }
+                if (BuildConfig.DEBUG) {
+                    Log.d(TAG, "[REINDEX DEBUG] Removing orphaned wallpaper IDs from DB: $deletedIds")
+                }
                 wallpaperDao.deleteWallpapersByIds(deletedIds)
                 wallpaperDao.deleteOrphanFavorites()
 
@@ -164,10 +189,16 @@ class WallpaperRepository @Inject constructor(
                         thumbnailPathOverride = finalThumbnailPath
                     )
                 }
+                if (BuildConfig.DEBUG) {
+                    Log.d(TAG, "[REINDEX DEBUG] Inserting/updating ${entities.size} entities into Room DB. Sample: ${entities.firstOrNull()?.let { "id=${it.id}, title='${it.title}', type='${it.wallpaperType}'" }}")
+                }
                 wallpaperDao.insertWallpapers(entities)
             }
             Result.success(documents.size)
         } catch (e: Exception) {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] Exception in syncWallpapersFromChannel for chatId=$chatId: ${e.message}", e)
+            }
             Log.e(TAG, "Error syncing wallpapers from channel", e)
             Result.failure(e)
         }
@@ -188,8 +219,14 @@ class WallpaperRepository @Inject constructor(
     }
 
     suspend fun syncCategoriesFromChannel(chatId: Long): Result<Int> = withContext(Dispatchers.IO) {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "[REINDEX DEBUG] Starting syncCategoriesFromChannel for chatId=$chatId")
+        }
         try {
             val remoteCategories = telegramClient.fetchCategoriesMessage(chatId)
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] Fetched remote categories count=${remoteCategories.size}: $remoteCategories")
+            }
             if (remoteCategories.isNotEmpty()) {
                 val entities = remoteCategories.map { CategoryEntity(name = it.trim()) }
                 categoryDao.insertCategories(entities)
@@ -198,6 +235,9 @@ class WallpaperRepository @Inject constructor(
                 Result.success(0)
             }
         } catch (e: Exception) {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] Exception in syncCategoriesFromChannel for chatId=$chatId: ${e.message}", e)
+            }
             Log.e(TAG, "Error syncing categories from channel", e)
             Result.failure(e)
         }
@@ -243,13 +283,15 @@ class WallpaperRepository @Inject constructor(
         author: String,
         category: String,
         tags: List<String>,
-        description: String
+        description: String,
+        wallpaperType: String = wallpaper.wallpaperType
     ): Boolean = withContext(Dispatchers.IO) {
         val cleanTitle = title.ifBlank { "Untitled Wallpaper" }
         val cleanAuthor = author.trim().ifBlank { CharacterAuthorUtils.getRandomCharacterName() }
         val cleanCategory = category.ifBlank { "AMOLED" }
         val cleanTags = tags.map { it.trim() }.filter { it.isNotBlank() }
         val tagsCsv = cleanTags.joinToString(",")
+        val cleanType = wallpaperType.ifBlank { "Phone" }
 
         wallpaperDao.updateWallpaperMetadata(
             id = wallpaper.id,
@@ -257,7 +299,8 @@ class WallpaperRepository @Inject constructor(
             author = cleanAuthor,
             category = cleanCategory,
             tagsCsv = tagsCsv,
-            description = description
+            description = description,
+            wallpaperType = cleanType
         )
 
         val updatedMetadata = WallpaperMetadata(
@@ -270,7 +313,8 @@ class WallpaperRepository @Inject constructor(
             colors = wallpaper.colors,
             description = description,
             author = cleanAuthor,
-            timestamp = wallpaper.timestamp
+            timestamp = wallpaper.timestamp,
+            wallpaperType = cleanType
         )
 
         if (wallpaper.chatId != 0L && wallpaper.messageId != 0L) {
@@ -419,7 +463,8 @@ class WallpaperRepository @Inject constructor(
         timestamp = timestamp,
         localPath = localPath,
         thumbnailPath = thumbnailPath,
-        isFavorite = isFavorite
+        isFavorite = isFavorite,
+        wallpaperType = wallpaperType.ifBlank { "Phone" }
     )
 
     private fun WallpaperDocument.toEntity(
@@ -445,6 +490,7 @@ class WallpaperRepository @Inject constructor(
         timestamp = metadata.timestamp,
         localPath = localPathOverride,
         thumbnailPath = thumbnailPathOverride,
-        isFavorite = isFav
+        isFavorite = isFav,
+        wallpaperType = metadata.wallpaperType.ifBlank { "Phone" }
     )
 }

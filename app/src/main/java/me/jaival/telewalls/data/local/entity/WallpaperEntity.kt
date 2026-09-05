@@ -23,7 +23,8 @@ data class WallpaperEntity(
     val timestamp: Long,
     val localPath: String? = null,
     val thumbnailPath: String? = null,
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val wallpaperType: String = "Phone"
 )
 
 @Entity(tableName = "favorites")

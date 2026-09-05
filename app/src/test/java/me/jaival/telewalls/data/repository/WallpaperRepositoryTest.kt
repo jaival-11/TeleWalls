@@ -51,7 +51,7 @@ class WallpaperRepositoryTest {
             wallpapers[id]?.let { wallpapers[id] = it.copy(thumbnailPath = thumbnailPath) }
         }
         override suspend fun clearCachedPaths() {}
-        override suspend fun updateWallpaperMetadata(id: String, title: String, author: String, category: String, tagsCsv: String, description: String) {}
+        override suspend fun updateWallpaperMetadata(id: String, title: String, author: String, category: String, tagsCsv: String, description: String, wallpaperType: String) {}
         override suspend fun deleteWallpaperById(id: String) {
             wallpapers.remove(id)
         }

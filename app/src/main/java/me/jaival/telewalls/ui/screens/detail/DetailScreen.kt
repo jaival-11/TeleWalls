@@ -50,6 +50,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import me.jaival.telewalls.ui.components.CategoryChips
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -114,6 +117,7 @@ fun DetailScreen(
     var editCategory by remember { mutableStateOf("") }
     var editTags by remember { mutableStateOf("") }
     var editDescription by remember { mutableStateOf("") }
+    var editWallpaperType by remember { mutableStateOf("Phone") }
 
     var showAddCategoryDialog by remember { mutableStateOf(false) }
     var newCategoryInput by remember { mutableStateOf("") }
@@ -388,6 +392,7 @@ fun DetailScreen(
                             editCategory = currentWall.category
                             editTags = currentWall.tags.joinToString(", ")
                             editDescription = currentWall.description
+                            editWallpaperType = currentWall.wallpaperType.ifBlank { "Phone" }
                             showEditMetadataDialog = true
                         },
                         modifier = Modifier
@@ -483,7 +488,7 @@ fun DetailScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Metadata Info Row (Resolution, Size, Author)
+                    // Metadata Info Row (Resolution, Size, Type, Author)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -495,6 +500,16 @@ fun DetailScreen(
                             )
                             Text(
                                 text = currentWall.resolution,
+                                style = MaterialTheme.typography.bodyMedium.copy(color = Color.White, fontWeight = FontWeight.SemiBold)
+                            )
+                        }
+                        Column {
+                            Text(
+                                text = "Type",
+                                style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
+                            )
+                            Text(
+                                text = currentWall.wallpaperType.ifBlank { "Phone" },
                                 style = MaterialTheme.typography.bodyMedium.copy(color = Color.White, fontWeight = FontWeight.SemiBold)
                             )
                         }
@@ -752,6 +767,56 @@ fun DetailScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    // Wallpaper Type Dropdown
+                    var typeDropdownExpanded by remember { mutableStateOf(false) }
+                    val typeOptions = listOf("Phone", "Desktop/Tablet")
+
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = editWallpaperType,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Wallpaper Type") },
+                            trailingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowDropDown,
+                                    contentDescription = "Select Type",
+                                    modifier = Modifier.clickable { typeDropdownExpanded = true }
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { typeDropdownExpanded = true },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = fieldColors
+                        )
+                        DropdownMenu(
+                            expanded = typeDropdownExpanded,
+                            onDismissRequest = { typeDropdownExpanded = false },
+                            modifier = Modifier
+                                .fillMaxWidth(0.8f)
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        ) {
+                            typeOptions.forEach { option ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = option,
+                                            color = if (editWallpaperType == option) primaryColor else MaterialTheme.colorScheme.onSurface,
+                                            fontWeight = if (editWallpaperType == option) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    },
+                                    onClick = {
+                                        editWallpaperType = option
+                                        typeDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
                     // Category Selection Header & Options
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -824,7 +889,8 @@ fun DetailScreen(
                             author = editAuthor,
                             category = editCategory,
                             tags = editTags,
-                            description = editDescription
+                            description = editDescription,
+                            wallpaperType = editWallpaperType
                         ) {
                             showEditMetadataDialog = false
                             Toast.makeText(context, "Metadata updated successfully!", Toast.LENGTH_SHORT).show()

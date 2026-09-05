@@ -128,13 +128,67 @@ class UploadViewModel @Inject constructor(
         }
     }
 
+    private val _selectedWallpaperType = MutableStateFlow("")
+    val selectedWallpaperType: StateFlow<String> = _selectedWallpaperType.asStateFlow()
+
+    fun selectWallpaperType(type: String) {
+        _selectedWallpaperType.value = type
+    }
+
+    fun autoDetectWallpaperType(resolution: String): String {
+        return try {
+            val parts = resolution.lowercase().split("x")
+            if (parts.size == 2) {
+                val w = parts[0].trim().toFloatOrNull() ?: 0f
+                val h = parts[1].trim().toFloatOrNull() ?: 0f
+                if (w > 0f && h > 0f && w >= h) {
+                    "Desktop/Tablet"
+                } else {
+                    "Phone"
+                }
+            } else {
+                "Phone"
+            }
+        } catch (e: Exception) {
+            "Phone"
+        }
+    }
+
+    private fun computeAspectRatioString(resolution: String): String {
+        return try {
+            val parts = resolution.lowercase().split("x")
+            if (parts.size == 2) {
+                val w = parts[0].trim().toIntOrNull() ?: 1080
+                val h = parts[1].trim().toIntOrNull() ?: 1920
+                if (w > 0 && h > 0) {
+                    val g = gcd(w, h)
+                    "${w / g}:${h / g}"
+                } else "9:16"
+            } else "9:16"
+        } catch (e: Exception) {
+            "9:16"
+        }
+    }
+
+    private fun gcd(a: Int, b: Int): Int {
+        var x = a
+        var y = b
+        while (y != 0) {
+            val t = y
+            y = x % y
+            x = t
+        }
+        return x
+    }
+
     fun startUpload(
         context: Context,
         title: String,
         category: String,
         tags: String,
         description: String,
-        author: String
+        author: String,
+        wallpaperType: String = _selectedWallpaperType.value
     ) {
         val uri = _selectedImageUri.value ?: run {
             _uploadState.value = UploadState.Error("Please select a photo first")
@@ -152,17 +206,24 @@ class UploadViewModel @Inject constructor(
             val finalFileName = extractedFileName ?: file.name
             val wallpaperTitle = title.trim().ifBlank { finalFileName }
 
+            val chosenType = if (wallpaperType.isNotBlank() && !wallpaperType.contains("Auto", ignoreCase = true)) {
+                wallpaperType
+            } else {
+                autoDetectWallpaperType(_detectedResolution.value)
+            }
+
             val metadata = WallpaperMetadata(
                 title = wallpaperTitle,
                 category = category,
                 tags = tags.split(",").map { it.trim() }.filter { it.isNotBlank() },
                 resolution = _detectedResolution.value,
-                aspectRatio = "9:16",
+                aspectRatio = computeAspectRatioString(_detectedResolution.value),
                 sizeBytes = file.length(),
                 colors = _detectedColors.value,
                 description = description,
                 author = author.trim().ifBlank { CharacterAuthorUtils.getRandomCharacterName() },
-                timestamp = System.currentTimeMillis()
+                timestamp = System.currentTimeMillis(),
+                wallpaperType = chosenType
             )
 
             val mimeType = getMimeTypeFromUri(context, uri) ?: "image/jpeg"
@@ -200,6 +261,7 @@ class UploadViewModel @Inject constructor(
         _selectedImageUri.value = null
         _selectedFileName.value = null
         _detectedColors.value = emptyList()
+        _selectedWallpaperType.value = ""
     }
 
     private suspend fun copyUriToTempFile(context: Context, uri: Uri, customFileName: String?): File? = withContext(Dispatchers.IO) {

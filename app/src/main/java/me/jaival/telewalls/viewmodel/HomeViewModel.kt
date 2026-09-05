@@ -24,6 +24,9 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.firstOrNull
 
+import android.util.Log
+import me.jaival.telewalls.BuildConfig
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -91,12 +94,21 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _isRefreshing.value = true
             val chatId = authRepository.activeChannelIdFlow.firstOrNull() ?: 99999L
+            if (BuildConfig.DEBUG) {
+                Log.d("HomeViewModel", "[REINDEX DEBUG] Triggered reindexChannel for chatId=$chatId")
+            }
             val result = wallpaperRepository.reindexFromChannel(chatId)
             _isRefreshing.value = false
 
             result.onSuccess { (wallpapersCount, categoriesCount) ->
+                if (BuildConfig.DEBUG) {
+                    Log.d("HomeViewModel", "[REINDEX DEBUG] Reindex succeeded: wallpapers=$wallpapersCount, categories=$categoriesCount")
+                }
                 _toastEvent.emit("Vault reindexed: $wallpapersCount wallpapers & $categoriesCount categories updated")
             }.onFailure { error ->
+                if (BuildConfig.DEBUG) {
+                    Log.d("HomeViewModel", "[REINDEX DEBUG] Reindex failed: ${error.message}", error)
+                }
                 _toastEvent.emit("Failed to reindex Vault channel: ${error.message ?: "Unknown error"}")
             }
         }

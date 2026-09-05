@@ -47,14 +47,15 @@ interface WallpaperDao {
     @Query("UPDATE wallpapers SET localPath = CASE WHEN localPath LIKE 'http%' THEN localPath ELSE NULL END, thumbnailPath = CASE WHEN thumbnailPath LIKE 'http%' THEN thumbnailPath ELSE NULL END")
     suspend fun clearCachedPaths()
 
-    @Query("UPDATE wallpapers SET title = :title, author = :author, category = :category, tagsCsv = :tagsCsv, description = :description WHERE id = :id")
+    @Query("UPDATE wallpapers SET title = :title, author = :author, category = :category, tagsCsv = :tagsCsv, description = :description, wallpaperType = :wallpaperType WHERE id = :id")
     suspend fun updateWallpaperMetadata(
         id: String,
         title: String,
         author: String,
         category: String,
         tagsCsv: String,
-        description: String
+        description: String,
+        wallpaperType: String
     )
 
     @Query("DELETE FROM wallpapers WHERE id = :id")

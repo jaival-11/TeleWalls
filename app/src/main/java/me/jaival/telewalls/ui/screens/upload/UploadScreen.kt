@@ -63,6 +63,9 @@ import me.jaival.telewalls.ui.components.CategoryChips
 import me.jaival.telewalls.viewmodel.UploadState
 import me.jaival.telewalls.viewmodel.UploadViewModel
 
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.IconButton
 
@@ -273,6 +276,68 @@ fun UploadScreen(
                 shape = RoundedCornerShape(16.dp),
                 colors = fieldColors
             )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Wallpaper Type Dropdown
+            var wallpaperTypeExpanded by remember { mutableStateOf(false) }
+            val wallpaperTypeOptions = listOf("Auto-detect (Based on aspect ratio)", "Phone", "Desktop/Tablet")
+            val selectedWallpaperType by viewModel.selectedWallpaperType.collectAsState()
+
+            val displayWallpaperType = when (selectedWallpaperType) {
+                "Phone" -> "Phone"
+                "Desktop/Tablet" -> "Desktop/Tablet"
+                else -> "Auto-detect (Based on aspect ratio)"
+            }
+
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = displayWallpaperType,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Wallpaper Type") },
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = "Select Type",
+                            modifier = Modifier.clickable { wallpaperTypeExpanded = true }
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { wallpaperTypeExpanded = true },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = fieldColors
+                )
+                DropdownMenu(
+                    expanded = wallpaperTypeExpanded,
+                    onDismissRequest = { wallpaperTypeExpanded = false },
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                ) {
+                    wallpaperTypeOptions.forEach { option ->
+                        val valueToStore = when {
+                            option.startsWith("Phone") -> "Phone"
+                            option.startsWith("Desktop") -> "Desktop/Tablet"
+                            else -> ""
+                        }
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = option,
+                                    color = if (selectedWallpaperType == valueToStore) primaryColor else MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = if (selectedWallpaperType == valueToStore) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            onClick = {
+                                viewModel.selectWallpaperType(valueToStore)
+                                wallpaperTypeExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 

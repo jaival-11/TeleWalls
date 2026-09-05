@@ -234,6 +234,7 @@ class DetailViewModel @Inject constructor(
         category: String,
         tags: String,
         description: String,
+        wallpaperType: String,
         onUpdated: () -> Unit
     ) {
         val current = _wallpaper.value ?: return
@@ -245,7 +246,8 @@ class DetailViewModel @Inject constructor(
                 author = author,
                 category = category,
                 tags = tagList,
-                description = description
+                description = description,
+                wallpaperType = wallpaperType
             )
             _wallpaper.value = wallpaperRepository.getWallpaperById(current.id)
             onUpdated()

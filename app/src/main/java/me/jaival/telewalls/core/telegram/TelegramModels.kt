@@ -48,7 +48,8 @@ data class WallpaperMetadata(
     val description: String = "",
     val author: String = "",
     val timestamp: Long = System.currentTimeMillis(),
-    val thumbnailFileId: String? = null
+    val thumbnailFileId: String? = null,
+    val wallpaperType: String = "Phone"
 )
 
 data class WallpaperDocument(
