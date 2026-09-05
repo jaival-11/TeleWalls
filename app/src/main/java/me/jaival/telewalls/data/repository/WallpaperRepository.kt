@@ -145,8 +145,6 @@ class WallpaperRepository @Inject constructor(
             Log.d(TAG, "[REINDEX DEBUG] Starting syncWallpapersFromChannel for chatId=$chatId")
         }
         try {
-            syncCategoriesFromChannel(chatId)
-            syncFavoritesFromChannel(chatId)
             val documents = telegramClient.fetchWallpapers(chatId, fromMessageId = 0L, limit = 50)
             val fetchedIds = documents.map { "${it.chatId}_${it.messageId}" }.toSet()
 
@@ -168,8 +166,6 @@ class WallpaperRepository @Inject constructor(
                 }
                 wallpaperDao.deleteWallpapersByIds(deletedIds)
                 wallpaperDao.deleteOrphanFavorites()
-                val currentFavs = wallpaperDao.getAllFavoriteEntities().map { it.wallpaperId }
-                telegramClient.saveFavoritesMessage(chatId, currentFavs)
 
                 deletedEntities.forEach { entity ->
                     entity.localPath?.let { path ->
@@ -268,22 +264,13 @@ class WallpaperRepository @Inject constructor(
             if (BuildConfig.DEBUG) {
                 Log.d(TAG, "[REINDEX DEBUG] Fetched remote favorites count=${remoteFavorites.size}: $remoteFavorites")
             }
-            val localFavEntities = wallpaperDao.getAllFavoriteEntities()
-            val localFavIds = localFavEntities.map { it.wallpaperId }.toSet()
-
-            val mergedFavIds = (remoteFavorites + localFavIds).distinct()
-
-            if (mergedFavIds.isNotEmpty()) {
-                val entities = mergedFavIds.map { FavoriteEntity(wallpaperId = it) }
+            if (remoteFavorites.isNotEmpty()) {
+                val entities = remoteFavorites.map { FavoriteEntity(wallpaperId = it.trim()) }
                 wallpaperDao.insertFavorites(entities)
-                for (favId in mergedFavIds) {
-                    wallpaperDao.updateFavoriteStatus(favId, true)
+                for (favId in remoteFavorites) {
+                    wallpaperDao.updateFavoriteStatus(favId.trim(), true)
                 }
-
-                if (mergedFavIds.size > remoteFavorites.size && chatId != 0L) {
-                    telegramClient.saveFavoritesMessage(chatId, mergedFavIds)
-                }
-                Result.success(mergedFavIds.size)
+                Result.success(remoteFavorites.size)
             } else {
                 Result.success(0)
             }
