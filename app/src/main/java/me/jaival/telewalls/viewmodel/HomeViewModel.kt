@@ -27,11 +27,15 @@ import kotlinx.coroutines.flow.firstOrNull
 import android.util.Log
 import me.jaival.telewalls.BuildConfig
 
+import me.jaival.telewalls.core.telegram.TelegramAuthState
+import me.jaival.telewalls.core.telegram.TelegramClient
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val wallpaperRepository: WallpaperRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val telegramClient: TelegramClient
 ) : ViewModel() {
 
     private val _selectedCategory = MutableStateFlow("All")
@@ -74,7 +78,16 @@ class HomeViewModel @Inject constructor(
         )
 
     init {
-        reindexChannel()
+        viewModelScope.launch {
+            telegramClient.authState.collect { authState ->
+                if (authState is TelegramAuthState.Ready) {
+                    val chatId = authRepository.activeChannelIdFlow.firstOrNull() ?: 0L
+                    if (chatId != 0L) {
+                        reindexChannel()
+                    }
+                }
+            }
+        }
     }
 
     fun selectCategory(category: String) {
@@ -92,8 +105,21 @@ class HomeViewModel @Inject constructor(
     fun reindexChannel() {
         if (_isRefreshing.value) return
         viewModelScope.launch {
+            val chatId = authRepository.activeChannelIdFlow.firstOrNull() ?: 0L
+            if (chatId == 0L) {
+                if (BuildConfig.DEBUG) {
+                    Log.d("HomeViewModel", "[REINDEX DEBUG] activeChannelId is 0, skipping reindex")
+                }
+                return@launch
+            }
+            if (telegramClient.authState.value !is TelegramAuthState.Ready) {
+                if (BuildConfig.DEBUG) {
+                    Log.d("HomeViewModel", "[REINDEX DEBUG] Telegram client is not Ready yet, skipping reindex")
+                }
+                _toastEvent.emit("Telegram client is connecting, please wait...")
+                return@launch
+            }
             _isRefreshing.value = true
-            val chatId = authRepository.activeChannelIdFlow.firstOrNull() ?: 99999L
             if (BuildConfig.DEBUG) {
                 Log.d("HomeViewModel", "[REINDEX DEBUG] Triggered reindexChannel for chatId=$chatId")
             }

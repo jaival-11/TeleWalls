@@ -425,6 +425,37 @@ class TdLibTelegramClient @Inject constructor(
         }
     }
 
+    private suspend fun ensureChatLoaded(chatId: Long) {
+        if (isMockMode || chatId == 0L) return
+        try {
+            try {
+                sendTd<TdApi.Ok>(TdApi.LoadChats(TdApi.ChatListMain(), 100))
+            } catch (e: Exception) {
+                Log.d(TAG, "LoadChats note: ${e.message}")
+            }
+
+            try {
+                sendTd<TdApi.Chat>(TdApi.GetChat(chatId))
+                return
+            } catch (e: Exception) {
+                Log.w(TAG, "Direct GetChat failed for chatId=$chatId: ${e.message}, trying CreateSupergroupChat fallback")
+            }
+
+            if (chatId < -1000000000000L) {
+                val supergroupId = -chatId - 1000000000000L
+                try {
+                    sendTd<TdApi.Chat>(TdApi.CreateSupergroupChat(supergroupId, false))
+                    Log.d(TAG, "Successfully loaded chat via CreateSupergroupChat for supergroupId=$supergroupId")
+                    return
+                } catch (e: Exception) {
+                    Log.e(TAG, "CreateSupergroupChat failed for supergroupId=$supergroupId", e)
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "ensureChatLoaded failed for chatId=$chatId: ${e.message}")
+        }
+    }
+
     override suspend fun fetchWallpapers(
         chatId: Long,
         fromMessageId: Long,
@@ -434,6 +465,8 @@ class TdLibTelegramClient @Inject constructor(
             Log.d(TAG, "[REINDEX DEBUG] fetchWallpapers starting for chatId=$chatId, fromMessageId=$fromMessageId, limit=$limit, isMockMode=$isMockMode")
         }
         if (isMockMode) return getMockWallpapers(chatId)
+
+        ensureChatLoaded(chatId)
 
         val documents = mutableListOf<WallpaperDocument>()
         try {
@@ -468,6 +501,7 @@ class TdLibTelegramClient @Inject constructor(
                 Log.d(TAG, "[REINDEX DEBUG] Exception in fetchWallpapers for chatId=$chatId: ${e.message}", e)
             }
             Log.e(TAG, "Error fetching wallpapers from channel", e)
+            throw e
         }
         return documents
     }
@@ -833,6 +867,8 @@ class TdLibTelegramClient @Inject constructor(
             return (defaults + mockCategories + saved).distinct()
         }
 
+        ensureChatLoaded(chatId)
+
         try {
             val searchResult = sendTd<TdApi.FoundChatMessages>(
                 TdApi.SearchChatMessages(
@@ -865,6 +901,7 @@ class TdLibTelegramClient @Inject constructor(
                 Log.d(TAG, "[REINDEX DEBUG] Exception in fetchCategoriesMessage for chatId=$chatId: ${e.message}", e)
             }
             Log.e(TAG, "Error fetching categories message from Telegram channel", e)
+            throw e
         }
         return emptyList()
     }
@@ -1009,10 +1046,10 @@ class TdLibTelegramClient @Inject constructor(
         }
         val metadata = parsedMeta ?: fallbackMetadata!!
 
-        val resolvedType = if (metadata.wallpaperType.isNotBlank()) {
+        val resolvedType = if (!metadata.wallpaperType.isNullOrBlank()) {
             metadata.wallpaperType
         } else {
-            val parts = metadata.resolution.lowercase().split("x")
+            val parts = (metadata.resolution ?: "").lowercase().split("x")
             if (parts.size == 2) {
                 val w = parts[0].trim().toIntOrNull() ?: 0
                 val h = parts[1].trim().toIntOrNull() ?: 0
@@ -1026,7 +1063,7 @@ class TdLibTelegramClient @Inject constructor(
         }
 
         val localPath = file.local?.path?.takeIf {
-            file.local?.isDownloadingCompleted == true && it.isNotBlank() && File(it).exists()
+            file.local?.isDownloadingCompleted == true && !it.isNullOrBlank() && File(it).exists()
         }
 
         var existingThumbPath: String? = null
@@ -1055,7 +1092,18 @@ class TdLibTelegramClient @Inject constructor(
             val jsonStart = caption.indexOf(METADATA_PREFIX)
             if (jsonStart != -1) {
                 val jsonStr = caption.substring(jsonStart)
-                gson.fromJson(jsonStr, WallpaperMetadata::class.java)
+                val raw = gson.fromJson(jsonStr, WallpaperMetadata::class.java) ?: return null
+                raw.copy(
+                    title = raw.title ?: "Wallpaper",
+                    category = raw.category ?: "Uncategorized",
+                    tags = raw.tags ?: emptyList(),
+                    resolution = raw.resolution ?: "1080x1920",
+                    aspectRatio = raw.aspectRatio ?: "9:16",
+                    colors = raw.colors ?: emptyList(),
+                    description = raw.description ?: "",
+                    author = raw.author ?: "",
+                    wallpaperType = raw.wallpaperType ?: "Phone"
+                )
             } else null
         } catch (e: Exception) {
             null

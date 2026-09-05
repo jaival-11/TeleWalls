@@ -112,6 +112,14 @@ class WallpaperRepository @Inject constructor(
         try {
             val catResult = syncCategoriesFromChannel(chatId)
             val wpResult = syncWallpapersFromChannel(chatId)
+            if (catResult.isFailure) {
+                val err = catResult.exceptionOrNull() ?: Exception("Failed to sync categories")
+                return@withContext Result.failure(err)
+            }
+            if (wpResult.isFailure) {
+                val err = wpResult.exceptionOrNull() ?: Exception("Failed to sync wallpapers")
+                return@withContext Result.failure(err)
+            }
             val categoriesCount = catResult.getOrDefault(0)
             val wallpapersCount = wpResult.getOrDefault(0)
             if (BuildConfig.DEBUG) {
@@ -448,23 +456,23 @@ class WallpaperRepository @Inject constructor(
         id = id,
         messageId = messageId,
         chatId = chatId,
-        fileId = fileId,
-        fileName = fileName,
-        mimeType = mimeType,
+        fileId = fileId ?: "",
+        fileName = fileName ?: "",
+        mimeType = mimeType ?: "image/jpeg",
         sizeBytes = sizeBytes,
-        title = title,
-        category = category,
-        tags = if (tagsCsv.isBlank()) emptyList() else tagsCsv.split(","),
-        resolution = resolution,
-        aspectRatio = aspectRatio,
-        colors = if (colorsCsv.isBlank()) emptyList() else colorsCsv.split(","),
-        description = description,
-        author = author,
+        title = title ?: "Untitled",
+        category = category ?: "Uncategorized",
+        tags = if (tagsCsv.isNullOrBlank()) emptyList() else tagsCsv.split(","),
+        resolution = resolution ?: "1080x1920",
+        aspectRatio = aspectRatio ?: "9:16",
+        colors = if (colorsCsv.isNullOrBlank()) emptyList() else colorsCsv.split(","),
+        description = description ?: "",
+        author = author ?: "",
         timestamp = timestamp,
         localPath = localPath,
         thumbnailPath = thumbnailPath,
         isFavorite = isFavorite,
-        wallpaperType = wallpaperType.ifBlank { "Phone" }
+        wallpaperType = wallpaperType?.takeIf { !it.isNullOrBlank() } ?: "Phone"
     )
 
     private fun WallpaperDocument.toEntity(
@@ -475,22 +483,22 @@ class WallpaperRepository @Inject constructor(
         id = "${chatId}_${messageId}",
         messageId = messageId,
         chatId = chatId,
-        fileId = fileId,
-        fileName = fileName,
-        mimeType = mimeType,
+        fileId = fileId ?: "",
+        fileName = fileName ?: "",
+        mimeType = mimeType ?: "image/jpeg",
         sizeBytes = sizeBytes,
-        title = metadata.title,
-        category = metadata.category,
-        tagsCsv = metadata.tags.joinToString(","),
-        resolution = metadata.resolution,
-        aspectRatio = metadata.aspectRatio,
-        colorsCsv = metadata.colors.joinToString(","),
-        description = metadata.description,
-        author = metadata.author,
+        title = metadata.title ?: "Untitled",
+        category = metadata.category ?: "Uncategorized",
+        tagsCsv = metadata.tags?.joinToString(",") ?: "",
+        resolution = metadata.resolution ?: "1080x1920",
+        aspectRatio = metadata.aspectRatio ?: "9:16",
+        colorsCsv = metadata.colors?.joinToString(",") ?: "",
+        description = metadata.description ?: "",
+        author = metadata.author ?: "",
         timestamp = metadata.timestamp,
         localPath = localPathOverride,
         thumbnailPath = thumbnailPathOverride,
         isFavorite = isFav,
-        wallpaperType = metadata.wallpaperType.ifBlank { "Phone" }
+        wallpaperType = metadata.wallpaperType?.takeIf { !it.isNullOrBlank() } ?: "Phone"
     )
 }
