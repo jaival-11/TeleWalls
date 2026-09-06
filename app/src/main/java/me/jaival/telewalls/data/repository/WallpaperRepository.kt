@@ -72,18 +72,46 @@ class WallpaperRepository @Inject constructor(
         }
     }
 
+    val allWallpapers: Flow<List<Wallpaper>> = combine(
+        wallpaperDao.getAllWallpapers(),
+        authRepository.activeChannelIdFlow,
+        settingsRepository.wallpaperTypeFlow,
+        settingsRepository.hiddenCategoriesFlow
+    ) { entities, activeChatId, typeFilter, hiddenSet ->
+        val lowerHidden = hiddenSet.map { it.lowercase() }.toSet()
+        entities
+            .filter { activeChatId == null || activeChatId == 0L || it.chatId == activeChatId }
+            .map { it.toDomain() }
+            .filter { matchesTypeFilter(it, typeFilter) }
+            .filter { !lowerHidden.contains(it.category.lowercase()) }
+    }
+
+    val favoriteWallpapers: Flow<List<Wallpaper>> = combine(
+        wallpaperDao.getFavoriteWallpapers(),
+        authRepository.activeChannelIdFlow,
+        settingsRepository.wallpaperTypeFlow,
+        settingsRepository.hiddenCategoriesFlow
+    ) { entities, activeChatId, typeFilter, hiddenSet ->
+        val lowerHidden = hiddenSet.map { it.lowercase() }.toSet()
+        entities
+            .filter { activeChatId == null || activeChatId == 0L || it.chatId == activeChatId }
+            .map { it.toDomain() }
+            .filter { matchesTypeFilter(it, typeFilter) }
+            .filter { !lowerHidden.contains(it.category.lowercase()) }
+    }
+
     val rawCategories: Flow<List<String>> = combine(
         categoryDao.getAllCategories(),
-        wallpaperDao.getCategoriesFromWallpapers()
-    ) { dbCategories, wallpaperCategories ->
+        allWallpapers
+    ) { dbCategories, wallpapers ->
         val result = mutableListOf<String>()
-        val activeWallpaperCats = wallpaperCategories.map { it.trim().lowercase() }.toSet()
+        val activeWallpaperCats = wallpapers.map { it.category.trim() }.filter { it.isNotBlank() }
         if (dbCategories.isNotEmpty()) {
             for (cat in dbCategories) {
                 val trimmed = cat.trim()
                 val lower = trimmed.lowercase()
                 if (lower == "uncategorized" || lower == "uncategorised") {
-                    if (activeWallpaperCats.contains(lower)) {
+                    if (activeWallpaperCats.any { it.lowercase() == lower }) {
                         result.add(trimmed)
                     }
                 } else {
@@ -93,7 +121,7 @@ class WallpaperRepository @Inject constructor(
         } else {
             result.addAll(DEFAULT_CATEGORIES)
         }
-        for (cat in wallpaperCategories) {
+        for (cat in activeWallpaperCats) {
             val trimmed = cat.trim()
             if (trimmed.isNotBlank() && !trimmed.equals("All", ignoreCase = true)) {
                 if (result.none { it.equals(trimmed, ignoreCase = true) }) {
@@ -112,28 +140,6 @@ class WallpaperRepository @Inject constructor(
     ) { cats, hiddenSet ->
         val lowerHidden = hiddenSet.map { it.lowercase() }.toSet()
         cats.filter { !lowerHidden.contains(it.lowercase()) }
-    }
-
-    val allWallpapers: Flow<List<Wallpaper>> = combine(
-        wallpaperDao.getAllWallpapers(),
-        settingsRepository.wallpaperTypeFlow,
-        settingsRepository.hiddenCategoriesFlow
-    ) { entities, typeFilter, hiddenSet ->
-        val lowerHidden = hiddenSet.map { it.lowercase() }.toSet()
-        entities.map { it.toDomain() }
-            .filter { matchesTypeFilter(it, typeFilter) }
-            .filter { !lowerHidden.contains(it.category.lowercase()) }
-    }
-
-    val favoriteWallpapers: Flow<List<Wallpaper>> = combine(
-        wallpaperDao.getFavoriteWallpapers(),
-        settingsRepository.wallpaperTypeFlow,
-        settingsRepository.hiddenCategoriesFlow
-    ) { entities, typeFilter, hiddenSet ->
-        val lowerHidden = hiddenSet.map { it.lowercase() }.toSet()
-        entities.map { it.toDomain() }
-            .filter { matchesTypeFilter(it, typeFilter) }
-            .filter { !lowerHidden.contains(it.category.lowercase()) }
     }
 
     fun getWallpapersByCategory(category: String): Flow<List<Wallpaper>> {
@@ -170,6 +176,10 @@ class WallpaperRepository @Inject constructor(
             Log.d(TAG, "[REINDEX DEBUG] Starting reindexFromChannel for chatId=$chatId")
         }
         try {
+            // Delete cached wallpapers from other channels so old channel data does not persist
+            wallpaperDao.deleteAllWallpapersExceptChatId(chatId)
+            wallpaperDao.deleteOrphanFavorites()
+
             val catResult = syncCategoriesFromChannel(chatId)
             val wpResult = syncWallpapersFromChannel(chatId)
             val favResult = syncFavoritesFromChannel(chatId)

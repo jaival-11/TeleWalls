@@ -70,6 +70,9 @@ interface WallpaperDao {
     @Query("DELETE FROM wallpapers WHERE id IN (:ids)")
     suspend fun deleteWallpapersByIds(ids: List<String>)
 
+    @Query("DELETE FROM wallpapers WHERE chatId != :chatId")
+    suspend fun deleteAllWallpapersExceptChatId(chatId: Long)
+
     @Query("DELETE FROM favorites WHERE wallpaperId NOT IN (SELECT id FROM wallpapers)")
     suspend fun deleteOrphanFavorites()
 
