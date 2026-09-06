@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
 import androidx.compose.material.icons.outlined.Animation
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.BugReport
@@ -163,7 +164,8 @@ val OPEN_SOURCE_LIBRARIES = listOf(
 @Composable
 fun SettingsScreen(
     authViewModel: AuthViewModel,
-    settingsViewModel: SettingsViewModel = hiltViewModel()
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
+    onAccountClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val wallpaperType by settingsViewModel.wallpaperType.collectAsState()
@@ -236,7 +238,8 @@ fun SettingsScreen(
                 AccountDetailsCard(
                     name = userName?.ifBlank { null } ?: "Jaival Patel",
                     phone = formatPhoneNumber(phoneNumber),
-                    photoPath = profilePhotoPath
+                    photoPath = profilePhotoPath,
+                    onClick = onAccountClick
                 )
             }
 
@@ -761,12 +764,28 @@ private fun formatPhoneNumber(phone: String?): String {
 private fun AccountDetailsCard(
     name: String = "Jaival Patel",
     phone: String = "Not Available",
-    photoPath: String? = null
+    photoPath: String? = null,
+    onClick: () -> Unit = {}
 ) {
+    val reduceAnimations = LocalReduceAnimations.current
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && !reduceAnimations) 0.98f else 1.0f,
+        animationSpec = if (reduceAnimations) snap() else tween(150, easing = FastOutSlowInEasing),
+        label = "accountCardScale"
+    )
+
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(scale)
+            .clickable(
+                onClick = onClick,
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            )
     ) {
         Row(
             modifier = Modifier
@@ -836,6 +855,15 @@ private fun AccountDetailsCard(
                     overflow = TextOverflow.Ellipsis
                 )
             }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.ArrowForwardIos,
+                contentDescription = "View Account Details",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }

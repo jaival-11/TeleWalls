@@ -26,6 +26,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import me.jaival.telewalls.ui.components.AnimatedBottomBar
+import me.jaival.telewalls.ui.screens.account.AccountScreen
 import me.jaival.telewalls.ui.screens.auth.AuthScreen
 import me.jaival.telewalls.ui.screens.collections.CategoryDetailScreen
 import me.jaival.telewalls.ui.screens.collections.CollectionsScreen
@@ -218,8 +219,73 @@ fun TeleWallsNavGraph(
                     )
                 }
 
-                composable(ScreenRoutes.SETTINGS) {
-                    SettingsScreen(authViewModel = authViewModel)
+                composable(
+                    route = ScreenRoutes.SETTINGS,
+                    enterTransition = {
+                        if (initialState.destination.route == ScreenRoutes.ACCOUNT) {
+                            slideIntoContainer(
+                                towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                                animationSpec = tween(350)
+                            ) + fadeIn(animationSpec = tween(300))
+                        } else {
+                            fadeIn(animationSpec = tween(300))
+                        }
+                    },
+                    exitTransition = {
+                        if (targetState.destination.route == ScreenRoutes.ACCOUNT) {
+                            slideOutOfContainer(
+                                towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                                animationSpec = tween(350)
+                            ) + fadeOut(animationSpec = tween(300))
+                        } else {
+                            fadeOut(animationSpec = tween(300))
+                        }
+                    },
+                    popEnterTransition = {
+                        slideIntoContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                            animationSpec = tween(350)
+                        ) + fadeIn(animationSpec = tween(300))
+                    }
+                ) {
+                    SettingsScreen(
+                        authViewModel = authViewModel,
+                        onAccountClick = {
+                            navController.navigate(ScreenRoutes.ACCOUNT)
+                        }
+                    )
+                }
+
+                composable(
+                    route = ScreenRoutes.ACCOUNT,
+                    enterTransition = {
+                        slideIntoContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                            animationSpec = tween(350)
+                        ) + fadeIn(animationSpec = tween(300))
+                    },
+                    exitTransition = {
+                        slideOutOfContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                            animationSpec = tween(350)
+                        ) + fadeOut(animationSpec = tween(300))
+                    },
+                    popEnterTransition = {
+                        fadeIn(animationSpec = tween(300))
+                    },
+                    popExitTransition = {
+                        slideOutOfContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                            animationSpec = tween(350)
+                        ) + fadeOut(animationSpec = tween(300))
+                    }
+                ) {
+                    AccountScreen(
+                        authViewModel = authViewModel,
+                        onBackClick = {
+                            navController.popBackStack()
+                        }
+                    )
                 }
 
                 composable(

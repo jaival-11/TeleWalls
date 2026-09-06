@@ -8,6 +8,7 @@ object ScreenRoutes {
     const val UPLOAD = "upload?mode={mode}"
     const val AUTH = "auth"
     const val SETTINGS = "settings"
+    const val ACCOUNT = "account"
     const val DETAIL = "detail/{wallpaperId}"
     const val CATEGORY_DETAIL = "category_detail/{categoryName}"
 
