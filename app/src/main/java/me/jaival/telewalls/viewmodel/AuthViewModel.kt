@@ -27,6 +27,15 @@ class AuthViewModel @Inject constructor(
     val isSetupCompleted: StateFlow<Boolean?> = authRepository.isSetupCompletedFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+    val phoneNumber: StateFlow<String?> = authRepository.phoneNumberFlow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    val userName: StateFlow<String?> = authRepository.userNameFlow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    val profilePhotoPath: StateFlow<String?> = authRepository.profilePhotoPathFlow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     private val _channels = MutableStateFlow<List<StorageChannel>>(emptyList())
     val channels: StateFlow<List<StorageChannel>> = _channels.asStateFlow()
 
@@ -50,6 +59,32 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             authRepository.activeChannelIdFlow.collect { id ->
                 _activeChannelId.value = id
+            }
+        }
+        viewModelScope.launch {
+            authState.collect { state ->
+                if (state is TelegramAuthState.WaitingForCode) {
+                    if (state.phoneNumber.isNotBlank()) {
+                        authRepository.savePhoneNumber(state.phoneNumber)
+                    }
+                } else if (state is TelegramAuthState.Ready) {
+                    try {
+                        val user = telegramClient.getMe()
+                        if (user != null) {
+                            if (user.phoneNumber.isNotBlank()) {
+                                authRepository.savePhoneNumber(user.phoneNumber)
+                            }
+                            val name = listOf(user.firstName, user.lastName)
+                                .filter { it.isNotBlank() }
+                                .joinToString(" ")
+                            if (name.isNotBlank()) {
+                                authRepository.saveUserName(name)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        // ignore error
+                    }
+                }
             }
         }
     }
@@ -82,6 +117,9 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
+            if (phoneNumber.isNotBlank()) {
+                authRepository.savePhoneNumber(phoneNumber)
+            }
             telegramClient.submitPhoneNumber(phoneNumber)
             _isLoading.value = false
         }

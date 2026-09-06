@@ -14,6 +14,7 @@ interface TelegramClient {
     suspend fun requestQrCodeAuthentication()
     suspend fun resetAuthState()
     suspend fun logout()
+    suspend fun getMe(): TelegramUser?
     
     suspend fun ensureStorageChat(knownChatId: Long? = null): Long
     suspend fun listStorageChannels(): List<StorageChannel>

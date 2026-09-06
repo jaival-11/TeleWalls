@@ -26,6 +26,9 @@ class AuthRepository @Inject constructor(
         private val API_HASH_KEY = stringPreferencesKey("telegram_api_hash")
         private val ACTIVE_CHANNEL_ID_KEY = longPreferencesKey("active_channel_id")
         private val IS_SETUP_COMPLETED_KEY = booleanPreferencesKey("is_setup_completed")
+        private val PHONE_NUMBER_KEY = stringPreferencesKey("telegram_phone_number")
+        private val USER_NAME_KEY = stringPreferencesKey("telegram_user_name")
+        private val PROFILE_PHOTO_PATH_KEY = stringPreferencesKey("telegram_profile_photo_path")
     }
 
     val isSetupCompletedFlow: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -44,6 +47,18 @@ class AuthRepository @Inject constructor(
 
     val activeChannelIdFlow: Flow<Long?> = context.dataStore.data.map { prefs ->
         prefs[ACTIVE_CHANNEL_ID_KEY]
+    }
+
+    val phoneNumberFlow: Flow<String?> = context.dataStore.data.map { prefs ->
+        prefs[PHONE_NUMBER_KEY]
+    }
+
+    val userNameFlow: Flow<String?> = context.dataStore.data.map { prefs ->
+        prefs[USER_NAME_KEY]
+    }
+
+    val profilePhotoPathFlow: Flow<String?> = context.dataStore.data.map { prefs ->
+        prefs[PROFILE_PHOTO_PATH_KEY]
     }
 
     suspend fun saveCredentials(apiId: Int, apiHash: String) {
@@ -65,12 +80,33 @@ class AuthRepository @Inject constructor(
         }
     }
 
+    suspend fun savePhoneNumber(phoneNumber: String) {
+        context.dataStore.edit { prefs ->
+            prefs[PHONE_NUMBER_KEY] = phoneNumber
+        }
+    }
+
+    suspend fun saveUserName(userName: String) {
+        context.dataStore.edit { prefs ->
+            prefs[USER_NAME_KEY] = userName
+        }
+    }
+
+    suspend fun saveProfilePhotoPath(path: String) {
+        context.dataStore.edit { prefs ->
+            prefs[PROFILE_PHOTO_PATH_KEY] = path
+        }
+    }
+
     suspend fun clearSession() {
         context.dataStore.edit { prefs ->
             prefs.remove(API_ID_KEY)
             prefs.remove(API_HASH_KEY)
             prefs.remove(ACTIVE_CHANNEL_ID_KEY)
             prefs.remove(IS_SETUP_COMPLETED_KEY)
+            prefs.remove(PHONE_NUMBER_KEY)
+            prefs.remove(USER_NAME_KEY)
+            prefs.remove(PROFILE_PHOTO_PATH_KEY)
         }
     }
 }

@@ -62,6 +62,7 @@ class TdLibTelegramClient @Inject constructor(
     )
 
     private var isMockMode = false
+    private var submittedPhoneNumber: String? = null
     private val mockCategories = mutableSetOf<String>()
     private val mockFavorites = mutableSetOf<String>()
 
@@ -177,6 +178,7 @@ class TdLibTelegramClient @Inject constructor(
             _authState.value = TelegramAuthState.Failed("Please enter a valid phone number including country code (e.g. +1234567890)")
             return
         }
+        submittedPhoneNumber = phoneNumber
         if (isMockMode) {
             _authState.value = TelegramAuthState.WaitingForCode(phoneNumber = phoneNumber)
             return
@@ -237,6 +239,7 @@ class TdLibTelegramClient @Inject constructor(
     }
 
     override suspend fun logout() {
+        submittedPhoneNumber = null
         if (isMockMode) {
             _authState.value = TelegramAuthState.Uninitialized
             return
@@ -247,6 +250,33 @@ class TdLibTelegramClient @Inject constructor(
             Log.e(TAG, "Error during logout", e)
         }
         _authState.value = TelegramAuthState.Uninitialized
+    }
+
+    override suspend fun getMe(): TelegramUser? {
+        if (isMockMode) {
+            val phone = submittedPhoneNumber ?: "+1 555-0199"
+            return TelegramUser(id = 1L, firstName = "Jaival", lastName = "Patel", phoneNumber = phone)
+        }
+        return try {
+            val user = sendTd<TdApi.User>(TdApi.GetMe())
+            var phone = user.phoneNumber ?: ""
+            if (phone.isNotBlank() && !phone.startsWith("+")) {
+                phone = "+$phone"
+            }
+            if (phone.isBlank() && !submittedPhoneNumber.isNullOrBlank()) {
+                phone = submittedPhoneNumber!!
+            }
+            TelegramUser(
+                id = user.id,
+                firstName = user.firstName ?: "",
+                lastName = user.lastName ?: "",
+                phoneNumber = phone
+            )
+        } catch (e: Exception) {
+            submittedPhoneNumber?.let { phone ->
+                TelegramUser(phoneNumber = phone)
+            }
+        }
     }
 
     override suspend fun ensureStorageChat(knownChatId: Long?): Long {

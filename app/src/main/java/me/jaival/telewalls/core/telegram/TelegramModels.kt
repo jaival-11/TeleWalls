@@ -37,6 +37,14 @@ data class StorageChannel(
     val documentCount: Int = 0
 )
 
+data class TelegramUser(
+    val id: Long = 0L,
+    val firstName: String = "",
+    val lastName: String = "",
+    val phoneNumber: String = "",
+    val profilePhotoPath: String? = null
+)
+
 data class WallpaperMetadata(
     val title: String,
     val category: String,

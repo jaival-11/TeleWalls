@@ -146,6 +146,7 @@ class WallpaperRepositoryTest {
         override suspend fun requestQrCodeAuthentication() {}
         override suspend fun resetAuthState() {}
         override suspend fun logout() {}
+        override suspend fun getMe(): me.jaival.telewalls.core.telegram.TelegramUser? = null
         override suspend fun ensureStorageChat(knownChatId: Long?): Long = 100L
         override suspend fun listStorageChannels(): List<StorageChannel> = emptyList()
         override suspend fun createStorageChannel(title: String): StorageChannel = StorageChannel(100L, title)

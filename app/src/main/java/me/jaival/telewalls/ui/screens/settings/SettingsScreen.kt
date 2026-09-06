@@ -166,6 +166,10 @@ fun SettingsScreen(
     val syncFavorites by settingsViewModel.syncFavorites.collectAsState()
     val allCategories by settingsViewModel.allCategories.collectAsState()
 
+    val phoneNumber by authViewModel.phoneNumber.collectAsState()
+    val userName by authViewModel.userName.collectAsState()
+    val profilePhotoPath by authViewModel.profilePhotoPath.collectAsState()
+
     var showTypeDialog by remember { mutableStateOf(false) }
     var showHideCategoriesDialog by remember { mutableStateOf(false) }
     var showAppLicenseDialog by remember { mutableStateOf(false) }
@@ -220,8 +224,9 @@ fun SettingsScreen(
                 enter = fadeIn(tween(450)) + slideInVertically(tween(450)) { 40 }
             ) {
                 AccountDetailsCard(
-                    name = "Jaival Patel",
-                    phone = "+91 98765 43210"
+                    name = userName?.ifBlank { null } ?: "Jaival Patel",
+                    phone = formatPhoneNumber(phoneNumber),
+                    photoPath = profilePhotoPath
                 )
             }
 
@@ -671,11 +676,17 @@ fun SettingsScreen(
     }
 }
 
+private fun formatPhoneNumber(phone: String?): String {
+    if (phone.isNullOrBlank()) return "Not Available"
+    val trimmed = phone.trim()
+    return if (trimmed.startsWith("+")) trimmed else "+$trimmed"
+}
+
 // Account Details Card Component
 @Composable
 private fun AccountDetailsCard(
     name: String = "Jaival Patel",
-    phone: String = "+91 98765 43210",
+    phone: String = "Not Available",
     photoPath: String? = null
 ) {
     Card(
