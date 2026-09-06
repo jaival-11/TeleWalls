@@ -139,7 +139,7 @@ fun TeleWallsNavGraph(
                             navController.navigate(ScreenRoutes.uploadRoute("single"))
                         },
                         onMultiUploadClick = {
-                            navController.navigate(ScreenRoutes.uploadRoute("multi"))
+                            // MassUploadDialog is displayed directly on top of HomeScreen
                         }
                     )
                 }

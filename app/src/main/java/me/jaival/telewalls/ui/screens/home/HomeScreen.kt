@@ -67,6 +67,7 @@ import me.jaival.telewalls.ui.components.AnimatedWallpaperCard
 import me.jaival.telewalls.ui.components.CategoryChips
 import me.jaival.telewalls.ui.components.ExpandableUploadFab
 import me.jaival.telewalls.ui.components.ShimmerCard
+import me.jaival.telewalls.ui.dialogs.MassUploadDialog
 import me.jaival.telewalls.viewmodel.HomeViewModel
 
 @Composable
@@ -83,6 +84,8 @@ fun HomeScreen(
     val wallpapers by viewModel.wallpapers.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val primaryColor = MaterialTheme.colorScheme.primary
+
+    var showMassUploadDialog by remember { mutableStateOf(false) }
 
     val gridState = rememberLazyGridState()
     var isFabVisible by remember { mutableStateOf(true) }
@@ -322,8 +325,17 @@ fun HomeScreen(
             ExpandableUploadFab(
                 isVisible = isFabVisible,
                 onSingleUploadClick = onSingleUploadClick,
-                onMultiUploadClick = onMultiUploadClick
+                onMultiUploadClick = {
+                    onMultiUploadClick()
+                    showMassUploadDialog = true
+                }
             )
+
+            if (showMassUploadDialog) {
+                MassUploadDialog(
+                    onDismissRequest = { showMassUploadDialog = false }
+                )
+            }
         }
     }
 }
