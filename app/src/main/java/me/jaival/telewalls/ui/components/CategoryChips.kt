@@ -29,7 +29,7 @@ val defaultCategories = listOf(
 
 @Composable
 fun CategoryChips(
-    selectedCategory: String,
+    selectedCategories: Set<String>,
     onCategorySelected: (String) -> Unit,
     categories: List<String> = defaultCategories,
     modifier: Modifier = Modifier
@@ -46,7 +46,7 @@ fun CategoryChips(
         verticalAlignment = Alignment.CenterVertically
     ) {
         items(categories) { category ->
-            val isSelected = category.equals(selectedCategory, ignoreCase = true)
+            val isSelected = selectedCategories.any { it.equals(category, ignoreCase = true) }
             val chipBg by animateColorAsState(
                 targetValue = if (isSelected) selectedBg else unselectedBg,
                 animationSpec = tween(250),
@@ -80,4 +80,19 @@ fun CategoryChips(
             }
         }
     }
+}
+
+@Composable
+fun CategoryChips(
+    selectedCategory: String,
+    onCategorySelected: (String) -> Unit,
+    categories: List<String> = defaultCategories,
+    modifier: Modifier = Modifier
+) {
+    CategoryChips(
+        selectedCategories = setOf(selectedCategory),
+        onCategorySelected = onCategorySelected,
+        categories = categories,
+        modifier = modifier
+    )
 }

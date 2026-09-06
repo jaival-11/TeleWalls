@@ -100,20 +100,25 @@ class WallpaperRepository @Inject constructor(
         return searchWallpapers(query = "", category = category)
     }
 
-    fun searchWallpapers(query: String, category: String = "All"): Flow<List<Wallpaper>> {
+    fun searchWallpapers(query: String, categories: Set<String> = setOf("All")): Flow<List<Wallpaper>> {
         val cleanQuery = query.trim()
-        if (cleanQuery.isEmpty() && category.equals("All", ignoreCase = true)) {
+        val isAll = categories.isEmpty() || categories.any { it.equals("All", ignoreCase = true) }
+        if (cleanQuery.isEmpty() && isAll) {
             return allWallpapers
         }
 
         return allWallpapers.map { list ->
             list.mapNotNull { wallpaper ->
-                val (isMatch, score) = ColorSearchUtils.evaluateWallpaper(wallpaper, cleanQuery, category)
+                val (isMatch, score) = ColorSearchUtils.evaluateWallpaper(wallpaper, cleanQuery, categories)
                 if (isMatch) Pair(wallpaper, score) else null
             }
             .sortedWith(compareByDescending<Pair<Wallpaper, Double>> { it.second }.thenByDescending { it.first.timestamp })
             .map { it.first }
         }
+    }
+
+    fun searchWallpapers(query: String, category: String): Flow<List<Wallpaper>> {
+        return searchWallpapers(query, setOf(category))
     }
 
     suspend fun getWallpaperById(id: String): Wallpaper? {

@@ -137,9 +137,16 @@ object ColorSearchUtils {
         query: String,
         selectedCategory: String
     ): Pair<Boolean, Double> {
-        if (!selectedCategory.equals("All", ignoreCase = true) &&
-            !wallpaper.category.equals(selectedCategory, ignoreCase = true)
-        ) {
+        return evaluateWallpaper(wallpaper, query, setOf(selectedCategory))
+    }
+
+    fun evaluateWallpaper(
+        wallpaper: Wallpaper,
+        query: String,
+        selectedCategories: Set<String>
+    ): Pair<Boolean, Double> {
+        val isAllSelected = selectedCategories.isEmpty() || selectedCategories.any { it.equals("All", ignoreCase = true) }
+        if (!isAllSelected && selectedCategories.none { it.equals(wallpaper.category, ignoreCase = true) }) {
             return Pair(false, 0.0)
         }
 

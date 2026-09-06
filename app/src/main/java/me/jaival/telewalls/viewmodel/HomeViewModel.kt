@@ -38,8 +38,16 @@ class HomeViewModel @Inject constructor(
     private val telegramClient: TelegramClient
 ) : ViewModel() {
 
-    private val _selectedCategory = MutableStateFlow("All")
-    val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
+    private val _selectedCategories = MutableStateFlow<Set<String>>(setOf("All"))
+    val selectedCategories: StateFlow<Set<String>> = _selectedCategories.asStateFlow()
+
+    val selectedCategory: StateFlow<String> = _selectedCategories.map { set ->
+        if (set.isEmpty() || set.any { it.equals("All", ignoreCase = true) }) "All" else set.first()
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = "All"
+    )
 
     val categories: StateFlow<List<String>> = wallpaperRepository.categories
         .map { list -> listOf("All") + list }
@@ -58,11 +66,11 @@ class HomeViewModel @Inject constructor(
     private val _toastEvent = MutableSharedFlow<String>()
     val toastEvent: SharedFlow<String> = _toastEvent.asSharedFlow()
 
-    val wallpapers: StateFlow<List<Wallpaper>> = combine(_selectedCategory, _searchQuery) { category, query ->
-        Pair(category, query)
+    val wallpapers: StateFlow<List<Wallpaper>> = combine(_selectedCategories, _searchQuery) { categories, query ->
+        Pair(categories, query)
     }
-    .flatMapLatest { (category, query) ->
-        wallpaperRepository.searchWallpapers(query = query, category = category)
+    .flatMapLatest { (categories, query) ->
+        wallpaperRepository.searchWallpapers(query = query, categories = categories)
     }
     .stateIn(
         scope = viewModelScope,
@@ -91,7 +99,24 @@ class HomeViewModel @Inject constructor(
     }
 
     fun selectCategory(category: String) {
-        _selectedCategory.value = category
+        if (category.equals("All", ignoreCase = true)) {
+            _selectedCategories.value = setOf("All")
+            return
+        }
+
+        val currentSet = _selectedCategories.value.filterNot { it.equals("All", ignoreCase = true) }.toMutableSet()
+        val existing = currentSet.find { it.equals(category, ignoreCase = true) }
+        if (existing != null) {
+            currentSet.remove(existing)
+        } else {
+            currentSet.add(category)
+        }
+
+        if (currentSet.isEmpty()) {
+            _selectedCategories.value = setOf("All")
+        } else {
+            _selectedCategories.value = currentSet
+        }
     }
 
     fun updateSearchQuery(query: String) {

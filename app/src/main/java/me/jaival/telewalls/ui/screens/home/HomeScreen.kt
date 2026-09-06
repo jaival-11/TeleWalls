@@ -75,7 +75,7 @@ fun HomeScreen(
     onUploadClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val selectedCategory by viewModel.selectedCategory.collectAsState()
+    val selectedCategories by viewModel.selectedCategories.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val wallpapers by viewModel.wallpapers.collectAsState()
@@ -250,7 +250,7 @@ fun HomeScreen(
 
                 // Category Chips Row
                 CategoryChips(
-                    selectedCategory = selectedCategory,
+                    selectedCategories = selectedCategories,
                     onCategorySelected = { viewModel.selectCategory(it) },
                     categories = categories
                 )
