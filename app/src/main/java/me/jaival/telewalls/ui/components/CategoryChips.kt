@@ -1,6 +1,7 @@
 package me.jaival.telewalls.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import me.jaival.telewalls.ui.theme.LocalReduceAnimations
 
 val defaultCategories = emptyList<String>()
 
@@ -32,6 +34,7 @@ fun CategoryChips(
     categories: List<String> = defaultCategories,
     modifier: Modifier = Modifier
 ) {
+    val reduceAnimations = LocalReduceAnimations.current
     val selectedBg = MaterialTheme.colorScheme.primaryContainer
     val selectedText = MaterialTheme.colorScheme.onPrimaryContainer
     val unselectedBg = MaterialTheme.colorScheme.surfaceContainer
@@ -47,12 +50,12 @@ fun CategoryChips(
             val isSelected = selectedCategories.any { it.equals(category, ignoreCase = true) }
             val chipBg by animateColorAsState(
                 targetValue = if (isSelected) selectedBg else unselectedBg,
-                animationSpec = tween(250),
+                animationSpec = if (reduceAnimations) snap() else tween(250),
                 label = "chip_bg"
             )
             val chipText by animateColorAsState(
                 targetValue = if (isSelected) selectedText else unselectedText,
-                animationSpec = tween(250),
+                animationSpec = if (reduceAnimations) snap() else tween(250),
                 label = "chip_text"
             )
 
@@ -94,3 +97,4 @@ fun CategoryChips(
         modifier = modifier
     )
 }
+

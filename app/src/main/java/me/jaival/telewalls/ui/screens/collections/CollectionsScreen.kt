@@ -2,6 +2,7 @@ package me.jaival.telewalls.ui.screens.collections
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -24,6 +25,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -73,6 +75,7 @@ import coil.request.ImageRequest
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.jaival.telewalls.core.util.ImageUtils
+import me.jaival.telewalls.ui.theme.LocalReduceAnimations
 import me.jaival.telewalls.viewmodel.CollectionsViewModel
 import me.jaival.telewalls.viewmodel.WallpaperCollection
 
@@ -84,6 +87,15 @@ fun CollectionsScreen(
     val collections by viewModel.collections.collectAsState()
     val categories by viewModel.categories.collectAsState()
     var showManageSheet by remember { mutableStateOf(false) }
+
+    val gridState = rememberLazyGridState()
+    var isInitialTabOpen by remember { mutableStateOf(true) }
+
+    LaunchedEffect(gridState.isScrollInProgress) {
+        if (gridState.isScrollInProgress) {
+            isInitialTabOpen = false
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
@@ -167,6 +179,7 @@ fun CollectionsScreen(
             } else {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
+                    state = gridState,
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -176,7 +189,8 @@ fun CollectionsScreen(
                             collection = collection,
                             index = index,
                             onClick = { onCollectionClick(collection.categoryName) },
-                            onLoadThumbnail = { collection.coverWallpaper?.let { viewModel.loadThumbnailOnDemand(it) } }
+                            onLoadThumbnail = { collection.coverWallpaper?.let { viewModel.loadThumbnailOnDemand(it) } },
+                            animateBounce = isInitialTabOpen
                         )
                     }
                 }
@@ -562,36 +576,41 @@ fun CollectionCard(
     index: Int,
     onClick: () -> Unit,
     onLoadThumbnail: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    animateBounce: Boolean = true
 ) {
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        visible = true
+    val reduceAnimations = LocalReduceAnimations.current
+
+    var visible by remember { mutableStateOf(reduceAnimations) }
+    LaunchedEffect(reduceAnimations) {
+        if (!reduceAnimations) {
+            visible = true
+        }
     }
 
     val animatedScale by animateFloatAsState(
-        targetValue = if (visible) 1f else 0.85f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioHighBouncy,
-            stiffness = Spring.StiffnessLow
+        targetValue = if (reduceAnimations || !animateBounce || visible) 1f else 0.88f,
+        animationSpec = if (reduceAnimations || !animateBounce) snap() else spring(
+            dampingRatio = 0.55f,
+            stiffness = Spring.StiffnessMedium
         ),
         label = "collection_card_scale"
     )
 
     val animatedAlpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(
-            durationMillis = 350,
-            delayMillis = (index % 8) * 60
+        targetValue = if (reduceAnimations || visible) 1f else 0f,
+        animationSpec = if (reduceAnimations) snap() else tween(
+            durationMillis = if (animateBounce) 300 else 250,
+            delayMillis = if (animateBounce) (index % 6) * 40 else 0
         ),
         label = "collection_card_alpha"
     )
 
     var isPressed by remember { mutableStateOf(false) }
     val pressScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.94f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioHighBouncy,
+        targetValue = if (isPressed && !reduceAnimations) 0.94f else 1f,
+        animationSpec = if (reduceAnimations) snap() else spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMedium
         ),
         label = "collection_press_scale"
@@ -627,10 +646,12 @@ fun CollectionCard(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
             ) {
-                coroutineScope.launch {
-                    isPressed = true
-                    delay(80)
-                    isPressed = false
+                if (!reduceAnimations) {
+                    coroutineScope.launch {
+                        isPressed = true
+                        delay(80)
+                        isPressed = false
+                    }
                 }
                 onClick()
             }

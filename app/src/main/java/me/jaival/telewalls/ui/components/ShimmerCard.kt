@@ -18,43 +18,57 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
+import me.jaival.telewalls.ui.theme.LocalReduceAnimations
 
 @Composable
 fun ShimmerCard(
     modifier: Modifier = Modifier,
     aspectRatio: Float = 0.65f
 ) {
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val translateAnim = transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1000f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "shimmer_translate"
-    )
-
+    val reduceAnimations = LocalReduceAnimations.current
     val baseColor = MaterialTheme.colorScheme.surfaceContainer
     val highlightColor = MaterialTheme.colorScheme.surfaceContainerHigh
-    val shimmerColors = listOf(
-        baseColor,
-        highlightColor,
-        baseColor
-    )
 
-    val brush = Brush.linearGradient(
-        colors = shimmerColors,
-        start = Offset(translateAnim.value - 300f, translateAnim.value - 300f),
-        end = Offset(translateAnim.value, translateAnim.value)
-    )
+    if (reduceAnimations) {
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .aspectRatio(aspectRatio)
+                .clip(RoundedCornerShape(24.dp))
+                .background(baseColor)
+        )
+    } else {
+        val transition = rememberInfiniteTransition(label = "shimmer")
+        val translateAnim = transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1000f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1200, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "shimmer_translate"
+        )
 
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .aspectRatio(aspectRatio)
-            .clip(RoundedCornerShape(24.dp))
-            .background(brush)
-    )
+        val shimmerColors = listOf(
+            baseColor,
+            highlightColor,
+            baseColor
+        )
+
+        val brush = Brush.linearGradient(
+            colors = shimmerColors,
+            start = Offset(translateAnim.value - 300f, translateAnim.value - 300f),
+            end = Offset(translateAnim.value, translateAnim.value)
+        )
+
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .aspectRatio(aspectRatio)
+                .clip(RoundedCornerShape(24.dp))
+                .background(brush)
+        )
+    }
 }
+
 

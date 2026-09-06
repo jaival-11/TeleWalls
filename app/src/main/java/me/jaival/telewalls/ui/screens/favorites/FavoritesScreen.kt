@@ -11,12 +11,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +36,14 @@ fun FavoritesScreen(
     onWallpaperClick: (String) -> Unit
 ) {
     val favorites by viewModel.favorites.collectAsState()
+    val gridState = rememberLazyGridState()
+    var isInitialTabOpen by remember { mutableStateOf(true) }
+
+    LaunchedEffect(gridState.isScrollInProgress) {
+        if (gridState.isScrollInProgress) {
+            isInitialTabOpen = false
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
@@ -52,7 +65,7 @@ fun FavoritesScreen(
                 Text(
                     text = "${favorites.size} Wallpapers saved",
                     style = MaterialTheme.typography.labelSmall.copy(
-                        color = MaterialTheme.colorScheme.tertiary,
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold
                     )
                 )
@@ -80,6 +93,7 @@ fun FavoritesScreen(
             } else {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
+                    state = gridState,
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -90,7 +104,8 @@ fun FavoritesScreen(
                             index = index,
                             onClick = { onWallpaperClick(wallpaper.id) },
                             onFavoriteToggle = { viewModel.toggleFavorite(wallpaper.id) },
-                            onLoadThumbnail = { viewModel.loadThumbnailOnDemand(it) }
+                            onLoadThumbnail = { viewModel.loadThumbnailOnDemand(it) },
+                            animateBounce = isInitialTabOpen
                         )
                     }
                 }
@@ -98,4 +113,5 @@ fun FavoritesScreen(
         }
     }
 }
+
 

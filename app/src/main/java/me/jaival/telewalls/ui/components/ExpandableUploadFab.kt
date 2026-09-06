@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -54,6 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import me.jaival.telewalls.ui.theme.LocalReduceAnimations
 
 @Composable
 fun ExpandableUploadFab(
@@ -62,6 +64,7 @@ fun ExpandableUploadFab(
     onMultiUploadClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val reduceAnimations = LocalReduceAnimations.current
     var isExpanded by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -76,35 +79,37 @@ fun ExpandableUploadFab(
     val fabBounceAnim = remember { Animatable(1f) }
 
     val triggerFabBounce = {
-        coroutineScope.launch {
-            fabBounceAnim.animateTo(
-                targetValue = 0.78f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessHigh
+        if (!reduceAnimations) {
+            coroutineScope.launch {
+                fabBounceAnim.animateTo(
+                    targetValue = 0.78f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessHigh
+                    )
                 )
-            )
-            fabBounceAnim.animateTo(
-                targetValue = 1.16f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMediumLow
+                fabBounceAnim.animateTo(
+                    targetValue = 1.16f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
                 )
-            )
-            fabBounceAnim.animateTo(
-                targetValue = 1f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
+                fabBounceAnim.animateTo(
+                    targetValue = 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
                 )
-            )
+            }
         }
     }
 
     // Smooth bouncy rotation (+ to × and × to +)
     val fabIconRotation by animateFloatAsState(
         targetValue = if (isExpanded) 135f else 0f,
-        animationSpec = spring(
+        animationSpec = if (reduceAnimations) snap() else spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMediumLow
         ),
@@ -114,7 +119,7 @@ fun ExpandableUploadFab(
     // Scaling bounce animation state for option items
     val optionsScale by animateFloatAsState(
         targetValue = if (isExpanded) 1f else 0f,
-        animationSpec = spring(
+        animationSpec = if (reduceAnimations) snap() else spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = if (isExpanded) Spring.StiffnessMediumLow else Spring.StiffnessMedium
         ),
@@ -270,11 +275,12 @@ private fun FabOptionItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val reduceAnimations = LocalReduceAnimations.current
     var isPressed by remember { mutableStateOf(false) }
 
     val itemPressScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.88f else 1f,
-        animationSpec = spring(
+        targetValue = if (isPressed && !reduceAnimations) 0.88f else 1f,
+        animationSpec = if (reduceAnimations) snap() else spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessHigh
         ),

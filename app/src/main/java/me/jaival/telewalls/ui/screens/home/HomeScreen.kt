@@ -91,10 +91,14 @@ fun HomeScreen(
     var isFabVisible by remember { mutableStateOf(true) }
     var previousIndex by remember { mutableIntStateOf(0) }
     var previousScrollOffset by remember { mutableIntStateOf(0) }
+    var isInitialTabOpen by remember { mutableStateOf(true) }
 
     LaunchedEffect(gridState) {
         snapshotFlow { Pair(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) }
             .collect { (currentIndex, currentOffset) ->
+                if (currentIndex != 0 || currentOffset != 0) {
+                    isInitialTabOpen = false
+                }
                 if (currentIndex == 0 && currentOffset == 0) {
                     isFabVisible = true
                 } else {
@@ -314,7 +318,8 @@ fun HomeScreen(
                                 index = index,
                                 onClick = { onWallpaperClick(wallpaper.id) },
                                 onFavoriteToggle = { viewModel.toggleFavorite(wallpaper.id) },
-                                onLoadThumbnail = { viewModel.loadThumbnailOnDemand(it) }
+                                onLoadThumbnail = { viewModel.loadThumbnailOnDemand(it) },
+                                animateBounce = isInitialTabOpen
                             )
                         }
                     }

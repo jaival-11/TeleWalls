@@ -3,6 +3,7 @@ package me.jaival.telewalls.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -54,6 +55,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.jaival.telewalls.core.util.ImageUtils
 import me.jaival.telewalls.data.repository.Wallpaper
+import me.jaival.telewalls.ui.theme.LocalReduceAnimations
 
 @Composable
 fun AnimatedWallpaperCard(
@@ -62,36 +64,41 @@ fun AnimatedWallpaperCard(
     onClick: () -> Unit,
     onFavoriteToggle: () -> Unit,
     onLoadThumbnail: (Wallpaper) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    animateBounce: Boolean = true
 ) {
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        visible = true
+    val reduceAnimations = LocalReduceAnimations.current
+
+    var visible by remember { mutableStateOf(reduceAnimations) }
+    LaunchedEffect(reduceAnimations) {
+        if (!reduceAnimations) {
+            visible = true
+        }
     }
 
     val animatedScale by animateFloatAsState(
-        targetValue = if (visible) 1f else 0.85f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioHighBouncy,
-            stiffness = Spring.StiffnessLow
+        targetValue = if (reduceAnimations || !animateBounce || visible) 1f else 0.88f,
+        animationSpec = if (reduceAnimations || !animateBounce) snap() else spring(
+            dampingRatio = 0.55f,
+            stiffness = Spring.StiffnessMedium
         ),
         label = "card_scale"
     )
 
     val animatedAlpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(
-            durationMillis = 350,
-            delayMillis = (index % 8) * 60
+        targetValue = if (reduceAnimations || visible) 1f else 0f,
+        animationSpec = if (reduceAnimations) snap() else tween(
+            durationMillis = if (animateBounce) 300 else 250,
+            delayMillis = if (animateBounce) (index % 6) * 40 else 0
         ),
         label = "card_alpha"
     )
 
     var isPressed by remember { mutableStateOf(false) }
     val pressScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.94f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioHighBouncy,
+        targetValue = if (isPressed && !reduceAnimations) 0.94f else 1f,
+        animationSpec = if (reduceAnimations) snap() else spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMedium
         ),
         label = "press_scale"
@@ -124,10 +131,12 @@ fun AnimatedWallpaperCard(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
             ) {
-                coroutineScope.launch {
-                    isPressed = true
-                    delay(80)
-                    isPressed = false
+                if (!reduceAnimations) {
+                    coroutineScope.launch {
+                        isPressed = true
+                        delay(80)
+                        isPressed = false
+                    }
                 }
                 onClick()
             }
@@ -205,8 +214,8 @@ fun AnimatedWallpaperCard(
 
         // Bottom text info
         AnimatedVisibility(
-            visible = visible,
-            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            visible = visible || reduceAnimations,
+            enter = if (reduceAnimations) fadeIn(animationSpec = snap()) else (slideInVertically(initialOffsetY = { it }) + fadeIn()),
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(12.dp)
@@ -253,3 +262,4 @@ fun AnimatedWallpaperCard(
         }
     }
 }
+
