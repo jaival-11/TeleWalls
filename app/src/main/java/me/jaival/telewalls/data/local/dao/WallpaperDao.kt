@@ -58,6 +58,9 @@ interface WallpaperDao {
         wallpaperType: String
     )
 
+    @Query("UPDATE wallpapers SET category = :newName WHERE category = :oldName")
+    suspend fun updateWallpaperCategory(oldName: String, newName: String)
+
     @Query("DELETE FROM wallpapers WHERE id = :id")
     suspend fun deleteWallpaperById(id: String)
 

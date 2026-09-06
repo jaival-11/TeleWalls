@@ -51,7 +51,23 @@ class WallpaperRepositoryTest {
             wallpapers[id]?.let { wallpapers[id] = it.copy(thumbnailPath = thumbnailPath) }
         }
         override suspend fun clearCachedPaths() {}
-        override suspend fun updateWallpaperMetadata(id: String, title: String, author: String, category: String, tagsCsv: String, description: String, wallpaperType: String) {}
+        override suspend fun updateWallpaperMetadata(id: String, title: String, author: String, category: String, tagsCsv: String, description: String, wallpaperType: String) {
+            wallpapers[id]?.let {
+                wallpapers[id] = it.copy(
+                    title = title,
+                    author = author,
+                    category = category,
+                    tagsCsv = tagsCsv,
+                    description = description,
+                    wallpaperType = wallpaperType
+                )
+            }
+        }
+        override suspend fun updateWallpaperCategory(oldName: String, newName: String) {
+            wallpapers.values.filter { it.category == oldName }.forEach { w ->
+                wallpapers[w.id] = w.copy(category = newName)
+            }
+        }
         override suspend fun deleteWallpaperById(id: String) {
             wallpapers.remove(id)
         }
@@ -106,6 +122,13 @@ class WallpaperRepositoryTest {
         override suspend fun getAllCategoryEntities(): List<CategoryEntity> = categories.sortedBy { it.sortOrder }
         override suspend fun deleteCategory(name: String) {
             categories.removeAll { it.name == name }
+        }
+        override suspend fun renameCategory(oldName: String, newName: String) {
+            val idx = categories.indexOfFirst { it.name == oldName }
+            if (idx != -1) {
+                val oldEntity = categories[idx]
+                categories[idx] = oldEntity.copy(name = newName)
+            }
         }
         override suspend fun clearCategories() { categories.clear() }
     }
@@ -265,6 +288,38 @@ class WallpaperRepositoryTest {
     @Test
     fun testDefaultCategoriesIsEmpty() {
         assertTrue(WallpaperRepository.DEFAULT_CATEGORIES.isEmpty())
+    }
+
+    @Test
+    fun testRenameCategory() = runBlocking {
+        val catDao = FakeCategoryDao()
+        val wpDao = FakeWallpaperDao()
+        val telegramClient = FakeTelegramClient()
+
+        catDao.insertCategories(
+            listOf(
+                CategoryEntity("Abstract", sortOrder = 0),
+                CategoryEntity("AMOLED", sortOrder = 1)
+            )
+        )
+
+        val wp = WallpaperEntity(
+            id = "100_1", messageId = 1L, chatId = 100L, fileId = "f1",
+            fileName = "wp1.jpg", mimeType = "image/jpeg", sizeBytes = 100L,
+            title = "OLED Dark", category = "AMOLED", tagsCsv = "dark", resolution = "1080x1920",
+            aspectRatio = "9:16", colorsCsv = "", description = "", author = "Unknown",
+            timestamp = System.currentTimeMillis()
+        )
+        wpDao.insertWallpaper(wp)
+
+        // Perform rename: "AMOLED" -> "Dark AMOLED"
+        catDao.renameCategory("AMOLED", "Dark AMOLED")
+        wpDao.updateWallpaperCategory("AMOLED", "Dark AMOLED")
+
+        assertEquals(listOf("Abstract", "Dark AMOLED"), catDao.getCategoryList())
+        val updatedWp = wpDao.getWallpaperById("100_1")
+        assertNotNull(updatedWp)
+        assertEquals("Dark AMOLED", updatedWp?.category)
     }
 }
 

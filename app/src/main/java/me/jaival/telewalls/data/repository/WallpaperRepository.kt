@@ -298,6 +298,29 @@ class WallpaperRepository @Inject constructor(
         true
     }
 
+    suspend fun renameCategory(oldName: String, newName: String, chatId: Long? = null): Boolean = withContext(Dispatchers.IO) {
+        val cleanOld = oldName.trim()
+        val cleanNew = newName.trim()
+        if (cleanOld.isBlank() || cleanNew.isBlank() || cleanNew.equals("All", ignoreCase = true)) return@withContext false
+        if (cleanOld == cleanNew) return@withContext true
+
+        val currentList = categories.first()
+        if (!currentList.contains(cleanOld)) return@withContext false
+        if (currentList.any { it.equals(cleanNew, ignoreCase = true) && !it.equals(cleanOld, ignoreCase = true) }) {
+            return@withContext false
+        }
+
+        categoryDao.renameCategory(cleanOld, cleanNew)
+        wallpaperDao.updateWallpaperCategory(cleanOld, cleanNew)
+
+        val updatedCategories = categories.first()
+        val targetChatId = chatId ?: authRepository.activeChannelIdFlow.firstOrNull()
+        if (targetChatId != null && targetChatId != 0L) {
+            telegramClient.saveCategoriesMessage(targetChatId, updatedCategories)
+        }
+        true
+    }
+
     suspend fun syncCategoriesFromChannel(chatId: Long): Result<Int> = withContext(Dispatchers.IO) {
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "[REINDEX DEBUG] Starting syncCategoriesFromChannel for chatId=$chatId")

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Tune
@@ -188,6 +189,7 @@ fun CollectionsScreen(
                 onMoveUp = { viewModel.moveCategoryUp(it) },
                 onMoveDown = { viewModel.moveCategoryDown(it) },
                 onDeleteCategory = { viewModel.deleteCategory(it) },
+                onRenameCategory = { oldName, newName -> viewModel.renameCategory(oldName, newName) },
                 onAddCategory = { viewModel.addCategory(it) },
                 onDismiss = { showManageSheet = false }
             )
@@ -202,10 +204,13 @@ fun ManageCategoriesBottomSheet(
     onMoveUp: (Int) -> Unit,
     onMoveDown: (Int) -> Unit,
     onDeleteCategory: (String) -> Unit,
+    onRenameCategory: (String, String) -> Unit,
     onAddCategory: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
     var categoryToDelete by remember { mutableStateOf<String?>(null) }
+    var categoryToRename by remember { mutableStateOf<String?>(null) }
+    var renameCategoryText by remember { mutableStateOf("") }
     var newCategoryText by remember { mutableStateOf("") }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -369,6 +374,18 @@ fun ManageCategoriesBottomSheet(
                                         )
                                     }
                                     IconButton(
+                                        onClick = {
+                                            categoryToRename = category
+                                            renameCategoryText = category
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Edit,
+                                            contentDescription = "Rename category",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    IconButton(
                                         onClick = { categoryToDelete = category }
                                     ) {
                                         Icon(
@@ -445,6 +462,92 @@ fun ManageCategoriesBottomSheet(
             },
             dismissButton = {
                 TextButton(onClick = { categoryToDelete = null }) {
+                    Text(text = "Cancel")
+                }
+            }
+        )
+    }
+
+    // Dialog for Category Rename
+    if (categoryToRename != null) {
+        val oldName = categoryToRename!!
+        val cleanRename = renameCategoryText.trim()
+        val isBlank = cleanRename.isBlank()
+        val isAll = cleanRename.equals("All", ignoreCase = true)
+        val isDuplicate = categories.any {
+            it.equals(cleanRename, ignoreCase = true) && !it.equals(oldName, ignoreCase = true)
+        }
+        val isValid = !isBlank && !isAll && !isDuplicate
+
+        AlertDialog(
+            onDismissRequest = { categoryToRename = null },
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.Edit,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = {
+                Text(
+                    text = "Rename Category",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Enter a new name for \"$oldName\":",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = renameCategoryText,
+                        onValueChange = { renameCategoryText = it },
+                        placeholder = { Text("Category name...", fontSize = 14.sp) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        isError = !isValid && renameCategoryText.isNotBlank()
+                    )
+                    if (isDuplicate) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Category name already exists",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    } else if (isAll) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Category name cannot be \"All\"",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (isValid) {
+                            onRenameCategory(oldName, cleanRename)
+                            categoryToRename = null
+                        }
+                    },
+                    enabled = isValid
+                ) {
+                    Text(
+                        text = "Rename",
+                        color = if (isValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { categoryToRename = null }) {
                     Text(text = "Cancel")
                 }
             }

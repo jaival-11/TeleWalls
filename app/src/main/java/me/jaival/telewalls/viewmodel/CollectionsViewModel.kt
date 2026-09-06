@@ -80,6 +80,12 @@ class CollectionsViewModel @Inject constructor(
         }
     }
 
+    fun renameCategory(oldName: String, newName: String) {
+        viewModelScope.launch {
+            wallpaperRepository.renameCategory(oldName, newName)
+        }
+    }
+
     fun addCategory(categoryName: String) {
         viewModelScope.launch {
             wallpaperRepository.addCategory(categoryName)
