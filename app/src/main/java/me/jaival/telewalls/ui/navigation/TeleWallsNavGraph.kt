@@ -135,8 +135,11 @@ fun TeleWallsNavGraph(
                         onWallpaperClick = { id ->
                             navController.navigate(ScreenRoutes.detailRoute(id))
                         },
-                        onUploadClick = {
-                            navController.navigate(ScreenRoutes.UPLOAD)
+                        onSingleUploadClick = {
+                            navController.navigate(ScreenRoutes.uploadRoute("single"))
+                        },
+                        onMultiUploadClick = {
+                            navController.navigate(ScreenRoutes.uploadRoute("multi"))
                         }
                     )
                 }
@@ -177,6 +180,7 @@ fun TeleWallsNavGraph(
 
                 composable(
                     route = ScreenRoutes.UPLOAD,
+                    arguments = listOf(navArgument("mode") { defaultValue = "single"; type = NavType.StringType }),
                     enterTransition = {
                         slideIntoContainer(
                             towards = AnimatedContentTransitionScope.SlideDirection.Up,
@@ -198,9 +202,11 @@ fun TeleWallsNavGraph(
                             animationSpec = tween(350)
                         ) + fadeOut(animationSpec = tween(300))
                     }
-                ) {
+                ) { backStackEntry ->
+                    val mode = backStackEntry.arguments?.getString("mode") ?: "single"
                     UploadScreen(
                         viewModel = uploadViewModel,
+                        isMultiMode = mode == "multi",
                         onUploadSuccess = {
                             navController.navigate(ScreenRoutes.HOME) {
                                 popUpTo(ScreenRoutes.HOME) { inclusive = true }

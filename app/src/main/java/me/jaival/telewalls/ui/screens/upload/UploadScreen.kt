@@ -73,12 +73,14 @@ import androidx.compose.material3.IconButton
 fun UploadScreen(
     viewModel: UploadViewModel,
     onUploadSuccess: () -> Unit,
+    isMultiMode: Boolean = false,
     onBackClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val uploadState by viewModel.uploadState.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val selectedUri by viewModel.selectedImageUri.collectAsState()
+    val selectedUris by viewModel.selectedImageUris.collectAsState()
     val selectedFileName by viewModel.selectedFileName.collectAsState()
     val detectedResolution by viewModel.detectedResolution.collectAsState()
     val detectedColors by viewModel.detectedColors.collectAsState()
@@ -93,11 +95,19 @@ fun UploadScreen(
     var showAddCategoryDialog by remember { mutableStateOf(false) }
     var newCategoryInput by remember { mutableStateOf("") }
 
-    val imagePickerLauncher = rememberLauncherForActivityResult(
+    val singlePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
             viewModel.selectImage(context, uri)
+        }
+    }
+
+    val multiPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris: List<Uri> ->
+        if (uris.isNotEmpty()) {
+            viewModel.selectMultipleImages(context, uris)
         }
     }
 
@@ -147,7 +157,7 @@ fun UploadScreen(
                 }
                 Column {
                     Text(
-                        text = "Upload Wallpaper",
+                        text = if (isMultiMode) "Multi Upload" else "Single Upload",
                         style = MaterialTheme.typography.headlineMedium.copy(
                             color = MaterialTheme.colorScheme.onBackground,
                             fontWeight = FontWeight.Black,
@@ -155,7 +165,7 @@ fun UploadScreen(
                         )
                     )
                     Text(
-                        text = "Sends as Document to preserve original resolution",
+                        text = if (isMultiMode) "Batch upload high-res wallpapers to Telegram Vault" else "Sends as Document to preserve original resolution",
                         style = MaterialTheme.typography.labelSmall.copy(
                             color = primaryColor,
                             fontWeight = FontWeight.SemiBold
@@ -174,7 +184,13 @@ fun UploadScreen(
                     .clip(RoundedCornerShape(24.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainer)
                     .border(2.dp, if (selectedUri != null) primaryColor else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(24.dp))
-                    .clickable { imagePickerLauncher.launch("image/*") },
+                    .clickable {
+                        if (isMultiMode) {
+                            multiPickerLauncher.launch("image/*")
+                        } else {
+                            singlePickerLauncher.launch("image/*")
+                        }
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 if (selectedUri != null) {
@@ -193,7 +209,7 @@ fun UploadScreen(
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = detectedResolution,
+                            text = if (selectedUris.size > 1) "${selectedUris.size} Selected" else detectedResolution,
                             color = primaryColor,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
@@ -209,7 +225,7 @@ fun UploadScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Tap to select photo from gallery",
+                            text = if (isMultiMode) "Tap to select multiple photos" else "Tap to select photo from gallery",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Medium
                         )

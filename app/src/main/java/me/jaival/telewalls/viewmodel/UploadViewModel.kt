@@ -55,6 +55,9 @@ class UploadViewModel @Inject constructor(
     private val _selectedImageUri = MutableStateFlow<Uri?>(null)
     val selectedImageUri: StateFlow<Uri?> = _selectedImageUri.asStateFlow()
 
+    private val _selectedImageUris = MutableStateFlow<List<Uri>>(emptyList())
+    val selectedImageUris: StateFlow<List<Uri>> = _selectedImageUris.asStateFlow()
+
     private val _selectedFileName = MutableStateFlow<String?>(null)
     val selectedFileName: StateFlow<String?> = _selectedFileName.asStateFlow()
 
@@ -125,6 +128,13 @@ class UploadViewModel @Inject constructor(
             } catch (e: Exception) {
                 _detectedResolution.value = "1080x1920"
             }
+        }
+    }
+
+    fun selectMultipleImages(context: Context, uris: List<Uri>) {
+        _selectedImageUris.value = uris
+        if (uris.isNotEmpty()) {
+            selectImage(context, uris.first())
         }
     }
 
@@ -259,6 +269,7 @@ class UploadViewModel @Inject constructor(
     fun resetState() {
         _uploadState.value = UploadState.Idle
         _selectedImageUri.value = null
+        _selectedImageUris.value = emptyList()
         _selectedFileName.value = null
         _detectedColors.value = emptyList()
         _selectedWallpaperType.value = ""

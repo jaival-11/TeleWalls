@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.jaival.telewalls.ui.components.AnimatedWallpaperCard
 import me.jaival.telewalls.ui.components.CategoryChips
+import me.jaival.telewalls.ui.components.ExpandableUploadFab
 import me.jaival.telewalls.ui.components.ShimmerCard
 import me.jaival.telewalls.viewmodel.HomeViewModel
 
@@ -72,7 +73,8 @@ import me.jaival.telewalls.viewmodel.HomeViewModel
 fun HomeScreen(
     viewModel: HomeViewModel,
     onWallpaperClick: (String) -> Unit,
-    onUploadClick: () -> Unit = {}
+    onSingleUploadClick: () -> Unit = {},
+    onMultiUploadClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val selectedCategories by viewModel.selectedCategories.collectAsState()
@@ -316,52 +318,12 @@ fun HomeScreen(
                 }
             }
 
-            // Google Drive style Floating Action Button
-            AnimatedVisibility(
-                visible = isFabVisible,
-                enter = slideInVertically(
-                    initialOffsetY = { it * 2 },
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioLowBouncy,
-                        stiffness = Spring.StiffnessMediumLow
-                    )
-                ) + fadeIn(animationSpec = tween(200)),
-                exit = slideOutVertically(
-                    targetOffsetY = { it * 2 },
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    )
-                ) + fadeOut(animationSpec = tween(200)),
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 20.dp, bottom = 20.dp)
-            ) {
-                FloatingActionButton(
-                    onClick = {
-                        isFabClicked = true
-                        onUploadClick()
-                    },
-                    shape = RoundedCornerShape(16.dp),
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    elevation = FloatingActionButtonDefaults.elevation(
-                        defaultElevation = 6.dp,
-                        pressedElevation = 12.dp
-                    ),
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = "Upload Wallpaper",
-                        modifier = Modifier
-                            .size(28.dp)
-                            .graphicsLayer {
-                                rotationZ = fabIconRotation
-                            }
-                    )
-                }
-            }
+            // Expandable Floating Action Button with bounce animations and speed dial options
+            ExpandableUploadFab(
+                isVisible = isFabVisible,
+                onSingleUploadClick = onSingleUploadClick,
+                onMultiUploadClick = onMultiUploadClick
+            )
         }
     }
 }
