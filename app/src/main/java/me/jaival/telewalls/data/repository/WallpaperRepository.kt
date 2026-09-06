@@ -72,7 +72,7 @@ class WallpaperRepository @Inject constructor(
         }
     }
 
-    val categories: Flow<List<String>> = combine(
+    val rawCategories: Flow<List<String>> = combine(
         categoryDao.getAllCategories(),
         wallpaperDao.getCategoriesFromWallpapers()
     ) { dbCategories, wallpaperCategories ->
@@ -106,18 +106,34 @@ class WallpaperRepository @Inject constructor(
             .distinctBy { it.lowercase() }
     }
 
+    val categories: Flow<List<String>> = combine(
+        rawCategories,
+        settingsRepository.hiddenCategoriesFlow
+    ) { cats, hiddenSet ->
+        val lowerHidden = hiddenSet.map { it.lowercase() }.toSet()
+        cats.filter { !lowerHidden.contains(it.lowercase()) }
+    }
+
     val allWallpapers: Flow<List<Wallpaper>> = combine(
         wallpaperDao.getAllWallpapers(),
-        settingsRepository.wallpaperTypeFlow
-    ) { entities, typeFilter ->
-        entities.map { it.toDomain() }.filter { matchesTypeFilter(it, typeFilter) }
+        settingsRepository.wallpaperTypeFlow,
+        settingsRepository.hiddenCategoriesFlow
+    ) { entities, typeFilter, hiddenSet ->
+        val lowerHidden = hiddenSet.map { it.lowercase() }.toSet()
+        entities.map { it.toDomain() }
+            .filter { matchesTypeFilter(it, typeFilter) }
+            .filter { !lowerHidden.contains(it.category.lowercase()) }
     }
 
     val favoriteWallpapers: Flow<List<Wallpaper>> = combine(
         wallpaperDao.getFavoriteWallpapers(),
-        settingsRepository.wallpaperTypeFlow
-    ) { entities, typeFilter ->
-        entities.map { it.toDomain() }.filter { matchesTypeFilter(it, typeFilter) }
+        settingsRepository.wallpaperTypeFlow,
+        settingsRepository.hiddenCategoriesFlow
+    ) { entities, typeFilter, hiddenSet ->
+        val lowerHidden = hiddenSet.map { it.lowercase() }.toSet()
+        entities.map { it.toDomain() }
+            .filter { matchesTypeFilter(it, typeFilter) }
+            .filter { !lowerHidden.contains(it.category.lowercase()) }
     }
 
     fun getWallpapersByCategory(category: String): Flow<List<Wallpaper>> {

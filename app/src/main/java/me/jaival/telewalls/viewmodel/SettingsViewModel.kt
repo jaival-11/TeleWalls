@@ -33,7 +33,7 @@ class SettingsViewModel @Inject constructor(
     val syncFavorites: StateFlow<Boolean> = settingsRepository.syncFavoritesFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
-    val allCategories: StateFlow<List<String>> = wallpaperRepository.categories
+    val allCategories: StateFlow<List<String>> = wallpaperRepository.rawCategories
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), WallpaperRepository.DEFAULT_CATEGORIES)
 
     private val _cacheSizeBytes = MutableStateFlow(0L)
