@@ -381,6 +381,12 @@ class WallpaperRepository @Inject constructor(
     }
 
     suspend fun syncFavoritesFromChannel(chatId: Long): Result<Int> = withContext(Dispatchers.IO) {
+        if (!settingsRepository.syncFavoritesFlow.first()) {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[REINDEX DEBUG] Skipping syncFavoritesFromChannel because syncFavorites is disabled in settings")
+            }
+            return@withContext Result.success(0)
+        }
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "[REINDEX DEBUG] Starting syncFavoritesFromChannel for chatId=$chatId")
         }
@@ -438,10 +444,12 @@ class WallpaperRepository @Inject constructor(
             wallpaperDao.removeFavorite(wallpaperId)
         }
 
-        val targetChatId = chatId ?: wallpaperDao.getWallpaperById(wallpaperId)?.chatId
-        if (targetChatId != null && targetChatId != 0L) {
-            val currentFavs = wallpaperDao.getAllFavoriteEntities().map { it.wallpaperId }
-            telegramClient.saveFavoritesMessage(targetChatId, currentFavs)
+        if (settingsRepository.syncFavoritesFlow.first()) {
+            val targetChatId = chatId ?: wallpaperDao.getWallpaperById(wallpaperId)?.chatId
+            if (targetChatId != null && targetChatId != 0L) {
+                val currentFavs = wallpaperDao.getAllFavoriteEntities().map { it.wallpaperId }
+                telegramClient.saveFavoritesMessage(targetChatId, currentFavs)
+            }
         }
     }
 
@@ -450,7 +458,7 @@ class WallpaperRepository @Inject constructor(
         if (success) {
             wallpaperDao.deleteWallpaperById(wallpaper.id)
             wallpaperDao.removeFavorite(wallpaper.id)
-            if (wallpaper.chatId != 0L) {
+            if (wallpaper.chatId != 0L && settingsRepository.syncFavoritesFlow.first()) {
                 val currentFavs = wallpaperDao.getAllFavoriteEntities().map { it.wallpaperId }
                 telegramClient.saveFavoritesMessage(wallpaper.chatId, currentFavs)
             }
