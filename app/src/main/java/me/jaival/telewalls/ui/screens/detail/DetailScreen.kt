@@ -850,10 +850,13 @@ fun DetailScreen(
                         }
                     }
                     Spacer(modifier = Modifier.height(4.dp))
+                    val editCategories = remember(categories) {
+                        categories.filter { !it.equals("Uncategorized", ignoreCase = true) && !it.equals("uncategorised", ignoreCase = true) }
+                    }
                     CategoryChips(
                         selectedCategory = editCategory,
-                        onCategorySelected = { editCategory = it },
-                        categories = categories
+                        onCategorySelected = { editCategory = if (editCategory.equals(it, ignoreCase = true)) "" else it },
+                        categories = editCategories
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))

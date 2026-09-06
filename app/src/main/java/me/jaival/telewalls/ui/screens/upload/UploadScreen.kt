@@ -391,10 +391,13 @@ fun UploadScreen(
                 }
             }
             Spacer(modifier = Modifier.height(4.dp))
+            val uploadCategories = remember(categories) {
+                categories.filter { !it.equals("Uncategorized", ignoreCase = true) && !it.equals("uncategorised", ignoreCase = true) }
+            }
             CategoryChips(
                 selectedCategory = selectedCategory,
                 onCategorySelected = { selectedCategory = if (selectedCategory.equals(it, ignoreCase = true)) "" else it },
-                categories = categories
+                categories = uploadCategories
             )
 
             Spacer(modifier = Modifier.height(12.dp))

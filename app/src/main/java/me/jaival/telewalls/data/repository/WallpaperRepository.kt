@@ -68,8 +68,19 @@ class WallpaperRepository @Inject constructor(
         wallpaperDao.getCategoriesFromWallpapers()
     ) { dbCategories, wallpaperCategories ->
         val result = mutableListOf<String>()
+        val activeWallpaperCats = wallpaperCategories.map { it.trim().lowercase() }.toSet()
         if (dbCategories.isNotEmpty()) {
-            result.addAll(dbCategories)
+            for (cat in dbCategories) {
+                val trimmed = cat.trim()
+                val lower = trimmed.lowercase()
+                if (lower == "uncategorized" || lower == "uncategorised") {
+                    if (activeWallpaperCats.contains(lower)) {
+                        result.add(trimmed)
+                    }
+                } else {
+                    result.add(trimmed)
+                }
+            }
         } else {
             result.addAll(DEFAULT_CATEGORIES)
         }
@@ -185,6 +196,7 @@ class WallpaperRepository @Inject constructor(
                 }
                 wallpaperDao.deleteWallpapersByIds(deletedIds)
                 wallpaperDao.deleteOrphanFavorites()
+                cleanUpUncategorizedCategoryIfEmpty()
 
                 deletedEntities.forEach { entity ->
                     entity.localPath?.let { path ->
@@ -388,8 +400,19 @@ class WallpaperRepository @Inject constructor(
                 val currentFavs = wallpaperDao.getAllFavoriteEntities().map { it.wallpaperId }
                 telegramClient.saveFavoritesMessage(wallpaper.chatId, currentFavs)
             }
+            cleanUpUncategorizedCategoryIfEmpty()
         }
         success
+    }
+
+    private suspend fun cleanUpUncategorizedCategoryIfEmpty() {
+        val count = wallpaperDao.getAllWallpaperEntities().count {
+            it.category.equals("Uncategorized", ignoreCase = true) || it.category.equals("uncategorised", ignoreCase = true)
+        }
+        if (count == 0) {
+            categoryDao.deleteCategory("Uncategorized")
+            categoryDao.deleteCategory("uncategorised")
+        }
     }
 
     suspend fun updateWallpaperMetadata(
@@ -439,6 +462,7 @@ class WallpaperRepository @Inject constructor(
                 metadata = updatedMetadata
             )
         }
+        cleanUpUncategorizedCategoryIfEmpty()
         true
     }
 
