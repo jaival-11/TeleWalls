@@ -7,6 +7,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -196,7 +198,7 @@ fun SettingsScreen(
             // Header Title
             AnimatedVisibility(
                 visible = isVisible,
-                enter = fadeIn(tween(400)) + slideInVertically(tween(400)) { -30 }
+                enter = if (reduceAnimations) fadeIn(animationSpec = snap()) else (fadeIn(tween(400)) + slideInVertically(tween(400)) { -30 })
             ) {
                 Column {
                     Text(
@@ -222,7 +224,7 @@ fun SettingsScreen(
             // TOP: Account Details Card (Profile picture, Name, Phone number)
             AnimatedVisibility(
                 visible = isVisible,
-                enter = fadeIn(tween(450)) + slideInVertically(tween(450)) { 40 }
+                enter = if (reduceAnimations) fadeIn(animationSpec = snap()) else (fadeIn(tween(450)) + slideInVertically(tween(450)) { 40 })
             ) {
                 AccountDetailsCard(
                     name = userName?.ifBlank { null } ?: "Jaival Patel",
@@ -236,14 +238,14 @@ fun SettingsScreen(
             // Main Settings Section Card
             AnimatedVisibility(
                 visible = isVisible,
-                enter = fadeIn(tween(500)) + slideInVertically(tween(500)) { 40 }
+                enter = if (reduceAnimations) fadeIn(animationSpec = snap()) else (fadeIn(tween(500)) + slideInVertically(tween(500)) { 40 })
             ) {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                     shape = RoundedCornerShape(24.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .animateContentSize()
+                        .animateContentSize(animationSpec = if (reduceAnimations) snap() else spring())
                 ) {
                     Column(modifier = Modifier.padding(vertical = 8.dp)) {
                         // Option 1: Type
@@ -372,7 +374,7 @@ fun SettingsScreen(
             // FOOTER: Made with ❤️ by Jaival
             AnimatedVisibility(
                 visible = isVisible,
-                enter = fadeIn(tween(600)) + slideInVertically(tween(600)) { 30 }
+                enter = if (reduceAnimations) fadeIn(animationSpec = snap()) else (fadeIn(tween(600)) + slideInVertically(tween(600)) { 30 })
             ) {
                 Box(
                     modifier = Modifier.fillMaxWidth(),
@@ -775,11 +777,12 @@ private fun SettingItemRow(
     subtitle: String,
     onClick: () -> Unit
 ) {
+    val reduceAnimations = LocalReduceAnimations.current
     val primaryColor = MaterialTheme.colorScheme.primary
     var isPressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.98f else 1.0f,
-        animationSpec = tween(150, easing = FastOutSlowInEasing),
+        targetValue = if (isPressed && !reduceAnimations) 0.98f else 1.0f,
+        animationSpec = if (reduceAnimations) snap() else tween(150, easing = FastOutSlowInEasing),
         label = "clickScale"
     )
 
