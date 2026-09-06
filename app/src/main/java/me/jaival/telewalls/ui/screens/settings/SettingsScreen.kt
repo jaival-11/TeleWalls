@@ -73,6 +73,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -180,6 +181,7 @@ fun SettingsScreen(
     var showTypeDialog by remember { mutableStateOf(false) }
     var showHideCategoriesDialog by remember { mutableStateOf(false) }
     var showAppLicenseDialog by remember { mutableStateOf(false) }
+    var showFullLicenseDialog by remember { mutableStateOf(false) }
     var showOpenSourceDialog by remember { mutableStateOf(false) }
 
     var isVisible by remember { mutableStateOf(false) }
@@ -579,7 +581,7 @@ fun SettingsScreen(
                     Text(
                         text = "GNU GENERAL PUBLIC LICENSE\n" +
                                 "Version 3, 29 June 2007\n\n" +
-                                "Copyright (C) 2026 Jaival Patel (jaival-11)\n\n" +
+                                "TeleWalls Copyright © 2026 Jaival Patel (jaival-11)\n\n" +
                                 "This program is free software: you can redistribute it and/or modify " +
                                 "it under the terms of the GNU General Public License as published by " +
                                 "the Free Software Foundation, either version 3 of the License, or " +
@@ -587,9 +589,7 @@ fun SettingsScreen(
                                 "This program is distributed in the hope that it will be useful, " +
                                 "but WITHOUT ANY WARRANTY; without even the implied warranty of " +
                                 "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the " +
-                                "GNU General Public License for more details.\n\n" +
-                                "You should have received a copy of the GNU General Public License " +
-                                "along with this program.  If not, see <https://www.gnu.org/licenses/>.",
+                                "GNU General Public License for more details.",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -597,6 +597,58 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showAppLicenseDialog = false }) {
+                    Text("Close", color = primaryColor, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showAppLicenseDialog = false
+                    showFullLicenseDialog = true
+                }) {
+                    Text("Full License", color = primaryColor, fontWeight = FontWeight.Bold)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
+
+    // Full GNU License Dialog (Offline Plain Text)
+    if (showFullLicenseDialog) {
+        val fullLicenseText = remember(context) {
+            try {
+                context.assets.open("LICENSE").bufferedReader().use { it.readText() }
+            } catch (e: Exception) {
+                "GNU GENERAL PUBLIC LICENSE\nVersion 3, 29 June 2007"
+            }
+        }
+
+        AlertDialog(
+            onDismissRequest = { showFullLicenseDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = Icons.Outlined.Gavel, contentDescription = null, tint = primaryColor)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(text = "Full GNU License", fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(380.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        text = fullLicenseText,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showFullLicenseDialog = false }) {
                     Text("Close", color = primaryColor, fontWeight = FontWeight.Bold)
                 }
             },
