@@ -77,6 +77,10 @@ class WallpaperRepositoryTest {
         override suspend fun deleteWallpapersByIds(ids: List<String>) {
             ids.forEach { wallpapers.remove(it) }
         }
+        override suspend fun deleteAllWallpapersExceptChatId(chatId: Long) {
+            val toRemove = wallpapers.values.filter { it.chatId != chatId }.map { it.id }
+            toRemove.forEach { wallpapers.remove(it) }
+        }
         override suspend fun deleteOrphanFavorites() {
             favorites.retainAll(wallpapers.keys)
         }
