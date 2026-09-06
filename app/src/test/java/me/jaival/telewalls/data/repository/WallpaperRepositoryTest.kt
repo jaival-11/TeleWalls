@@ -92,12 +92,22 @@ class WallpaperRepositoryTest {
     }
 
     private class FakeCategoryDao : CategoryDao {
-        override fun getAllCategories(): Flow<List<String>> = flowOf(emptyList())
-        override suspend fun insertCategories(categories: List<CategoryEntity>) {}
-        override suspend fun insertCategory(category: CategoryEntity) {}
-        override suspend fun getCategoryList(): List<String> = emptyList()
-        override suspend fun getAllCategoryEntities(): List<CategoryEntity> = emptyList()
-        override suspend fun clearCategories() {}
+        val categories = mutableListOf<CategoryEntity>()
+
+        override fun getAllCategories(): Flow<List<String>> = flowOf(categories.sortedBy { it.sortOrder }.map { it.name })
+        override suspend fun insertCategories(categories: List<CategoryEntity>) {
+            this.categories.clear()
+            this.categories.addAll(categories)
+        }
+        override suspend fun insertCategory(category: CategoryEntity) {
+            categories.add(category)
+        }
+        override suspend fun getCategoryList(): List<String> = categories.sortedBy { it.sortOrder }.map { it.name }
+        override suspend fun getAllCategoryEntities(): List<CategoryEntity> = categories.sortedBy { it.sortOrder }
+        override suspend fun deleteCategory(name: String) {
+            categories.removeAll { it.name == name }
+        }
+        override suspend fun clearCategories() { categories.clear() }
     }
 
     private class FakeTelegramClient(
@@ -209,5 +219,48 @@ class WallpaperRepositoryTest {
         assertTrue(dao.favorites.contains("${chatId}_1"))
         assertTrue(dao.favorites.contains("${chatId}_2"))
     }
+
+    @Test
+    fun testCategorySortingAndDeletionDoesNotDeleteWallpapers() = runBlocking {
+        val catDao = FakeCategoryDao()
+        val wpDao = FakeWallpaperDao()
+
+        // Insert initial categories
+        val initialCategories = listOf("Abstract", "AMOLED", "Nature")
+        catDao.insertCategories(initialCategories.mapIndexed { idx, name -> CategoryEntity(name = name, sortOrder = idx) })
+
+        // Insert a wallpaper under "AMOLED"
+        val wp = WallpaperEntity(
+            id = "100_1", messageId = 1L, chatId = 100L, fileId = "f1",
+            fileName = "wp1.jpg", mimeType = "image/jpeg", sizeBytes = 100L,
+            title = "AMOLED Glow", category = "AMOLED", tagsCsv = "", resolution = "1080x1920",
+            aspectRatio = "9:16", colorsCsv = "", description = "", author = "Author 1",
+            timestamp = 1000L
+        )
+        wpDao.insertWallpaper(wp)
+
+        // Verify initial list and wallpaper existence
+        assertEquals(listOf("Abstract", "AMOLED", "Nature"), catDao.getCategoryList())
+        assertNotNull(wpDao.getWallpaperById("100_1"))
+
+        // Reorder categories: Move "AMOLED" to top
+        val reordered = listOf("AMOLED", "Abstract", "Nature")
+        catDao.clearCategories()
+        catDao.insertCategories(reordered.mapIndexed { idx, name -> CategoryEntity(name = name, sortOrder = idx) })
+
+        assertEquals(listOf("AMOLED", "Abstract", "Nature"), catDao.getCategoryList())
+
+        // Delete "AMOLED" category
+        catDao.deleteCategory("AMOLED")
+
+        // Verify "AMOLED" is deleted from category list
+        assertEquals(listOf("Abstract", "Nature"), catDao.getCategoryList())
+
+        // Verify wallpaper in "AMOLED" category is NOT deleted
+        val wallpaperAfterDelete = wpDao.getWallpaperById("100_1")
+        assertNotNull(wallpaperAfterDelete)
+        assertEquals("AMOLED Glow", wallpaperAfterDelete?.title)
+    }
 }
+
 

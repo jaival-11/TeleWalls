@@ -23,6 +23,13 @@ class CollectionsViewModel @Inject constructor(
     private val wallpaperRepository: WallpaperRepository
 ) : ViewModel() {
 
+    val categories: StateFlow<List<String>> = wallpaperRepository.categories
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
     val collections: StateFlow<List<WallpaperCollection>> = combine(
         wallpaperRepository.categories,
         wallpaperRepository.allWallpapers
@@ -41,9 +48,48 @@ class CollectionsViewModel @Inject constructor(
         initialValue = emptyList()
     )
 
+    fun moveCategoryUp(index: Int) {
+        val currentList = categories.value.toMutableList()
+        if (index > 0 && index < currentList.size) {
+            val temp = currentList[index]
+            currentList[index] = currentList[index - 1]
+            currentList[index - 1] = temp
+            reorderCategories(currentList)
+        }
+    }
+
+    fun moveCategoryDown(index: Int) {
+        val currentList = categories.value.toMutableList()
+        if (index >= 0 && index < currentList.size - 1) {
+            val temp = currentList[index]
+            currentList[index] = currentList[index + 1]
+            currentList[index + 1] = temp
+            reorderCategories(currentList)
+        }
+    }
+
+    fun reorderCategories(newList: List<String>) {
+        viewModelScope.launch {
+            wallpaperRepository.reorderCategories(newList)
+        }
+    }
+
+    fun deleteCategory(categoryName: String) {
+        viewModelScope.launch {
+            wallpaperRepository.deleteCategory(categoryName)
+        }
+    }
+
+    fun addCategory(categoryName: String) {
+        viewModelScope.launch {
+            wallpaperRepository.addCategory(categoryName)
+        }
+    }
+
     fun loadThumbnailOnDemand(wallpaper: Wallpaper) {
         viewModelScope.launch {
             wallpaperRepository.loadThumbnailOnDemand(wallpaper)
         }
     }
 }
+

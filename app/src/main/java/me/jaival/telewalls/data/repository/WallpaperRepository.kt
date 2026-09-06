@@ -13,6 +13,7 @@ import me.jaival.telewalls.core.telegram.WallpaperMetadata
 import me.jaival.telewalls.data.local.dao.WallpaperDao
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import me.jaival.telewalls.core.util.CharacterAuthorUtils
 import me.jaival.telewalls.core.util.ColorSearchUtils
 import me.jaival.telewalls.data.local.dao.CategoryDao
@@ -54,7 +55,8 @@ class WallpaperRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val telegramClient: TelegramClient,
     private val wallpaperDao: WallpaperDao,
-    private val categoryDao: CategoryDao
+    private val categoryDao: CategoryDao,
+    private val authRepository: AuthRepository
 ) {
     companion object {
         private const val TAG = "WallpaperRepository"
@@ -67,8 +69,21 @@ class WallpaperRepository @Inject constructor(
         categoryDao.getAllCategories(),
         wallpaperDao.getCategoriesFromWallpapers()
     ) { dbCategories, wallpaperCategories ->
-        (DEFAULT_CATEGORIES + dbCategories + wallpaperCategories)
-            .map { it.trim() }
+        val result = mutableListOf<String>()
+        if (dbCategories.isNotEmpty()) {
+            result.addAll(dbCategories)
+        } else {
+            result.addAll(DEFAULT_CATEGORIES)
+        }
+        for (cat in wallpaperCategories) {
+            val trimmed = cat.trim()
+            if (trimmed.isNotBlank() && !trimmed.equals("All", ignoreCase = true)) {
+                if (result.none { it.equals(trimmed, ignoreCase = true) }) {
+                    result.add(trimmed)
+                }
+            }
+        }
+        result.map { it.trim() }
             .filter { it.isNotBlank() && !it.equals("All", ignoreCase = true) }
             .distinctBy { it.lowercase() }
     }
@@ -217,16 +232,53 @@ class WallpaperRepository @Inject constructor(
         }
     }
 
-    suspend fun addCategory(name: String, chatId: Long?): Boolean = withContext(Dispatchers.IO) {
+    suspend fun addCategory(name: String, chatId: Long? = null): Boolean = withContext(Dispatchers.IO) {
         val cleanName = name.trim()
         if (cleanName.isBlank() || cleanName.equals("All", ignoreCase = true)) return@withContext false
 
-        categoryDao.insertCategory(CategoryEntity(name = cleanName))
+        val currentList = categories.first()
+        if (currentList.any { it.equals(cleanName, ignoreCase = true) }) return@withContext true
 
-        if (chatId != null && chatId != 0L) {
-            val currentList = categories.first()
-            val updatedList = (currentList + cleanName).map { it.trim() }.distinctBy { it.lowercase() }
-            telegramClient.saveCategoriesMessage(chatId, updatedList)
+        val nextOrder = currentList.size
+        categoryDao.insertCategory(CategoryEntity(name = cleanName, sortOrder = nextOrder))
+
+        val updatedList = (currentList + cleanName).map { it.trim() }.distinctBy { it.lowercase() }
+        val targetChatId = chatId ?: authRepository.activeChannelIdFlow.firstOrNull()
+        if (targetChatId != null && targetChatId != 0L) {
+            telegramClient.saveCategoriesMessage(targetChatId, updatedList)
+        }
+        true
+    }
+
+    suspend fun reorderCategories(newOrderedList: List<String>, chatId: Long? = null): Boolean = withContext(Dispatchers.IO) {
+        val cleanList = newOrderedList
+            .map { it.trim() }
+            .filter { it.isNotBlank() && !it.equals("All", ignoreCase = true) }
+            .distinctBy { it.lowercase() }
+
+        categoryDao.clearCategories()
+        val entities = cleanList.mapIndexed { index, name ->
+            CategoryEntity(name = name, sortOrder = index)
+        }
+        categoryDao.insertCategories(entities)
+
+        val targetChatId = chatId ?: authRepository.activeChannelIdFlow.firstOrNull()
+        if (targetChatId != null && targetChatId != 0L) {
+            telegramClient.saveCategoriesMessage(targetChatId, cleanList)
+        }
+        true
+    }
+
+    suspend fun deleteCategory(categoryName: String, chatId: Long? = null): Boolean = withContext(Dispatchers.IO) {
+        val cleanName = categoryName.trim()
+        if (cleanName.isBlank()) return@withContext false
+
+        categoryDao.deleteCategory(cleanName)
+
+        val remainingCategories = categories.first()
+        val targetChatId = chatId ?: authRepository.activeChannelIdFlow.firstOrNull()
+        if (targetChatId != null && targetChatId != 0L) {
+            telegramClient.saveCategoriesMessage(targetChatId, remainingCategories)
         }
         true
     }
@@ -241,7 +293,10 @@ class WallpaperRepository @Inject constructor(
                 Log.d(TAG, "[REINDEX DEBUG] Fetched remote categories count=${remoteCategories.size}: $remoteCategories")
             }
             if (remoteCategories.isNotEmpty()) {
-                val entities = remoteCategories.map { CategoryEntity(name = it.trim()) }
+                val entities = remoteCategories.mapIndexed { index, name ->
+                    CategoryEntity(name = name.trim(), sortOrder = index)
+                }
+                categoryDao.clearCategories()
                 categoryDao.insertCategories(entities)
                 Result.success(remoteCategories.size)
             } else {
