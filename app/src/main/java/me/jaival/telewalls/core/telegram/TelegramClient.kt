@@ -49,4 +49,3 @@ interface TelegramClient {
     suspend fun fetchFavoritesMessage(chatId: Long): List<String>
     suspend fun saveFavoritesMessage(chatId: Long, favorites: List<String>): Boolean
 }
-

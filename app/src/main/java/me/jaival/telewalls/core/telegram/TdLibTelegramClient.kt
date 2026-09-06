@@ -55,6 +55,7 @@ class TdLibTelegramClient @Inject constructor(
     private val _connectionState = MutableStateFlow(TelegramConnectionState.CONNECTING)
     override val connectionState: StateFlow<TelegramConnectionState> = _connectionState.asStateFlow()
 
+
     private val updates = MutableSharedFlow<TdApi.Object>(
         extraBufferCapacity = 4096,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
@@ -162,7 +163,6 @@ class TdLibTelegramClient @Inject constructor(
                 _authState.value = TelegramAuthState.Closed
             }
         }
-    }
 
     private fun TdApi.AuthenticationCodeType.codeLength(): Int = when (this) {
         is TdApi.AuthenticationCodeTypeTelegramMessage -> length
