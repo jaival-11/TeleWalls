@@ -13,6 +13,7 @@ import me.jaival.telewalls.core.telegram.StorageChannel
 import me.jaival.telewalls.core.telegram.TelegramAuthState
 import me.jaival.telewalls.core.telegram.TelegramClient
 import me.jaival.telewalls.core.telegram.TelegramCredentials
+import me.jaival.telewalls.data.repository.AuthRepository
 import me.jaival.telewalls.data.repository.WallpaperRepository
 import javax.inject.Inject
 
