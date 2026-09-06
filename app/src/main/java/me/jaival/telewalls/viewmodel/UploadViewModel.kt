@@ -222,9 +222,10 @@ class UploadViewModel @Inject constructor(
                 autoDetectWallpaperType(_detectedResolution.value)
             }
 
+            val finalCategory = category.trim().ifBlank { "Uncategorized" }
             val metadata = WallpaperMetadata(
                 title = wallpaperTitle,
-                category = category,
+                category = finalCategory,
                 tags = tags.split(",").map { it.trim() }.filter { it.isNotBlank() },
                 resolution = _detectedResolution.value,
                 aspectRatio = computeAspectRatioString(_detectedResolution.value),

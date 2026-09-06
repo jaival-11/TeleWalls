@@ -261,6 +261,11 @@ class WallpaperRepositoryTest {
         assertNotNull(wallpaperAfterDelete)
         assertEquals("AMOLED Glow", wallpaperAfterDelete?.title)
     }
+
+    @Test
+    fun testDefaultCategoriesIsEmpty() {
+        assertTrue(WallpaperRepository.DEFAULT_CATEGORIES.isEmpty())
+    }
 }
 
 

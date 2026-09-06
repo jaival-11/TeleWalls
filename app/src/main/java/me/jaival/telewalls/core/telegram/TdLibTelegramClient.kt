@@ -865,7 +865,7 @@ class TdLibTelegramClient @Inject constructor(
         if (isMockMode) {
             val prefs = context.getSharedPreferences("telewalls_mock_prefs", Context.MODE_PRIVATE)
             val saved = prefs.getStringSet("mock_categories", emptySet()) ?: emptySet()
-            val defaults = listOf("AMOLED", "Nature", "Minimal", "Sci-Fi", "Architecture", "Abstract", "Cars")
+            val defaults = emptyList<String>()
             return (defaults + mockCategories + saved).distinct()
         }
 

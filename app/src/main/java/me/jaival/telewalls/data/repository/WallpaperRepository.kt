@@ -60,9 +60,7 @@ class WallpaperRepository @Inject constructor(
 ) {
     companion object {
         private const val TAG = "WallpaperRepository"
-        val DEFAULT_CATEGORIES = listOf(
-            "AMOLED", "Nature", "Minimal", "Sci-Fi", "Architecture", "Abstract", "Cars"
-        )
+        val DEFAULT_CATEGORIES = emptyList<String>()
     }
 
     val categories: Flow<List<String>> = combine(
@@ -405,7 +403,7 @@ class WallpaperRepository @Inject constructor(
     ): Boolean = withContext(Dispatchers.IO) {
         val cleanTitle = title.ifBlank { "Untitled Wallpaper" }
         val cleanAuthor = author.trim().ifBlank { CharacterAuthorUtils.getRandomCharacterName() }
-        val cleanCategory = category.ifBlank { "AMOLED" }
+        val cleanCategory = category.trim().ifBlank { "Uncategorized" }
         val cleanTags = tags.map { it.trim() }.filter { it.isNotBlank() }
         val tagsCsv = cleanTags.joinToString(",")
         val cleanType = wallpaperType.ifBlank { "Phone" }

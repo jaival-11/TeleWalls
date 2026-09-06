@@ -23,9 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-val defaultCategories = listOf(
-    "All", "AMOLED", "Nature", "Minimal", "Sci-Fi", "Architecture", "Abstract", "Cars"
-)
+val defaultCategories = emptyList<String>()
 
 @Composable
 fun CategoryChips(

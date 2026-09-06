@@ -87,7 +87,7 @@ fun UploadScreen(
     val primaryColor = MaterialTheme.colorScheme.primary
 
     var title by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf("AMOLED") }
+    var selectedCategory by remember { mutableStateOf("") }
     var tags by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var author by remember { mutableStateOf("") }
@@ -124,6 +124,7 @@ fun UploadScreen(
             viewModel.resetState()
             title = ""
             author = ""
+            selectedCategory = ""
             tags = ""
             description = ""
             onUploadSuccess()
@@ -392,7 +393,7 @@ fun UploadScreen(
             Spacer(modifier = Modifier.height(4.dp))
             CategoryChips(
                 selectedCategory = selectedCategory,
-                onCategorySelected = { selectedCategory = it },
+                onCategorySelected = { selectedCategory = if (selectedCategory.equals(it, ignoreCase = true)) "" else it },
                 categories = categories
             )
 
