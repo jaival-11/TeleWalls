@@ -59,6 +59,9 @@ import kotlinx.coroutines.launch
 import me.jaival.telewalls.ui.navigation.ScreenRoutes
 import kotlin.math.roundToInt
 
+import androidx.compose.animation.core.snap
+import me.jaival.telewalls.ui.theme.LocalReduceAnimations
+
 data class NavItem(
     val route: String,
     val label: String,
@@ -96,9 +99,10 @@ fun AnimatedBottomBar(
         0f
     }
 
+    val reduceAnimations = LocalReduceAnimations.current
     val animatedOffsetX by animateFloatAsState(
         targetValue = targetOffsetX,
-        animationSpec = spring(
+        animationSpec = if (reduceAnimations) snap() else spring(
             dampingRatio = 0.65f,
             stiffness = Spring.StiffnessMediumLow
         ),

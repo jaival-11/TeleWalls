@@ -8,12 +8,15 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+
+val LocalReduceAnimations = staticCompositionLocalOf { false }
 
 private val DarkMonetColorScheme = darkColorScheme(
     primary = MonetPrimary80,
@@ -67,6 +70,7 @@ private val LightMonetColorScheme = lightColorScheme(
 fun TeleWallsTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
+    reduceAnimations: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
@@ -88,10 +92,12 @@ fun TeleWallsTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalReduceAnimations provides reduceAnimations) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }
 

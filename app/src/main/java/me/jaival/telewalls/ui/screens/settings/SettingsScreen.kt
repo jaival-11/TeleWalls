@@ -77,6 +77,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import me.jaival.telewalls.BuildConfig
 import me.jaival.telewalls.data.repository.WallpaperTypeFilter
+import me.jaival.telewalls.ui.theme.LocalReduceAnimations
 import me.jaival.telewalls.viewmodel.AuthViewModel
 import me.jaival.telewalls.viewmodel.SettingsViewModel
 
