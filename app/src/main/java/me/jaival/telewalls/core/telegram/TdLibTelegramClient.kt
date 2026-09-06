@@ -163,6 +163,7 @@ class TdLibTelegramClient @Inject constructor(
                 _authState.value = TelegramAuthState.Closed
             }
         }
+    }
 
     private fun TdApi.AuthenticationCodeType.codeLength(): Int = when (this) {
         is TdApi.AuthenticationCodeTypeTelegramMessage -> length
