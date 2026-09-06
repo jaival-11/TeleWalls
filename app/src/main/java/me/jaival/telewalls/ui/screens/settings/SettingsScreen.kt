@@ -35,6 +35,7 @@ import androidx.compose.material.icons.outlined.Animation
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.CleaningServices
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Gavel
@@ -46,6 +47,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -168,6 +170,8 @@ fun SettingsScreen(
     val hiddenCategories by settingsViewModel.hiddenCategories.collectAsState()
     val syncFavorites by settingsViewModel.syncFavorites.collectAsState()
     val allCategories by settingsViewModel.allCategories.collectAsState()
+    val cacheSizeBytes by settingsViewModel.cacheSizeBytes.collectAsState()
+    val isClearingCache by settingsViewModel.isClearingCache.collectAsState()
 
     val phoneNumber by authViewModel.phoneNumber.collectAsState()
     val userName by authViewModel.userName.collectAsState()
@@ -181,6 +185,7 @@ fun SettingsScreen(
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         isVisible = true
+        settingsViewModel.refreshCacheSize()
     }
 
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -284,6 +289,20 @@ fun SettingsScreen(
                             subtitle = "Keep your saved wallpapers synced",
                             checked = syncFavorites,
                             onCheckedChange = { settingsViewModel.setSyncFavorites(it) }
+                        )
+
+                        // Option 5: Clear Cache
+                        SettingItemRow(
+                            icon = Icons.Outlined.CleaningServices,
+                            title = "Clear Cache",
+                            subtitle = if (isClearingCache) "Clearing cache..." else settingsViewModel.formatCacheSize(cacheSizeBytes),
+                            onClick = {
+                                if (!isClearingCache) {
+                                    settingsViewModel.clearCache {
+                                        Toast.makeText(context, "All stored thumbnails and full images cleared!", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
                         )
 
                         // -- DIVIDER --
