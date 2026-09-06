@@ -2,6 +2,7 @@ package me.jaival.telewalls.core.upload
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -22,7 +23,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import me.jaival.telewalls.core.palette.PaletteExtractor
 import me.jaival.telewalls.core.telegram.TelegramUploadEvent
 import me.jaival.telewalls.core.telegram.WallpaperMetadata
@@ -44,9 +44,29 @@ class MassUploadService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    @Volatile
+    private var isPaused = false
+
+    @Volatile
+    private var isStopped = false
+
+    @Volatile
+    private var currentProgressIndex = 0
+
+    @Volatile
+    private var totalProgressCount = 0
+
+    @Volatile
+    private var currentPhotoTitle = ""
+
     companion object {
         private const val TAG = "MassUploadService"
         const val EXTRA_IMAGE_URIS = "extra_image_uris"
+
+        const val ACTION_START = "me.jaival.telewalls.ACTION_START"
+        const val ACTION_PAUSE = "me.jaival.telewalls.ACTION_PAUSE"
+        const val ACTION_RESUME = "me.jaival.telewalls.ACTION_RESUME"
+        const val ACTION_STOP = "me.jaival.telewalls.ACTION_STOP"
 
         private const val PROGRESS_CHANNEL_ID = "mass_upload_progress_channel"
         private const val RESULT_CHANNEL_ID = "mass_upload_result_channel"
@@ -56,6 +76,7 @@ class MassUploadService : Service() {
         fun startUpload(context: Context, uris: List<Uri>) {
             if (uris.isEmpty()) return
             val intent = Intent(context, MassUploadService::class.java).apply {
+                action = ACTION_START
                 putStringArrayListExtra(EXTRA_IMAGE_URIS, ArrayList(uris.map { it.toString() }))
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -74,16 +95,44 @@ class MassUploadService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val action = intent?.action
+
+        when (action) {
+            ACTION_PAUSE -> {
+                isPaused = true
+                updateProgressNotification(currentProgressIndex, totalProgressCount, currentPhotoTitle)
+                return START_NOT_STICKY
+            }
+            ACTION_RESUME -> {
+                isPaused = false
+                updateProgressNotification(currentProgressIndex, totalProgressCount, currentPhotoTitle)
+                return START_NOT_STICKY
+            }
+            ACTION_STOP -> {
+                isStopped = true
+                isPaused = false
+                stopForegroundService()
+                stopSelf()
+                return START_NOT_STICKY
+            }
+        }
+
         val uriStrings = intent?.getStringArrayListExtra(EXTRA_IMAGE_URIS) ?: emptyList()
         if (uriStrings.isEmpty()) {
             stopSelf()
             return START_NOT_STICKY
         }
 
+        isPaused = false
+        isStopped = false
+        totalProgressCount = uriStrings.size
+        currentProgressIndex = 0
+        currentPhotoTitle = "Preparing batch upload..."
+
         val initialNotification = buildProgressNotification(
             current = 0,
             total = uriStrings.size,
-            currentFileName = "Preparing batch upload..."
+            currentFileName = currentPhotoTitle
         )
 
         try {
@@ -120,9 +169,29 @@ class MassUploadService : Service() {
         val chatId = authRepository.activeChannelIdFlow.first() ?: 99999L
 
         for ((index, uri) in uris.withIndex()) {
+            if (isStopped) {
+                Log.d(TAG, "Upload stopped by user.")
+                break
+            }
+
             val currentIndex = index + 1
             val rawFileName = getFileNameFromUri(uri)
             val cleanTitle = cleanFileNameForTitle(rawFileName ?: "photo_$currentIndex")
+
+            currentProgressIndex = currentIndex
+            totalProgressCount = total
+            currentPhotoTitle = cleanTitle
+
+            // Wait if paused
+            while (isPaused && !isStopped) {
+                updateProgressNotification(currentIndex, total, cleanTitle)
+                delay(500L)
+            }
+
+            if (isStopped) {
+                Log.d(TAG, "Upload stopped by user during pause.")
+                break
+            }
 
             updateProgressNotification(
                 current = currentIndex,
@@ -175,7 +244,7 @@ class MassUploadService : Service() {
                 ).collect { event ->
                     when (event) {
                         is TelegramUploadEvent.Progress -> {
-                            // Can optionally update fine-grained progress
+                            // Progress update if needed
                         }
                         is TelegramUploadEvent.Succeeded -> {
                             wallpaperRepository.saveUploadedWallpaperToDb(event.document)
@@ -205,15 +274,26 @@ class MassUploadService : Service() {
                 }
             }
 
+            if (isStopped) break
+
             // Telegram rate limit guideline: pause 1.5 seconds between uploads
             if (currentIndex < total) {
-                delay(1500L)
+                var delayMs = 0L
+                while (delayMs < 1500L && !isStopped) {
+                    while (isPaused && !isStopped) {
+                        updateProgressNotification(currentIndex, total, cleanTitle)
+                        delay(500L)
+                    }
+                    delay(100L)
+                    delayMs += 100L
+                }
             }
         }
 
-        // Finish up: stop foreground service and present completion or error notification
         stopForegroundService()
-        showFinalResultNotification(total, successCount, failureCount, errorDetails)
+        if (!isStopped) {
+            showFinalResultNotification(total, successCount, failureCount, errorDetails)
+        }
         stopSelf()
     }
 
@@ -233,17 +313,52 @@ class MassUploadService : Service() {
     }
 
     private fun buildProgressNotification(current: Int, total: Int, currentFileName: String): android.app.Notification {
-        val titleText = if (current == 0) "Mass Upload Starting" else "Uploading Wallpapers ($current/$total)"
-        val contentText = if (current == 0) currentFileName else "Uploading $currentFileName..."
+        val pauseOrResumeAction = if (isPaused) ACTION_RESUME else ACTION_PAUSE
+        val pauseOrResumeTitle = if (isPaused) "Resume" else "Pause"
+        val pauseOrResumeIcon = if (isPaused) android.R.drawable.ic_media_play else android.R.drawable.ic_media_pause
+
+        val pauseOrResumeIntent = Intent(this, MassUploadService::class.java).apply {
+            action = pauseOrResumeAction
+        }
+        val pauseOrResumePendingIntent = PendingIntent.getService(
+            this,
+            101,
+            pauseOrResumeIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val stopIntent = Intent(this, MassUploadService::class.java).apply {
+            action = ACTION_STOP
+        }
+        val stopPendingIntent = PendingIntent.getService(
+            this,
+            102,
+            stopIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val titleText = if (isPaused) {
+            "Uploading images... (Paused - $current/$total)"
+        } else {
+            "Uploading images... ($current/$total)"
+        }
+
+        val contentText = if (isPaused) {
+            "Paused at $currentFileName"
+        } else {
+            "Uploading $currentFileName"
+        }
 
         return NotificationCompat.Builder(this, PROGRESS_CHANNEL_ID)
             .setContentTitle(titleText)
             .setContentText(contentText)
-            .setSmallIcon(android.R.drawable.stat_sys_upload)
-            .setOngoing(true)
+            .setSmallIcon(if (isPaused) android.R.drawable.ic_media_pause else android.R.drawable.stat_sys_upload)
+            .setOngoing(!isPaused)
             .setOnlyAlertOnce(true)
             .setProgress(total, current, current == 0)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .addAction(pauseOrResumeIcon, pauseOrResumeTitle, pauseOrResumePendingIntent)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", stopPendingIntent)
             .build()
     }
 
@@ -266,7 +381,7 @@ class MassUploadService : Service() {
         } else {
             builder.setContentTitle("Mass Upload Finished with Errors")
                 .setContentText("$successCount uploaded successfully, $failureCount failed.")
-            
+
             val bigText = StringBuilder()
                 .append("Upload summary:\n")
                 .append("• Successful: $successCount / $total\n")
@@ -290,7 +405,7 @@ class MassUploadService : Service() {
                 "Mass Upload Progress",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Shows real-time progress of batch wallpaper uploads"
+                description = "Shows real-time progress of batch wallpaper uploads with controls"
             }
 
             val resultChannel = NotificationChannel(
@@ -298,7 +413,7 @@ class MassUploadService : Service() {
                 "Mass Upload Results",
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Notifies when mass wallpaper upload completes or encunters errors"
+                description = "Notifies when mass wallpaper upload completes or encounters errors"
             }
 
             notificationManager.createNotificationChannel(progressChannel)

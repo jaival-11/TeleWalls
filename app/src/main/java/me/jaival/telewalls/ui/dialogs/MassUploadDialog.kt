@@ -1,6 +1,9 @@
 package me.jaival.telewalls.ui.dialogs
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -59,6 +62,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 import me.jaival.telewalls.core.upload.FolderScanner
@@ -75,6 +79,23 @@ fun MassUploadDialog(
     var selectedUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var isScanningFolder by remember { mutableStateOf(false) }
     var showEditMenu by remember { mutableStateOf(false) }
+
+    val startUploadAndDismiss = {
+        Toast.makeText(context, "Check notification for progress", Toast.LENGTH_SHORT).show()
+        MassUploadService.startUpload(context, selectedUris)
+        onDismissRequest()
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            startUploadAndDismiss()
+        } else {
+            Toast.makeText(context, "Notification permission is needed to track progress", Toast.LENGTH_SHORT).show()
+            startUploadAndDismiss()
+        }
+    }
 
     // Picker for multiple photo files
     val multiPhotoLauncher = rememberLauncherForActivityResult(
@@ -335,9 +356,20 @@ fun MassUploadDialog(
 
                         Button(
                             onClick = {
-                                Toast.makeText(context, "Check notification for progress", Toast.LENGTH_SHORT).show()
-                                MassUploadService.startUpload(context, selectedUris)
-                                onDismissRequest()
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    val hasPermission = ContextCompat.checkSelfPermission(
+                                        context,
+                                        Manifest.permission.POST_NOTIFICATIONS
+                                    ) == PackageManager.PERMISSION_GRANTED
+
+                                    if (!hasPermission) {
+                                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    } else {
+                                        startUploadAndDismiss()
+                                    }
+                                } else {
+                                    startUploadAndDismiss()
+                                }
                             },
                             shape = RoundedCornerShape(20.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
