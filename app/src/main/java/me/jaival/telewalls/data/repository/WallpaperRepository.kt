@@ -56,11 +56,20 @@ class WallpaperRepository @Inject constructor(
     private val telegramClient: TelegramClient,
     private val wallpaperDao: WallpaperDao,
     private val categoryDao: CategoryDao,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val settingsRepository: SettingsRepository
 ) {
     companion object {
         private const val TAG = "WallpaperRepository"
         val DEFAULT_CATEGORIES = emptyList<String>()
+
+        private fun matchesTypeFilter(wallpaper: Wallpaper, filter: WallpaperTypeFilter): Boolean {
+            return when (filter) {
+                WallpaperTypeFilter.BOTH -> true
+                WallpaperTypeFilter.PHONE -> wallpaper.wallpaperType.contains("Phone", ignoreCase = true) || wallpaper.wallpaperType.isBlank()
+                WallpaperTypeFilter.DESKTOP -> wallpaper.wallpaperType.contains("Desktop", ignoreCase = true) || wallpaper.wallpaperType.contains("Tablet", ignoreCase = true)
+            }
+        }
     }
 
     val categories: Flow<List<String>> = combine(
@@ -97,12 +106,18 @@ class WallpaperRepository @Inject constructor(
             .distinctBy { it.lowercase() }
     }
 
-    val allWallpapers: Flow<List<Wallpaper>> = wallpaperDao.getAllWallpapers().map { entities ->
-        entities.map { it.toDomain() }
+    val allWallpapers: Flow<List<Wallpaper>> = combine(
+        wallpaperDao.getAllWallpapers(),
+        settingsRepository.wallpaperTypeFlow
+    ) { entities, typeFilter ->
+        entities.map { it.toDomain() }.filter { matchesTypeFilter(it, typeFilter) }
     }
 
-    val favoriteWallpapers: Flow<List<Wallpaper>> = wallpaperDao.getFavoriteWallpapers().map { entities ->
-        entities.map { it.toDomain() }
+    val favoriteWallpapers: Flow<List<Wallpaper>> = combine(
+        wallpaperDao.getFavoriteWallpapers(),
+        settingsRepository.wallpaperTypeFlow
+    ) { entities, typeFilter ->
+        entities.map { it.toDomain() }.filter { matchesTypeFilter(it, typeFilter) }
     }
 
     fun getWallpapersByCategory(category: String): Flow<List<Wallpaper>> {
