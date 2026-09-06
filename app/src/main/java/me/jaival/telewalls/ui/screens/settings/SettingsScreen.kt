@@ -319,7 +319,7 @@ fun SettingsScreen(
                             onClick = {
                                 val appVersion = try { BuildConfig.VERSION_NAME } catch (e: Exception) { "1.0.0" }
                                 val intent = Intent(Intent.ACTION_SENDTO).apply {
-                                    data = Uri.parse("mailto:jaival7909@gmail.com?subject=" + Uri.encode("TeleWalls - [$appVersion]"))
+                                    data = Uri.parse("mailto:jaival7909@gmail.com?subject=" + Uri.encode("TeleWalls - v$appVersion"))
                                 }
                                 try {
                                     context.startActivity(intent)
@@ -346,7 +346,7 @@ fun SettingsScreen(
                         SettingItemRow(
                             icon = Icons.Outlined.Gavel,
                             title = "App License",
-                            subtitle = "Apache License 2.0",
+                            subtitle = "GNU General Public License v3.0",
                             onClick = { showAppLicenseDialog = true }
                         )
 
@@ -377,7 +377,7 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "Made with ❤️ by ",
+                            text = "Made with ❤️ by",
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.Medium
@@ -546,21 +546,23 @@ fun SettingsScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(260.dp)
+                        .height(280.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
                     Text(
-                        text = "Apache License\nVersion 2.0, January 2004\nhttp://www.apache.org/licenses/\n\n" +
-                                "Copyright 2026 Jaival Patel (jaival-11)\n\n" +
-                                "Licensed under the Apache License, Version 2.0 (the \"License\"); " +
-                                "you may not use this file except in compliance with the License. " +
-                                "You may obtain a copy of the License at:\n\n" +
-                                "http://www.apache.org/licenses/LICENSE-2.0\n\n" +
-                                "Unless required by applicable law or agreed to in writing, software " +
-                                "distributed under the License is distributed on an \"AS IS\" BASIS, " +
-                                "WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. " +
-                                "See the License for the specific language governing permissions and " +
-                                "limitations under the License.",
+                        text = "GNU GENERAL PUBLIC LICENSE\n" +
+                                "Version 3, 29 June 2007\n\n" +
+                                "Copyright (C) 2026 Jaival Patel (jaival-11)\n\n" +
+                                "This program is free software: you can redistribute it and/or modify " +
+                                "it under the terms of the GNU General Public License as published by " +
+                                "the Free Software Foundation, either version 3 of the License, or " +
+                                "(at your option) any later version.\n\n" +
+                                "This program is distributed in the hope that it will be useful, " +
+                                "but WITHOUT ANY WARRANTY; without even the implied warranty of " +
+                                "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the " +
+                                "GNU General Public License for more details.\n\n" +
+                                "You should have received a copy of the GNU General Public License " +
+                                "along with this program.  If not, see <https://www.gnu.org/licenses/>.",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -576,7 +578,7 @@ fun SettingsScreen(
         )
     }
 
-    // Open Source Licenses Dialog (Inspired by Simple File Manager)
+    // Open Source Licenses Dialog
     if (showOpenSourceDialog) {
         AlertDialog(
             onDismissRequest = { showOpenSourceDialog = false },
