@@ -257,7 +257,7 @@ class DetailViewModel @Inject constructor(
                 _wallpaper.value = wallpaperRepository.getWallpaperById(current.id)
                 onResult(true, null)
             } else {
-                onResult(false, "Failed to update detai on Telegram. Please check connection and permissions.")
+                onResult(false, "Failed to update details on Telegram. Please check connection and permissions.")
             }
         }
     }

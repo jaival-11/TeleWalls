@@ -71,7 +71,6 @@ jobs:
         PREV_TAG=$(git describe --tags --abbrev=0 "${TAG_NAME}^" 2>/dev/null || true)
 
         echo "# ${TAG_NAME}" > release_notes.md
-        echo "--" >> release_notes.md
         echo "" >> release_notes.md
         echo "## \`Changelog:\`" >> release_notes.md
         echo "" >> release_notes.md
