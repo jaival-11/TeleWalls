@@ -25,7 +25,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import me.jaival.telewalls.core.updater.UpdateState
 import me.jaival.telewalls.ui.components.AnimatedBottomBar
+import me.jaival.telewalls.ui.dialogs.UpdateAvailableDialog
 import me.jaival.telewalls.ui.screens.account.AccountScreen
 import me.jaival.telewalls.ui.screens.auth.AuthScreen
 import me.jaival.telewalls.ui.screens.collections.CategoryDetailScreen
@@ -36,6 +38,7 @@ import me.jaival.telewalls.ui.screens.home.HomeScreen
 import me.jaival.telewalls.ui.screens.onboarding.OnboardingScreen
 import me.jaival.telewalls.ui.screens.settings.SettingsScreen
 import me.jaival.telewalls.ui.screens.upload.UploadScreen
+import me.jaival.telewalls.viewmodel.AppUpdateViewModel
 import me.jaival.telewalls.viewmodel.AuthViewModel
 import me.jaival.telewalls.viewmodel.CategoryDetailViewModel
 import me.jaival.telewalls.viewmodel.CollectionsViewModel
@@ -54,6 +57,22 @@ fun TeleWallsNavGraph(
     val collectionsViewModel: CollectionsViewModel = hiltViewModel()
     val uploadViewModel: UploadViewModel = hiltViewModel()
     val authViewModel: AuthViewModel = hiltViewModel()
+    val appUpdateViewModel: AppUpdateViewModel = hiltViewModel()
+
+    val updateState by appUpdateViewModel.updateState.collectAsState()
+
+    UpdateAvailableDialog(
+        updateState = updateState,
+        onDismiss = { appUpdateViewModel.dismissUpdate() },
+        onInstallClick = {
+            (updateState as? UpdateState.UpdateAvailable)?.let {
+                appUpdateViewModel.startDownload(it.releaseInfo)
+            }
+        },
+        onInstallApkPrompt = {
+            appUpdateViewModel.promptInstallApk()
+        }
+    )
 
     val isSetupCompletedState by authViewModel.isSetupCompleted.collectAsState()
 
@@ -250,6 +269,7 @@ fun TeleWallsNavGraph(
                 ) {
                     SettingsScreen(
                         authViewModel = authViewModel,
+                        updateViewModel = appUpdateViewModel,
                         onAccountClick = {
                             navController.navigate(ScreenRoutes.ACCOUNT)
                         }

@@ -43,6 +43,7 @@ import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Gavel
 import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material.icons.outlined.Wallpaper
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -86,6 +87,7 @@ import coil.compose.AsyncImage
 import me.jaival.telewalls.BuildConfig
 import me.jaival.telewalls.data.repository.WallpaperTypeFilter
 import me.jaival.telewalls.ui.theme.LocalReduceAnimations
+import me.jaival.telewalls.viewmodel.AppUpdateViewModel
 import me.jaival.telewalls.viewmodel.AuthViewModel
 import me.jaival.telewalls.viewmodel.SettingsViewModel
 
@@ -167,6 +169,7 @@ val OPEN_SOURCE_LIBRARIES = listOf(
 fun SettingsScreen(
     authViewModel: AuthViewModel,
     settingsViewModel: SettingsViewModel = hiltViewModel(),
+    updateViewModel: AppUpdateViewModel = hiltViewModel(),
     onAccountClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -316,10 +319,23 @@ fun SettingsScreen(
                             }
                         )
 
+                        // Option 5: Check for Updates
+                        val currentAppVer = try { BuildConfig.VERSION_NAME } catch (e: Exception) { "v1.1.0" }
+                        SettingItemRow(
+                            icon = Icons.Outlined.SystemUpdate,
+                            title = "Check for Updates",
+                            subtitle = "Current version $currentAppVer",
+                            onClick = {
+                                updateViewModel.checkManual { toastMsg ->
+                                    Toast.makeText(context, toastMsg, Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
+
                         // -- DIVIDER --
                         SettingsDivider()
 
-                        // Option 5: Report Bug
+                        // Option 6: Report Bug
                         SettingItemRow(
                             icon = Icons.Outlined.BugReport,
                             title = "Report Bug",

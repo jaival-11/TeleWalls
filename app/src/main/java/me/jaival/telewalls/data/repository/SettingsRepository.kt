@@ -5,11 +5,13 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -31,6 +33,7 @@ class SettingsRepository @Inject constructor(
         private val REDUCE_ANIMATIONS_KEY = booleanPreferencesKey("reduce_animations")
         private val HIDDEN_CATEGORIES_KEY = stringSetPreferencesKey("hidden_categories")
         private val SYNC_FAVORITES_KEY = booleanPreferencesKey("sync_favorites")
+        private val LAST_UPDATE_CHECK_TIME_KEY = longPreferencesKey("last_update_check_time_ms")
     }
 
     val wallpaperTypeFlow: Flow<WallpaperTypeFilter> = context.settingsDataStore.data.map { prefs ->
@@ -94,6 +97,18 @@ class SettingsRepository @Inject constructor(
     suspend fun resetSettings() {
         context.settingsDataStore.edit { prefs ->
             prefs.clear()
+        }
+    }
+
+    suspend fun getLastUpdateCheckTime(): Long {
+        return context.settingsDataStore.data.map { prefs ->
+            prefs[LAST_UPDATE_CHECK_TIME_KEY] ?: 0L
+        }.first()
+    }
+
+    suspend fun setLastUpdateCheckTime(timestamp: Long) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[LAST_UPDATE_CHECK_TIME_KEY] = timestamp
         }
     }
 }
