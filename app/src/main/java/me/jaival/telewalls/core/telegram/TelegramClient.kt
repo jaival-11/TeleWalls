@@ -31,7 +31,7 @@ interface TelegramClient {
     suspend fun fetchWallpapers(
         chatId: Long,
         fromMessageId: Long = 0L,
-        limit: Int = 50
+        limit: Int = Int.MAX_VALUE
     ): List<WallpaperDocument>
 
     suspend fun downloadWallpaperFile(

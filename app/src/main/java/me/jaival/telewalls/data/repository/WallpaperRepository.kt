@@ -217,7 +217,7 @@ class WallpaperRepository @Inject constructor(
             Log.d(TAG, "[REINDEX DEBUG] Starting syncWallpapersFromChannel for chatId=$chatId")
         }
         try {
-            val documents = telegramClient.fetchWallpapers(chatId, fromMessageId = 0L, limit = 50)
+            val documents = telegramClient.fetchWallpapers(chatId, fromMessageId = 0L, limit = Int.MAX_VALUE)
             val fetchedIds = documents.map { "${it.chatId}_${it.messageId}" }.toSet()
 
             if (BuildConfig.DEBUG) {

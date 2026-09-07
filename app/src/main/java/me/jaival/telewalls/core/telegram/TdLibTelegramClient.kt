@@ -301,9 +301,32 @@ class TdLibTelegramClient @Inject constructor(
         }
         val chats = mutableListOf<StorageChannel>()
         try {
-            val result = sendTd<TdApi.Chats>(TdApi.GetChats(TdApi.ChatListMain(), 100))
-            for (chatId in result.chatIds) {
-                val chat = sendTd<TdApi.Chat>(TdApi.GetChat(chatId))
+            try {
+                sendTd<TdApi.Ok>(TdApi.LoadChats(TdApi.ChatListMain(), 100))
+            } catch (e: Exception) {
+                Log.d(TAG, "LoadChats note: ${e.message}")
+            }
+
+            val searchChatsResult = try {
+                sendTd<TdApi.Chats>(TdApi.SearchChats("TeleWalls", 50))
+            } catch (e: Exception) {
+                null
+            }
+
+            val mainChatsResult = try {
+                sendTd<TdApi.Chats>(TdApi.GetChats(TdApi.ChatListMain(), 100))
+            } catch (e: Exception) {
+                null
+            }
+
+            val combinedChatIds = ((mainChatsResult?.chatIds?.toList() ?: emptyList()) +
+                    (searchChatsResult?.chatIds?.toList() ?: emptyList())).distinct()
+
+            for (chatId in combinedChatIds) {
+                val chat = try {
+                    sendTd<TdApi.Chat>(TdApi.GetChat(chatId))
+                } catch (e: Exception) { null } ?: continue
+
                 if (chat.type is TdApi.ChatTypeSupergroup) {
                     val supergroup = chat.type as TdApi.ChatTypeSupergroup
                     if (supergroup.isChannel) {
@@ -314,7 +337,7 @@ class TdLibTelegramClient @Inject constructor(
                         } catch (e: Exception) {
                             Log.e(TAG, "Error fetching supergroup full info for supergroupId=${supergroup.supergroupId}", e)
                         }
-                        if (chat.title.startsWith("TeleWalls") && description.contains("#telewalls-storage")) {
+                        if (chat.title.startsWith("TeleWalls") && (description.contains("#telewalls-storage") || chat.title.contains("Vault"))) {
                             chats.add(StorageChannel(chat.id, chat.title, 0, description))
                         }
                     }
@@ -528,32 +551,46 @@ class TdLibTelegramClient @Inject constructor(
         ensureChatLoaded(chatId)
 
         val documents = mutableListOf<WallpaperDocument>()
+        var currentFromMessageId = fromMessageId
+
         try {
-            val searchResult = sendTd<TdApi.FoundChatMessages>(
-                TdApi.SearchChatMessages(
-                    chatId,
-                    null,
-                    "",
-                    null,
-                    fromMessageId,
-                    0,
-                    limit,
-                    null
+            while (documents.size < limit) {
+                val batchLimit = minOf(100, limit - documents.size)
+                val searchResult = sendTd<TdApi.FoundChatMessages>(
+                    TdApi.SearchChatMessages(
+                        chatId,
+                        null,
+                        "",
+                        null,
+                        currentFromMessageId,
+                        0,
+                        batchLimit,
+                        null
+                    )
                 )
-            )
-            if (BuildConfig.DEBUG) {
-                Log.d(TAG, "[REINDEX DEBUG] SearchChatMessages returned ${searchResult.messages.size} raw messages from Telegram for chatId=$chatId")
-            }
-            for (msg in searchResult.messages) {
-                val doc = parseWallpaperFromMessage(msg, null)
-                if (doc != null) {
-                    documents.add(doc)
-                } else if (BuildConfig.DEBUG) {
-                    Log.d(TAG, "[REINDEX DEBUG] Message #${msg.id} in chatId=$chatId could not be parsed into WallpaperDocument")
+                if (BuildConfig.DEBUG) {
+                    Log.d(TAG, "[REINDEX DEBUG] SearchChatMessages returned ${searchResult.messages.size} raw messages from Telegram for chatId=$chatId, nextFromMessageId=${searchResult.nextFromMessageId}")
                 }
+                if (searchResult.messages.isEmpty()) {
+                    break
+                }
+                for (msg in searchResult.messages) {
+                    val doc = parseWallpaperFromMessage(msg, null)
+                    if (doc != null) {
+                        documents.add(doc)
+                    } else if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "[REINDEX DEBUG] Message #${msg.id} in chatId=$chatId could not be parsed into WallpaperDocument")
+                    }
+                }
+
+                val nextFromId = searchResult.nextFromMessageId
+                if (nextFromId == 0L || nextFromId == currentFromMessageId) {
+                    break
+                }
+                currentFromMessageId = nextFromId
             }
             if (BuildConfig.DEBUG) {
-                Log.d(TAG, "[REINDEX DEBUG] Successfully parsed ${documents.size} / ${searchResult.messages.size} valid WallpaperDocuments for chatId=$chatId")
+                Log.d(TAG, "[REINDEX DEBUG] Successfully parsed total ${documents.size} valid WallpaperDocuments for chatId=$chatId")
             }
         } catch (e: Exception) {
             if (BuildConfig.DEBUG) {
