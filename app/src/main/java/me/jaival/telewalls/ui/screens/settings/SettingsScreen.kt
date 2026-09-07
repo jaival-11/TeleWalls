@@ -15,6 +15,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,6 +61,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -772,7 +774,8 @@ private fun AccountDetailsCard(
     onClick: () -> Unit = {}
 ) {
     val reduceAnimations = LocalReduceAnimations.current
-    var isPressed by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed && !reduceAnimations) 0.98f else 1.0f,
         animationSpec = if (reduceAnimations) snap() else tween(150, easing = FastOutSlowInEasing),
@@ -786,9 +789,9 @@ private fun AccountDetailsCard(
             .fillMaxWidth()
             .scale(scale)
             .clickable(
-                onClick = onClick,
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
+                interactionSource = interactionSource,
+                indication = if (reduceAnimations) null else ripple(),
+                onClick = onClick
             )
     ) {
         Row(
@@ -882,7 +885,8 @@ private fun SettingItemRow(
 ) {
     val reduceAnimations = LocalReduceAnimations.current
     val primaryColor = MaterialTheme.colorScheme.primary
-    var isPressed by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed && !reduceAnimations) 0.98f else 1.0f,
         animationSpec = if (reduceAnimations) snap() else tween(150, easing = FastOutSlowInEasing),
@@ -894,9 +898,9 @@ private fun SettingItemRow(
             .fillMaxWidth()
             .scale(scale)
             .clickable(
-                onClick = onClick,
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
+                interactionSource = interactionSource,
+                indication = if (reduceAnimations) null else ripple(),
+                onClick = onClick
             )
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -955,12 +959,17 @@ private fun SettingSwitchRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
+    val reduceAnimations = LocalReduceAnimations.current
     val primaryColor = MaterialTheme.colorScheme.primary
+    val interactionSource = remember { MutableInteractionSource() }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onCheckedChange(!checked) }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = if (reduceAnimations) null else ripple()
+            ) { onCheckedChange(!checked) }
             .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
