@@ -85,13 +85,18 @@ class HomeViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
+    private var hasInitialReindexed = false
+
     init {
         viewModelScope.launch {
             combine(telegramClient.authState, authRepository.activeChannelIdFlow) { state, channelId ->
                 Pair(state, channelId)
             }.collect { (authState, chatId) ->
                 if (authState is TelegramAuthState.Ready && chatId != null && chatId != 0L) {
-                    reindexChannel()
+                    if (!hasInitialReindexed) {
+                        hasInitialReindexed = true
+                        reindexChannel()
+                    }
                 }
             }
         }

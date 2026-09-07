@@ -134,10 +134,6 @@ fun HomeScreen(
     )
 
     LaunchedEffect(Unit) {
-        viewModel.reindexChannel()
-    }
-
-    LaunchedEffect(Unit) {
         viewModel.toastEvent.collect { message ->
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         }
