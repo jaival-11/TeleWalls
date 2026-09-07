@@ -31,11 +31,12 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Wallpaper
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -93,6 +94,7 @@ fun OnboardingScreen(
     var password by remember { mutableStateOf("") }
     var newChannelTitle by remember { mutableStateOf("TeleWalls Vault") }
     var stepErrorState by remember { mutableStateOf<String?>(null) }
+    var showApiGuideDialog by remember { mutableStateOf(false) }
 
     // Auto load channels when authenticated
     LaunchedEffect(authState) {
@@ -241,13 +243,12 @@ fun OnboardingScreen(
 
                             OutlinedButton(
                                 onClick = {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://my.telegram.org"))
-                                    context.startActivity(intent)
+                                    showApiGuideDialog = true
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp)
                             ) {
-                                Icon(imageVector = Icons.Filled.OpenInNew, contentDescription = null, tint = primaryColor)
+                                Icon(imageVector = Icons.Filled.HelpOutline, contentDescription = null, tint = primaryColor)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Get Keys at my.telegram.org", color = primaryColor)
                             }
@@ -654,5 +655,45 @@ fun OnboardingScreen(
                 }
             }
         }
+    }
+    if (showApiGuideDialog) {
+        AlertDialog(
+            onDismissRequest = { showApiGuideDialog = false },
+            title = {
+                Text(
+                    text = "API Guide",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "1. Go to my.telegram.org and log in with your phone number.\n" +
+                            "2. Click API development tools.\n" +
+                            "3. Enter any app title and short name.\n" +
+                            "4. Copy the App api_id and App api_hash.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showApiGuideDialog = false
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://my.telegram.org"))
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Text("Go to my.telegram.org")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showApiGuideDialog = false }
+                ) {
+                    Text("Close")
+                }
+            },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        )
     }
 }

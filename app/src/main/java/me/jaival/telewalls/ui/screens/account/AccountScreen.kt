@@ -635,9 +635,9 @@ fun AccountScreen(
             },
             text = {
                 val cleanTitle = newChannelTitle.trim()
-                val expectedTitle = if (cleanTitle.startsWith("TeleWalls")) cleanTitle else "TeleWalls $cleanTitle"
+                val displayTitle = cleanTitle.removePrefix("TeleWalls").trim().ifEmpty { cleanTitle }
                 Text(
-                    text = "Are you sure you want to create a new Telegram storage channel named \"$expectedTitle\" and switch to it?",
+                    text = "Are you sure you want to create a new Telegram storage channel named \"$displayTitle\" and switch to it?",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
