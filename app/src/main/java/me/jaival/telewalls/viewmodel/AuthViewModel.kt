@@ -162,7 +162,10 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                _channels.value = telegramClient.listStorageChannels()
+                val fetched = telegramClient.listStorageChannels()
+                _channels.value = fetched.filter {
+                    it.title.startsWith("TeleWalls") && it.description.contains("#telewalls-storage")
+                }
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "Failed to load storage channels"
             } finally {
@@ -211,13 +214,19 @@ class AuthViewModel @Inject constructor(
             onResult(false, err)
             return
         }
+        val cleanTitle = title.trim()
+        val formattedTitle = if (cleanTitle.startsWith("TeleWalls")) {
+            cleanTitle
+        } else {
+            "TeleWalls $cleanTitle"
+        }
         viewModelScope.launch {
             _isLoading.value = true
             _isReindexing.value = true
             _reindexStatus.value = "Creating new Telegram channel..."
             _errorMessage.value = null
             try {
-                val channel = telegramClient.createStorageChannel(title)
+                val channel = telegramClient.createStorageChannel(formattedTitle)
                 authRepository.saveActiveChannelId(channel.chatId)
                 _activeChannelId.value = channel.chatId
                 loadStorageChannels()

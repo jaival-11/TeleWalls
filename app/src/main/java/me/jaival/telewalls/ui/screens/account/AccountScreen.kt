@@ -435,8 +435,9 @@ fun AccountScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
+                                        val displayTitle = channel.title.removePrefix("TeleWalls").trim().ifEmpty { channel.title }
                                         Text(
-                                            text = channel.title,
+                                            text = displayTitle,
                                             color = MaterialTheme.colorScheme.onSurface,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 15.sp
@@ -575,8 +576,9 @@ fun AccountScreen(
                 }
             },
             text = {
+                val displayTarget = targetChannel.title.removePrefix("TeleWalls").trim().ifEmpty { targetChannel.title }
                 Text(
-                    text = "Are you sure you want to switch active storage channel to \"${targetChannel.title}\"? TeleWalls will re-index wallpapers for this channel.",
+                    text = "Are you sure you want to switch active storage channel to \"$displayTarget\"? TeleWalls will re-index wallpapers for this channel.",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -632,8 +634,10 @@ fun AccountScreen(
                 }
             },
             text = {
+                val cleanTitle = newChannelTitle.trim()
+                val expectedTitle = if (cleanTitle.startsWith("TeleWalls")) cleanTitle else "TeleWalls $cleanTitle"
                 Text(
-                    text = "Are you sure you want to create a new Telegram storage channel named \"${newChannelTitle.trim()}\" and switch to it?",
+                    text = "Are you sure you want to create a new Telegram storage channel named \"$expectedTitle\" and switch to it?",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -34,7 +34,8 @@ sealed interface TelegramAuthState {
 data class StorageChannel(
     val chatId: Long,
     val title: String,
-    val documentCount: Int = 0
+    val documentCount: Int = 0,
+    val description: String = ""
 )
 
 data class TelegramUser(

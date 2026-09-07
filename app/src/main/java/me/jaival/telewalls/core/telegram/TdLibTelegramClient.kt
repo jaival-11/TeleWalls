@@ -293,7 +293,7 @@ class TdLibTelegramClient @Inject constructor(
 
     override suspend fun listStorageChannels(): List<StorageChannel> {
         if (isMockMode) {
-            return listOf(StorageChannel(99999L, "TeleWalls Vault (Demo)", 12))
+            return listOf(StorageChannel(99999L, "TeleWalls Vault (Demo)", 12, "TeleWalls Storage Vault #telewalls-storage"))
         }
         val chats = mutableListOf<StorageChannel>()
         try {
@@ -303,7 +303,16 @@ class TdLibTelegramClient @Inject constructor(
                 if (chat.type is TdApi.ChatTypeSupergroup) {
                     val supergroup = chat.type as TdApi.ChatTypeSupergroup
                     if (supergroup.isChannel) {
-                        chats.add(StorageChannel(chat.id, chat.title))
+                        var description = ""
+                        try {
+                            val fullInfo = sendTd<TdApi.SupergroupFullInfo>(TdApi.GetSupergroupFullInfo(supergroup.supergroupId))
+                            description = fullInfo.description ?: ""
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error fetching supergroup full info for supergroupId=${supergroup.supergroupId}", e)
+                        }
+                        if (chat.title.startsWith("TeleWalls") && description.contains("#telewalls-storage")) {
+                            chats.add(StorageChannel(chat.id, chat.title, 0, description))
+                        }
                     }
                 }
             }
@@ -314,21 +323,34 @@ class TdLibTelegramClient @Inject constructor(
     }
 
     override suspend fun createStorageChannel(title: String): StorageChannel {
+        val cleanTitle = title.trim()
+        val formattedTitle = if (cleanTitle.startsWith("TeleWalls")) {
+            cleanTitle
+        } else {
+            "TeleWalls $cleanTitle"
+        }
+        val channelDescription = "TeleWalls Storage Vault #telewalls-storage"
+
         if (isMockMode) {
-            return StorageChannel(99999L, title, 0)
+            return StorageChannel(99999L, formattedTitle, 0, channelDescription)
         }
         val chat = sendTd<TdApi.Chat>(
             TdApi.CreateNewSupergroupChat(
-                title,
+                formattedTitle,
                 false,
                 true,
-                "TeleWalls Storage Vault",
+                channelDescription,
                 null,
                 0,
                 false
             )
         )
-        return StorageChannel(chat.id, chat.title)
+        try {
+            sendTd<TdApi.Ok>(TdApi.SetChatDescription(chat.id, channelDescription))
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting chat description for ${chat.id}", e)
+        }
+        return StorageChannel(chat.id, chat.title, 0, channelDescription)
     }
 
     override fun uploadWallpaper(

@@ -563,7 +563,8 @@ fun OnboardingScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Column {
-                                            Text(text = channel.title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                                            val displayTitle = channel.title.removePrefix("TeleWalls").trim().ifEmpty { channel.title }
+                                            Text(text = displayTitle, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                                             Text(text = "Chat ID: ${channel.chatId}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                                         }
                                         if (isSelected) {

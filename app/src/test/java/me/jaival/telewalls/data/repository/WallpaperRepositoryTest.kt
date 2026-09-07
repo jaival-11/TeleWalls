@@ -153,7 +153,11 @@ class WallpaperRepositoryTest {
         override suspend fun getMe(): me.jaival.telewalls.core.telegram.TelegramUser? = null
         override suspend fun ensureStorageChat(knownChatId: Long?): Long = 100L
         override suspend fun listStorageChannels(): List<StorageChannel> = emptyList()
-        override suspend fun createStorageChannel(title: String): StorageChannel = StorageChannel(100L, title)
+        override suspend fun createStorageChannel(title: String): StorageChannel {
+            val clean = title.trim()
+            val formatted = if (clean.startsWith("TeleWalls")) clean else "TeleWalls $clean"
+            return StorageChannel(100L, formatted, 0, "TeleWalls Storage Vault #telewalls-storage")
+        }
         override fun uploadWallpaper(chatId: Long, localPath: String, fileName: String, mimeType: String, metadata: WallpaperMetadata): Flow<TelegramUploadEvent> = flowOf()
         override suspend fun fetchWallpapers(chatId: Long, fromMessageId: Long, limit: Int): List<WallpaperDocument> = remoteWallpapers
         override suspend fun downloadWallpaperFile(fileId: String, destinationPath: String): String? = null

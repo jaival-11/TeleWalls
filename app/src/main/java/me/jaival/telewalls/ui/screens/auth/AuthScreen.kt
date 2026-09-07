@@ -327,7 +327,8 @@ fun AuthScreen(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(text = ch.title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+                                        val displayTitle = ch.title.removePrefix("TeleWalls").trim().ifEmpty { ch.title }
+                                        Text(text = displayTitle, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
                                         if (isSelected) {
                                             Icon(imageVector = Icons.Filled.CheckCircle, contentDescription = null, tint = primaryColor)
                                         }
