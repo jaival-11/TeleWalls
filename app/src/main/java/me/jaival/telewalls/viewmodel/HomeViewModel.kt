@@ -89,10 +89,14 @@ class HomeViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            combine(telegramClient.authState, authRepository.activeChannelIdFlow) { state, channelId ->
-                Pair(state, channelId)
-            }.collect { (authState, chatId) ->
-                if (authState is TelegramAuthState.Ready && chatId != null && chatId != 0L) {
+            combine(
+                telegramClient.authState,
+                authRepository.activeChannelIdFlow,
+                authRepository.isSetupCompletedFlow
+            ) { state, channelId, isSetupCompleted ->
+                Triple(state, channelId, isSetupCompleted)
+            }.collect { (authState, chatId, isSetupCompleted) ->
+                if (authState is TelegramAuthState.Ready && chatId != null && chatId != 0L && isSetupCompleted) {
                     if (!hasInitialReindexed) {
                         hasInitialReindexed = true
                         reindexChannel()
