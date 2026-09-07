@@ -209,7 +209,7 @@ class UploadViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            _uploadState.value = UploadState.Processing("Preparing document file...")
+            _uploadState.value = UploadState.Processing("Preparing...")
             val extractedFileName = getFileNameFromUri(context, uri)
             val file = copyUriToTempFile(context, uri, extractedFileName) ?: run {
                 _uploadState.value = UploadState.Error("Failed to process image file")

@@ -206,9 +206,9 @@ fun ExpandableUploadFab(
                         horizontalAlignment = Alignment.End,
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Option 2: Multi upload (floating on top of Single Upload or top item)
+                        // Option 2: Batch upload (floating on top of Single Upload or top item)
                         FabOptionItem(
-                            label = "Multi upload",
+                            label = "Batch upload",
                             icon = Icons.Filled.Collections,
                             scale = optionsScale,
                             onClick = {

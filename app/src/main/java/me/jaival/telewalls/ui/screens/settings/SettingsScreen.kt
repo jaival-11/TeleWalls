@@ -266,8 +266,8 @@ fun SettingsScreen(
                             title = "Type",
                             subtitle = when (wallpaperType) {
                                 WallpaperTypeFilter.BOTH -> "Phone, Desktop & Tablet Wallpapers"
-                                WallpaperTypeFilter.PHONE -> "Phone Wallpapers Only (9:16)"
-                                WallpaperTypeFilter.DESKTOP -> "Desktop & Tablet Wallpapers (16:9)"
+                                WallpaperTypeFilter.PHONE -> "Phone Wallpapers Only"
+                                WallpaperTypeFilter.DESKTOP -> "Desktop & Tablet Wallpapers only"
                             },
                             onClick = { showTypeDialog = true }
                         )
@@ -307,7 +307,7 @@ fun SettingsScreen(
                                 if (!isClearingCache) {
                                     settingsViewModel.clearCache { success ->
                                         if (success) {
-                                            Toast.makeText(context, "All stored thumbnails and full images cleared!", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, "Cache cleared!", Toast.LENGTH_SHORT).show()
                                         } else {
                                             Toast.makeText(context, "Failed to clear image cache", Toast.LENGTH_SHORT).show()
                                         }
@@ -374,7 +374,7 @@ fun SettingsScreen(
                         SettingItemRow(
                             icon = Icons.Outlined.PrivacyTip,
                             title = "Privacy Policy",
-                            subtitle = "https://github.com/jaival-11/TeleWalls/blob/main/PRIVACY.md",
+                            subtitle = "Click to read full Privacy Policy (human readable)",
                             onClick = {
                                 openUrl(context, "https://github.com/jaival-11/TeleWalls/blob/main/PRIVACY.md")
                             }
@@ -524,7 +524,7 @@ fun SettingsScreen(
                             .verticalScroll(rememberScrollState())
                     ) {
                         Text(
-                            text = "Select categories you want to hide from TeleWalls:",
+                            text = "Select categories you want to hide:",
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 8.dp)
@@ -614,7 +614,7 @@ fun SettingsScreen(
                     showAppLicenseDialog = false
                     showFullLicenseDialog = true
                 }) {
-                    Text("Full License", color = primaryColor, fontWeight = FontWeight.Bold)
+                    Text("Open Open Full License", color = primaryColor, fontWeight = FontWeight.Bold)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,

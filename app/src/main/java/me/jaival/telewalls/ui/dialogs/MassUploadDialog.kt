@@ -181,7 +181,7 @@ fun MassUploadDialog(
                 } else if (selectedUris.isEmpty()) {
                     // Initial Selection State (Prompt to pick photos or folder)
                     Text(
-                        text = "Mass Upload Wallpapers",
+                        text = "Batch Upload Wallpapers",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -191,7 +191,7 @@ fun MassUploadDialog(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "Select multiple photos or choose an entire folder to upload high-res wallpapers to your Telegram Vault.",
+                        text = "Select multiple photos or choose an entire folder to upload to your Telegram Channel",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -215,7 +215,7 @@ fun MassUploadDialog(
                     // Selection Card 2: Folder
                     SelectionOptionCard(
                         title = "Select Folder",
-                        subtitle = "Upload all wallpapers in a directory",
+                        subtitle = "Upload all wallpapers in a folder",
                         icon = Icons.Filled.FolderOpen,
                         primaryColor = primaryColor,
                         onClick = { folderLauncher.launch(null) }
@@ -242,7 +242,7 @@ fun MassUploadDialog(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = "Ready to upload with auto-generated metadata to your Telegram Vault.",
+                        text = "Ready to upload to your Telegram channel.",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,

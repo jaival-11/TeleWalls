@@ -213,7 +213,7 @@ class DetailViewModel @Inject constructor(
             if (success) {
                 onDeleted()
             } else {
-                onError("Failed to delete wallpaper from Telegram Vault")
+                onError("Failed to delete wallpaper from Telegram Channel")
             }
         }
     }
@@ -257,7 +257,7 @@ class DetailViewModel @Inject constructor(
                 _wallpaper.value = wallpaperRepository.getWallpaperById(current.id)
                 onResult(true, null)
             } else {
-                onResult(false, "Failed to update metadata on Telegram. Please check connection and permissions.")
+                onResult(false, "Failed to update detai on Telegram. Please check connection and permissions.")
             }
         }
     }

@@ -158,7 +158,7 @@ fun OnboardingScreen(
                             )
                         )
                         Text(
-                            text = "Compulsory Setup Process",
+                            text = "Setup Process",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = primaryColor,
                                 fontWeight = FontWeight.SemiBold
@@ -243,7 +243,7 @@ fun OnboardingScreen(
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "TeleWalls connects directly to your Telegram account via TDLib. Please enter your API ID and API Hash from my.telegram.org.",
+                                text = "TeleWalls connects directly to your Telegram account via TDLib (official telegram library). Please enter your API ID and API Hash from my.telegram.org. This data is not received by the developer",
                                 style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                             )
 
@@ -258,7 +258,7 @@ fun OnboardingScreen(
                             ) {
                                 Icon(imageVector = Icons.Filled.HelpOutline, contentDescription = null, tint = primaryColor)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Get Keys at my.telegram.org", color = primaryColor)
+                                Text("Get Keys from my.telegram.org", color = primaryColor)
                             }
 
                             Spacer(modifier = Modifier.height(20.dp))
@@ -340,7 +340,7 @@ fun OnboardingScreen(
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Enter your phone number to receive a verification code and authorize TeleWalls.",
+                                text = "Enter your phone number to receive a verification code and authorize TeleWalls. This data is not received by the developer This data is not received by the developer",
                                 style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                             )
 
@@ -509,7 +509,7 @@ fun OnboardingScreen(
                                             Spacer(modifier = Modifier.width(16.dp))
                                             Column {
                                                 Text("Telegram Account Authenticated!", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                                Text("TDLib session authorized and connected", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                                                Text("Telegram session authorized and connected", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                                             }
                                         }
                                     }
@@ -551,7 +551,7 @@ fun OnboardingScreen(
                         // Step 3: Vault Storage Channel Selection / Creation
                         Column {
                             Text(
-                                text = "3. Telegram Vault Channel",
+                                text = "3. Telegram Storage Channel",
                                 style = MaterialTheme.typography.headlineMedium.copy(
                                     color = MaterialTheme.colorScheme.onBackground,
                                     fontWeight = FontWeight.Black,
@@ -604,7 +604,7 @@ fun OnboardingScreen(
 
                             // Create New Channel section
                             Text(
-                                text = "Or Create New Channel Vault:",
+                                text = "Or Create New Channel:",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                             )
                             Spacer(modifier = Modifier.height(10.dp))

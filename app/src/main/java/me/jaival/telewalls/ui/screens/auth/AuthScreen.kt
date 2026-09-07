@@ -109,7 +109,7 @@ fun AuthScreen(
                 .padding(20.dp)
         ) {
             Text(
-                text = "Telegram Vault Setup",
+                text = "Telegram Channel Setup",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Black,
@@ -117,7 +117,7 @@ fun AuthScreen(
                 )
             )
             Text(
-                text = "Connect TDLib & configure private storage channel",
+                text = "Connect Telegram & configure private storage channel",
                 style = MaterialTheme.typography.labelSmall.copy(
                     color = primaryColor,
                     fontWeight = FontWeight.SemiBold
@@ -155,7 +155,7 @@ fun AuthScreen(
                             )
                         )
                         Text(
-                            text = if (authState is TelegramAuthState.Ready) "TDLib Client Active & Authorized" else "Action required for authentication",
+                            text = if (authState is TelegramAuthState.Ready) "Telegram Active & Authorized" else "Action required for authentication",
                             style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                         )
                     }
@@ -206,7 +206,7 @@ fun AuthScreen(
                         shape = RoundedCornerShape(20.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = MaterialTheme.colorScheme.onPrimary)
                     ) {
-                        Text("Connect TDLib Engine", fontWeight = FontWeight.Bold)
+                        Text("Connect Telegram", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -321,7 +321,7 @@ fun AuthScreen(
                                 shape = RoundedCornerShape(20.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = MaterialTheme.colorScheme.onPrimary)
                             ) {
-                                Text("Submit Password", fontWeight = FontWeight.Bold)
+                                Text("Verify Password", fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -334,7 +334,7 @@ fun AuthScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
-                            Text(text = "Storage Vault Channels", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Text(text = "Storage Channels", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                             Text(text = "Select or create channel to store wallpapers", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
 
                             Spacer(modifier = Modifier.height(12.dp))
@@ -367,7 +367,7 @@ fun AuthScreen(
                             OutlinedTextField(
                                 value = newChannelTitle,
                                 onValueChange = { newChannelTitle = it },
-                                label = { Text("New Channel Title (e.g. TeleWalls Vault)") },
+                                label = { Text("New Channel Title (e.g. My Walls)") },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp),

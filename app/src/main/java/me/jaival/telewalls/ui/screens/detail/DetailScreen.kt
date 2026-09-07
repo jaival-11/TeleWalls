@@ -401,7 +401,7 @@ fun DetailScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Edit,
-                            contentDescription = "Edit Metadata",
+                            contentDescription = "Edit Details",
                             tint = Color.White
                         )
                     }
@@ -525,7 +525,7 @@ fun DetailScreen(
                         }
                         Column {
                             Text(
-                                text = "Vault Credit",
+                                text = "Author",
                                 style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
                             )
                             Text(
@@ -683,7 +683,7 @@ fun DetailScreen(
             },
             text = {
                 Text(
-                    text = "Are you sure you want to delete this wallpaper? This action cannot be undone and will remove it from your Telegram Vault.",
+                    text = "Are you sure you want to delete this wallpaper? This action cannot be undone and will remove it from your Telegram Channel.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
@@ -718,7 +718,7 @@ fun DetailScreen(
         )
     }
 
-    // Wallpaper Edit Metadata Dialog
+    // Wallpaper Edit Details Dialog
     if (showEditMetadataDialog) {
         val fieldColors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -735,7 +735,7 @@ fun DetailScreen(
             onDismissRequest = { showEditMetadataDialog = false },
             title = {
                 Text(
-                    text = "Edit Metadata",
+                    text = "Edit Details",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -904,9 +904,9 @@ fun DetailScreen(
                         ) { success, errorMsg ->
                             if (success) {
                                 showEditMetadataDialog = false
-                                Toast.makeText(context, "Metadata updated successfully!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Details updated successfully!", Toast.LENGTH_SHORT).show()
                             } else {
-                                Toast.makeText(context, errorMsg ?: "Failed to update metadata", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, errorMsg ?: "Failed to update details", Toast.LENGTH_SHORT).show()
                             }
                         }
                     },
@@ -946,7 +946,7 @@ fun DetailScreen(
             text = {
                 Column {
                     Text(
-                        text = "Enter a name for the new category to add it to TeleWalls & sync with Telegram:",
+                        text = "Enter a name for the new category:",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

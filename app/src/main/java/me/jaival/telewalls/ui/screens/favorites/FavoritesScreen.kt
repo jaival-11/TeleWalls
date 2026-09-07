@@ -55,7 +55,7 @@ fun FavoritesScreen(
         ) {
             Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
                 Text(
-                    text = "Saved Favorites",
+                    text = "Favorites",
                     style = MaterialTheme.typography.headlineMedium.copy(
                         color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Black,

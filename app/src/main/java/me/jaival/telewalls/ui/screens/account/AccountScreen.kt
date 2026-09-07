@@ -193,7 +193,7 @@ fun AccountScreen(
                                         contentScale = ContentScale.Crop
                                     )
                                 } else {
-                                    val nameToUse = userName?.ifBlank { null } ?: "Jaival Patel"
+                                    val nameToUse = userName?.ifBlank { null } ?: "TeleWalls User"
                                     val initials = nameToUse.split(" ")
                                         .mapNotNull { it.firstOrNull()?.uppercase() }
                                         .take(2)
@@ -213,7 +213,7 @@ fun AccountScreen(
 
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = userName?.ifBlank { null } ?: "Jaival Patel",
+                                    text = userName?.ifBlank { null } ?: "TeleWalls User",
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface,
@@ -375,7 +375,7 @@ fun AccountScreen(
                                     )
                                 )
                                 Text(
-                                    text = "Select an active vault or create a new channel",
+                                    text = "Select an active channel or create a new channel",
                                     style = MaterialTheme.typography.bodySmall.copy(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 12.sp
@@ -476,7 +476,7 @@ fun AccountScreen(
 
                         // Create New Channel Section
                         Text(
-                            text = "Create New Channel Vault",
+                            text = "Create New Channel",
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -580,7 +580,7 @@ fun AccountScreen(
             text = {
                 val displayTarget = targetChannel.title.removePrefix("TeleWalls").trim().ifEmpty { targetChannel.title }
                 Text(
-                    text = "Are you sure you want to switch active storage channel to \"$displayTarget\"? TeleWalls will re-index wallpapers for this channel.",
+                    text = "Are you sure you want to switch active storage channel to \"$displayTarget\"? TeleWalls will re-index and show wallpapers from this channel.",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -698,7 +698,7 @@ fun AccountScreen(
             },
             text = {
                 Text(
-                    text = "Are you sure you want to log out of TeleWalls? You will need to sign in with your Telegram account again.",
+                    text = "Are you sure you want to log out of TeleWalls? You will need to sign in with your Telegram account again. Your Preferences will be lost Your Preferences will be lost",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

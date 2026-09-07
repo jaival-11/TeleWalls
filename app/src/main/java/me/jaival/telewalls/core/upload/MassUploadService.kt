@@ -376,10 +376,10 @@ class MassUploadService : Service() {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
 
         if (failureCount == 0) {
-            builder.setContentTitle("Mass Upload Complete")
-                .setContentText("Successfully uploaded all $successCount wallpapers to Telegram Vault!")
+            builder.setContentTitle("Batch Upload Complete!")
+                .setContentText("Successfully uploaded all $successCount wallpapers to Telegram channel!")
         } else {
-            builder.setContentTitle("Mass Upload Finished with Errors")
+            builder.setContentTitle("Batch Upload Finished with Errors")
                 .setContentText("$successCount uploaded successfully, $failureCount failed.")
 
             val bigText = StringBuilder()
@@ -402,7 +402,7 @@ class MassUploadService : Service() {
 
             val progressChannel = NotificationChannel(
                 PROGRESS_CHANNEL_ID,
-                "Mass Upload Progress",
+                "Batch Upload Progress",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = "Shows real-time progress of batch wallpaper uploads with controls"
@@ -410,10 +410,10 @@ class MassUploadService : Service() {
 
             val resultChannel = NotificationChannel(
                 RESULT_CHANNEL_ID,
-                "Mass Upload Results",
+                "Batch Upload Results",
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Notifies when mass wallpaper upload completes or encounters errors"
+                description = "Notifies when batch wallpaper upload completes or encounters errors"
             }
 
             notificationManager.createNotificationChannel(progressChannel)

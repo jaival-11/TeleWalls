@@ -168,7 +168,7 @@ fun HomeScreen(
                             )
                         )
                         Text(
-                            text = "TDLib Vault Storage",
+                            text = "",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = primaryColor,
                                 fontWeight = FontWeight.SemiBold
@@ -194,14 +194,14 @@ fun HomeScreen(
                             } else {
                                 Icon(
                                     imageVector = Icons.Filled.CloudDone,
-                                    contentDescription = "Reindex Vault",
+                                    contentDescription = "Reindex from channel",
                                     tint = primaryColor,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = if (isRefreshing) "Reindexing..." else "Vault Live",
+                                text = if (isRefreshing) "Reindexing..." else "Telegram",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     color = MaterialTheme.colorScheme.onSurface,
                                     fontSize = 11.sp
@@ -217,7 +217,7 @@ fun HomeScreen(
                     onValueChange = { viewModel.updateSearchQuery(it) },
                     placeholder = {
                         Text(
-                            text = "Search title, tags, color code (#FF007A, red)...",
+                            text = "Search title, tags, color (#FF007A, red)...",
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                             fontSize = 14.sp
                         )
@@ -294,9 +294,9 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = if (searchQuery.isNotBlank())
-                                    "Try searching another term or color code (e.g. #FF007A, blue)"
+                                    "Try broadening your search or use fewer keywords"
                                 else
-                                    "Upload high-res photos to your Telegram Vault channel!",
+                                    "Upload some wallpapers",
                                 style = MaterialTheme.typography.bodyMedium.copy(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.Center

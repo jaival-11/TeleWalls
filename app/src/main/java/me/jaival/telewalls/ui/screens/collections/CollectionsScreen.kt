@@ -180,7 +180,7 @@ fun CollectionsScreen(
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Upload wallpapers or reindex your channel to create categories!",
+                            text = "You can create categories from manage option above",
                             style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                         )
                     }
@@ -328,7 +328,7 @@ fun ManageCategoriesBottomSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No custom categories added.",
+                        text = "No categories found.",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -459,7 +459,7 @@ fun ManageCategoriesBottomSheet(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "Note: Wallpapers in this category will NOT be deleted.",
+                            text = "Note: Category will not be deleted if Wallpapers exist in ${catName}.",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.error
@@ -538,7 +538,7 @@ fun ManageCategoriesBottomSheet(
                     if (isDuplicate) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Category name already exists",
+                            text = "Category name already exists. Try another name. Try another name",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )

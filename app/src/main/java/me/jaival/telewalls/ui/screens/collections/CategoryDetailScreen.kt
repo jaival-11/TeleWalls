@@ -108,7 +108,7 @@ fun CategoryDetailScreen(
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Check back later or upload new wallpapers to this category!",
+                            text = "Add new wallpapers to this category!",
                             style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                         )
                     }

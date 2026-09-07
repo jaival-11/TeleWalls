@@ -163,12 +163,12 @@ class HomeViewModel @Inject constructor(
                 if (BuildConfig.DEBUG) {
                     Log.d("HomeViewModel", "[REINDEX DEBUG] Reindex succeeded: wallpapers=$wallpapersCount, categories=$categoriesCount")
                 }
-                _toastEvent.emit("Vault reindexed: $wallpapersCount wallpapers & $categoriesCount categories updated")
+                _toastEvent.emit("Fetched latest from channel: $wallpapersCount wallpapers & $categoriesCount categories updated")
             }.onFailure { error ->
                 if (BuildConfig.DEBUG) {
                     Log.d("HomeViewModel", "[REINDEX DEBUG] Reindex failed: ${error.message}", error)
                 }
-                _toastEvent.emit("Failed to reindex Vault channel: ${error.message ?: "Unknown error"}")
+                _toastEvent.emit("Failed to reindex channel: ${error.message ?: "Unknown error"}")
             }
         }
     }

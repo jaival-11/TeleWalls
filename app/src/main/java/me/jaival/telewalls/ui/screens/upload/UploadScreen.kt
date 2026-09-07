@@ -120,7 +120,7 @@ fun UploadScreen(
 
     LaunchedEffect(uploadState) {
         if (uploadState is UploadState.Success) {
-            Toast.makeText(context, "Photo uploaded as high-res document to Telegram Vault!", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Wallpaper uploaded to Telegram channel!", Toast.LENGTH_LONG).show()
             viewModel.resetState()
             title = ""
             author = ""
@@ -158,7 +158,7 @@ fun UploadScreen(
                 }
                 Column {
                     Text(
-                        text = if (isMultiMode) "Multi Upload" else "Single Upload",
+                        text = if (isMultiMode) "Batch Upload" else "Single Upload",
                         style = MaterialTheme.typography.headlineMedium.copy(
                             color = MaterialTheme.colorScheme.onBackground,
                             fontWeight = FontWeight.Black,
@@ -166,7 +166,7 @@ fun UploadScreen(
                         )
                     )
                     Text(
-                        text = if (isMultiMode) "Batch upload high-res wallpapers to Telegram Vault" else "Sends as Document to preserve original resolution",
+                        text = if (isMultiMode) "Batch upload wallpapers to Telegram channel" else "Upload wallpaper to telegram channel",
                         style = MaterialTheme.typography.labelSmall.copy(
                             color = primaryColor,
                             fontWeight = FontWeight.SemiBold
@@ -298,13 +298,13 @@ fun UploadScreen(
 
             // Wallpaper Type Dropdown
             var wallpaperTypeExpanded by remember { mutableStateOf(false) }
-            val wallpaperTypeOptions = listOf("Auto-detect (Based on aspect ratio)", "Phone", "Desktop/Tablet")
+            val wallpaperTypeOptions = listOf("Auto-detect", "Phone", "Desktop/Tablet")
             val selectedWallpaperType by viewModel.selectedWallpaperType.collectAsState()
 
             val displayWallpaperType = when (selectedWallpaperType) {
                 "Phone" -> "Phone"
                 "Desktop/Tablet" -> "Desktop/Tablet"
-                else -> "Auto-detect (Based on aspect ratio)"
+                else -> "Auto-detect"
             }
 
             Box(modifier = Modifier.fillMaxWidth()) {
@@ -437,7 +437,7 @@ fun UploadScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Uploading Document to TDLib...",
+                            text = "Uploading to Telegram...",
                             color = primaryColor,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
@@ -490,7 +490,7 @@ fun UploadScreen(
                 Icon(imageVector = Icons.Filled.CloudUpload, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Upload to Telegram Vault",
+                    text = "Upload to Telegram Channel",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
                 )
