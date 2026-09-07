@@ -168,7 +168,7 @@ fun HomeScreen(
                             )
                         )
                         Text(
-                            text = "",
+                            text = "Personal Wallpaper Gallery",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = primaryColor,
                                 fontWeight = FontWeight.SemiBold
