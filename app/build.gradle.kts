@@ -36,6 +36,22 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
+        create("release") {
+            val keystoreFile = file("release.keystore").let { if (it.exists()) it else file("../release.keystore") }
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                    ?: System.getenv("KEYSTORE_PASSWORD")
+                    ?: System.getenv("RELEASE_STORE_PASSWORD")
+                    ?: ""
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                    ?: System.getenv("KEY_ALIAS")
+                    ?: ""
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+                    ?: System.getenv("KEY_PASSWORD")
+                    ?: ""
+            }
+        }
     }
 
     buildTypes {
@@ -51,7 +67,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            val releaseSigning = signingConfigs.findByName("release")
+            if (releaseSigning?.storeFile?.exists() == true) {
+                signingConfig = releaseSigning
+            } else {
+                signingConfig = signingConfigs.getByName("debug")
+            }
         }
     }
 
