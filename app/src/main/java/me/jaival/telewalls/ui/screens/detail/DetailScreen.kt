@@ -691,7 +691,12 @@ fun DetailScreen(
                 Button(
                     onClick = {
                         showDeleteConfirmationDialog = false
-                        viewModel.deleteWallpaper(onDeleted = onBackClick)
+                        viewModel.deleteWallpaper(
+                            onDeleted = onBackClick,
+                            onError = { err ->
+                                Toast.makeText(context, err, Toast.LENGTH_SHORT).show()
+                            }
+                        )
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error,
@@ -896,9 +901,13 @@ fun DetailScreen(
                             tags = editTags,
                             description = editDescription,
                             wallpaperType = editWallpaperType
-                        ) {
-                            showEditMetadataDialog = false
-                            Toast.makeText(context, "Metadata updated successfully!", Toast.LENGTH_SHORT).show()
+                        ) { success, errorMsg ->
+                            if (success) {
+                                showEditMetadataDialog = false
+                                Toast.makeText(context, "Metadata updated successfully!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, errorMsg ?: "Failed to update metadata", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(
@@ -967,9 +976,15 @@ fun DetailScreen(
                     onClick = {
                         val trimmed = newCategoryInput.trim()
                         if (trimmed.isNotBlank()) {
-                            viewModel.createCategory(trimmed) { created ->
-                                editCategory = created
-                            }
+                            viewModel.createCategory(
+                                categoryName = trimmed,
+                                onCategoryCreated = { created ->
+                                    editCategory = created
+                                },
+                                onError = { err ->
+                                    Toast.makeText(context, err, Toast.LENGTH_SHORT).show()
+                                }
+                            )
                             showAddCategoryDialog = false
                             newCategoryInput = ""
                         }

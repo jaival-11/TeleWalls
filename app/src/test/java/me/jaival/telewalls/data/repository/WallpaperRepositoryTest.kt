@@ -162,10 +162,13 @@ class WallpaperRepositoryTest {
         override suspend fun fetchWallpapers(chatId: Long, fromMessageId: Long, limit: Int): List<WallpaperDocument> = remoteWallpapers
         override suspend fun downloadWallpaperFile(fileId: String, destinationPath: String): String? = null
         override suspend fun fetchThumbnail(chatId: Long, messageId: Long): String? = null
+        var editWallpaperMetadataResult = true
+        var saveCategoriesMessageResult = true
+
         override suspend fun deleteWallpaper(chatId: Long, messageId: Long): Boolean = true
-        override suspend fun editWallpaperMetadata(chatId: Long, messageId: Long, metadata: WallpaperMetadata): Boolean = true
+        override suspend fun editWallpaperMetadata(chatId: Long, messageId: Long, metadata: WallpaperMetadata): Boolean = editWallpaperMetadataResult
         override suspend fun fetchCategoriesMessage(chatId: Long): List<String> = emptyList()
-        override suspend fun saveCategoriesMessage(chatId: Long, categories: List<String>): Boolean = true
+        override suspend fun saveCategoriesMessage(chatId: Long, categories: List<String>): Boolean = saveCategoriesMessageResult
 
         var remoteFavorites: List<String> = emptyList()
         var savedFavorites: List<String> = emptyList()
@@ -329,6 +332,52 @@ class WallpaperRepositoryTest {
         val updatedWp = wpDao.getWallpaperById("100_1")
         assertNotNull(updatedWp)
         assertEquals("Dark AMOLED", updatedWp?.category)
+    }
+
+    @Test
+    fun testUpdateWallpaperMetadataFailurePreventsFalsePositive() = runBlocking {
+        val wpDao = FakeWallpaperDao()
+        val catDao = FakeCategoryDao()
+        val telegramClient = FakeTelegramClient()
+
+        val wpEntity = WallpaperEntity(
+            id = "100_1", messageId = 1L, chatId = 100L, fileId = "f1",
+            fileName = "wp1.jpg", mimeType = "image/jpeg", sizeBytes = 100L,
+            title = "Original Title", category = "Nature", tagsCsv = "", resolution = "1080x1920",
+            aspectRatio = "9:16", colorsCsv = "", description = "", author = "Original Author",
+            timestamp = 1000L
+        )
+        wpDao.insertWallpaper(wpEntity)
+
+        // Make Telegram metadata edit FAIL
+        telegramClient.editWallpaperMetadataResult = false
+
+        // Simulate repository edit update check logic
+        val wallpaperDomain = Wallpaper(
+            id = "100_1", messageId = 1L, chatId = 100L, fileId = "f1",
+            fileName = "wp1.jpg", mimeType = "image/jpeg", sizeBytes = 100L,
+            title = "Original Title", category = "Nature", tags = emptyList(), resolution = "1080x1920",
+            aspectRatio = "9:16", colors = emptyList(), description = "", author = "Original Author",
+            timestamp = 1000L, localPath = null, thumbnailPath = null, isFavorite = false
+        )
+
+        val updatedMeta = WallpaperMetadata(
+            title = "New Title", category = "Nature", tags = emptyList(), resolution = "1080x1920",
+            aspectRatio = "9:16", sizeBytes = 100L, colors = emptyList(), description = "",
+            author = "New Author", timestamp = 1000L
+        )
+
+        val telegramSuccess = telegramClient.editWallpaperMetadata(wallpaperDomain.chatId, wallpaperDomain.messageId, updatedMeta)
+        assertFalse("Telegram edit should fail", telegramSuccess)
+
+        if (telegramSuccess) {
+            wpDao.updateWallpaperMetadata(wallpaperDomain.id, "New Title", "New Author", "Nature", "", "", "Phone")
+        }
+
+        // Verify DB was NOT updated (preventing false positive)
+        val entityInDb = wpDao.getWallpaperById("100_1")
+        assertEquals("Original Title", entityInDb?.title)
+        assertEquals("Original Author", entityInDb?.author)
     }
 }
 

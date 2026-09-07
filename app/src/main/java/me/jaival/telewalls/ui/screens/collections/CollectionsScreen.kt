@@ -79,17 +79,26 @@ import me.jaival.telewalls.ui.theme.LocalReduceAnimations
 import me.jaival.telewalls.viewmodel.CollectionsViewModel
 import me.jaival.telewalls.viewmodel.WallpaperCollection
 
+import android.widget.Toast
+
 @Composable
 fun CollectionsScreen(
     viewModel: CollectionsViewModel,
     onCollectionClick: (String) -> Unit
 ) {
+    val context = LocalContext.current
     val collections by viewModel.collections.collectAsState()
     val categories by viewModel.categories.collectAsState()
     var showManageSheet by remember { mutableStateOf(false) }
 
     val gridState = rememberLazyGridState()
     var isInitialTabOpen by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        viewModel.toastEvent.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     LaunchedEffect(gridState.isScrollInProgress) {
         if (gridState.isScrollInProgress) {

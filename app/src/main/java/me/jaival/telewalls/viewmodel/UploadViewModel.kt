@@ -68,7 +68,7 @@ class UploadViewModel @Inject constructor(
     private val _detectedColors = MutableStateFlow<List<String>>(emptyList())
     val detectedColors: StateFlow<List<String>> = _detectedColors.asStateFlow()
 
-    fun createCategory(categoryName: String, onCategoryCreated: (String) -> Unit) {
+    fun createCategory(categoryName: String, onCategoryCreated: (String) -> Unit, onError: (String) -> Unit = {}) {
         val name = categoryName.trim()
         if (name.isBlank()) return
         viewModelScope.launch {
@@ -76,6 +76,8 @@ class UploadViewModel @Inject constructor(
             val success = wallpaperRepository.addCategory(name, chatId)
             if (success) {
                 onCategoryCreated(name)
+            } else {
+                onError("Failed to create category on Telegram")
             }
         }
     }

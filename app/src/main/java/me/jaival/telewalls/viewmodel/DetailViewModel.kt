@@ -206,17 +206,19 @@ class DetailViewModel @Inject constructor(
         }
     }
 
-    fun deleteWallpaper(onDeleted: () -> Unit) {
+    fun deleteWallpaper(onDeleted: () -> Unit, onError: (String) -> Unit = {}) {
         val current = _wallpaper.value ?: return
         viewModelScope.launch {
             val success = wallpaperRepository.deleteWallpaper(current)
             if (success) {
                 onDeleted()
+            } else {
+                onError("Failed to delete wallpaper from Telegram Vault")
             }
         }
     }
 
-    fun createCategory(categoryName: String, onCategoryCreated: (String) -> Unit) {
+    fun createCategory(categoryName: String, onCategoryCreated: (String) -> Unit, onError: (String) -> Unit = {}) {
         val name = categoryName.trim()
         if (name.isBlank()) return
         viewModelScope.launch {
@@ -224,6 +226,8 @@ class DetailViewModel @Inject constructor(
             val success = wallpaperRepository.addCategory(name, chatId)
             if (success) {
                 onCategoryCreated(name)
+            } else {
+                onError("Failed to create category on Telegram")
             }
         }
     }
@@ -235,12 +239,12 @@ class DetailViewModel @Inject constructor(
         tags: String,
         description: String,
         wallpaperType: String,
-        onUpdated: () -> Unit
+        onResult: (Boolean, String?) -> Unit
     ) {
         val current = _wallpaper.value ?: return
         viewModelScope.launch {
             val tagList = tags.split(",").map { it.trim() }.filter { it.isNotBlank() }
-            wallpaperRepository.updateWallpaperMetadata(
+            val success = wallpaperRepository.updateWallpaperMetadata(
                 wallpaper = current,
                 title = title,
                 author = author,
@@ -249,8 +253,12 @@ class DetailViewModel @Inject constructor(
                 description = description,
                 wallpaperType = wallpaperType
             )
-            _wallpaper.value = wallpaperRepository.getWallpaperById(current.id)
-            onUpdated()
+            if (success) {
+                _wallpaper.value = wallpaperRepository.getWallpaperById(current.id)
+                onResult(true, null)
+            } else {
+                onResult(false, "Failed to update metadata on Telegram. Please check connection and permissions.")
+            }
         }
     }
 

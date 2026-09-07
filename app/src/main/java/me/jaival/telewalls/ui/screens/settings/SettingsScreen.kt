@@ -303,8 +303,12 @@ fun SettingsScreen(
                             subtitle = if (isClearingCache) "Clearing cache..." else settingsViewModel.formatCacheSize(cacheSizeBytes),
                             onClick = {
                                 if (!isClearingCache) {
-                                    settingsViewModel.clearCache {
-                                        Toast.makeText(context, "All stored thumbnails and full images cleared!", Toast.LENGTH_SHORT).show()
+                                    settingsViewModel.clearCache { success ->
+                                        if (success) {
+                                            Toast.makeText(context, "All stored thumbnails and full images cleared!", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            Toast.makeText(context, "Failed to clear image cache", Toast.LENGTH_SHORT).show()
+                                        }
                                     }
                                 }
                             }

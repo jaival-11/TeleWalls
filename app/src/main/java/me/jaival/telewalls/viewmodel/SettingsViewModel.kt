@@ -76,13 +76,13 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun clearCache(onComplete: () -> Unit = {}) {
+    fun clearCache(onComplete: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             _isClearingCache.value = true
-            wallpaperRepository.clearImageCache()
+            val success = wallpaperRepository.clearImageCache()
             _cacheSizeBytes.value = wallpaperRepository.getCacheSizeBytes()
             _isClearingCache.value = false
-            onComplete()
+            onComplete(success)
         }
     }
 

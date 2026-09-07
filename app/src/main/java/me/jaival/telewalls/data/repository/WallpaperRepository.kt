@@ -297,13 +297,18 @@ class WallpaperRepository @Inject constructor(
         if (currentList.any { it.equals(cleanName, ignoreCase = true) }) return@withContext true
 
         val nextOrder = currentList.size
-        categoryDao.insertCategory(CategoryEntity(name = cleanName, sortOrder = nextOrder))
-
         val updatedList = (currentList + cleanName).map { it.trim() }.distinctBy { it.lowercase() }
         val targetChatId = chatId ?: authRepository.activeChannelIdFlow.firstOrNull()
+
         if (targetChatId != null && targetChatId != 0L) {
-            telegramClient.saveCategoriesMessage(targetChatId, updatedList)
+            val telegramSuccess = telegramClient.saveCategoriesMessage(targetChatId, updatedList)
+            if (!telegramSuccess) {
+                Log.e(TAG, "Failed to save category list to Telegram")
+                return@withContext false
+            }
         }
+
+        categoryDao.insertCategory(CategoryEntity(name = cleanName, sortOrder = nextOrder))
         true
     }
 
@@ -313,16 +318,20 @@ class WallpaperRepository @Inject constructor(
             .filter { it.isNotBlank() && !it.equals("All", ignoreCase = true) }
             .distinctBy { it.lowercase() }
 
+        val targetChatId = chatId ?: authRepository.activeChannelIdFlow.firstOrNull()
+        if (targetChatId != null && targetChatId != 0L) {
+            val telegramSuccess = telegramClient.saveCategoriesMessage(targetChatId, cleanList)
+            if (!telegramSuccess) {
+                Log.e(TAG, "Failed to save reordered categories to Telegram")
+                return@withContext false
+            }
+        }
+
         categoryDao.clearCategories()
         val entities = cleanList.mapIndexed { index, name ->
             CategoryEntity(name = name, sortOrder = index)
         }
         categoryDao.insertCategories(entities)
-
-        val targetChatId = chatId ?: authRepository.activeChannelIdFlow.firstOrNull()
-        if (targetChatId != null && targetChatId != 0L) {
-            telegramClient.saveCategoriesMessage(targetChatId, cleanList)
-        }
         true
     }
 
@@ -330,13 +339,17 @@ class WallpaperRepository @Inject constructor(
         val cleanName = categoryName.trim()
         if (cleanName.isBlank()) return@withContext false
 
-        categoryDao.deleteCategory(cleanName)
-
-        val remainingCategories = categories.first()
+        val remainingCategories = categories.first().filter { !it.equals(cleanName, ignoreCase = true) }
         val targetChatId = chatId ?: authRepository.activeChannelIdFlow.firstOrNull()
         if (targetChatId != null && targetChatId != 0L) {
-            telegramClient.saveCategoriesMessage(targetChatId, remainingCategories)
+            val telegramSuccess = telegramClient.saveCategoriesMessage(targetChatId, remainingCategories)
+            if (!telegramSuccess) {
+                Log.e(TAG, "Failed to save categories to Telegram after deletion")
+                return@withContext false
+            }
         }
+
+        categoryDao.deleteCategory(cleanName)
         true
     }
 
@@ -352,14 +365,18 @@ class WallpaperRepository @Inject constructor(
             return@withContext false
         }
 
-        categoryDao.renameCategory(cleanOld, cleanNew)
-        wallpaperDao.updateWallpaperCategory(cleanOld, cleanNew)
-
-        val updatedCategories = categories.first()
+        val updatedCategories = currentList.map { if (it.equals(cleanOld, ignoreCase = true)) cleanNew else it }
         val targetChatId = chatId ?: authRepository.activeChannelIdFlow.firstOrNull()
         if (targetChatId != null && targetChatId != 0L) {
-            telegramClient.saveCategoriesMessage(targetChatId, updatedCategories)
+            val telegramSuccess = telegramClient.saveCategoriesMessage(targetChatId, updatedCategories)
+            if (!telegramSuccess) {
+                Log.e(TAG, "Failed to save renamed category list to Telegram")
+                return@withContext false
+            }
         }
+
+        categoryDao.renameCategory(cleanOld, cleanNew)
+        wallpaperDao.updateWallpaperCategory(cleanOld, cleanNew)
         true
     }
 
@@ -504,16 +521,6 @@ class WallpaperRepository @Inject constructor(
         val tagsCsv = cleanTags.joinToString(",")
         val cleanType = wallpaperType.ifBlank { "Phone" }
 
-        wallpaperDao.updateWallpaperMetadata(
-            id = wallpaper.id,
-            title = cleanTitle,
-            author = cleanAuthor,
-            category = cleanCategory,
-            tagsCsv = tagsCsv,
-            description = description,
-            wallpaperType = cleanType
-        )
-
         val updatedMetadata = WallpaperMetadata(
             title = cleanTitle,
             category = cleanCategory,
@@ -529,12 +536,27 @@ class WallpaperRepository @Inject constructor(
         )
 
         if (wallpaper.chatId != 0L && wallpaper.messageId != 0L) {
-            telegramClient.editWallpaperMetadata(
+            val telegramSuccess = telegramClient.editWallpaperMetadata(
                 chatId = wallpaper.chatId,
                 messageId = wallpaper.messageId,
                 metadata = updatedMetadata
             )
+            if (!telegramSuccess) {
+                Log.e(TAG, "Failed to update wallpaper metadata on Telegram for messageId=${wallpaper.messageId}")
+                return@withContext false
+            }
         }
+
+        wallpaperDao.updateWallpaperMetadata(
+            id = wallpaper.id,
+            title = cleanTitle,
+            author = cleanAuthor,
+            category = cleanCategory,
+            tagsCsv = tagsCsv,
+            description = description,
+            wallpaperType = cleanType
+        )
+
         cleanUpUncategorizedCategoryIfEmpty()
         true
     }

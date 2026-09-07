@@ -544,9 +544,15 @@ fun UploadScreen(
                     onClick = {
                         val trimmed = newCategoryInput.trim()
                         if (trimmed.isNotBlank()) {
-                            viewModel.createCategory(trimmed) { created ->
-                                selectedCategory = created
-                            }
+                            viewModel.createCategory(
+                                categoryName = trimmed,
+                                onCategoryCreated = { created ->
+                                    selectedCategory = created
+                                },
+                                onError = { err ->
+                                    Toast.makeText(context, err, Toast.LENGTH_SHORT).show()
+                                }
+                            )
                             showAddCategoryDialog = false
                             newCategoryInput = ""
                         }
