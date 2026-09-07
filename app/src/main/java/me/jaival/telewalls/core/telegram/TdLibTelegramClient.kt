@@ -86,7 +86,7 @@ class TdLibTelegramClient @Inject constructor(
             }
 
             isMockMode = false
-            if (client == null || _authState.value is TelegramAuthState.Failed) {
+            if (client == null || _authState.value is TelegramAuthState.Failed || _authState.value is TelegramAuthState.Closed || _authState.value is TelegramAuthState.Uninitialized) {
                 _authState.value = TelegramAuthState.Initializing
                 try {
                     Client.execute(TdApi.SetLogVerbosityLevel(1))
@@ -161,7 +161,8 @@ class TdLibTelegramClient @Inject constructor(
                 _authState.value = TelegramAuthState.LoggingOut
             }
             is TdApi.AuthorizationStateClosed -> {
-                _authState.value = TelegramAuthState.Closed
+                client = null
+                _authState.value = TelegramAuthState.WaitingForPhoneNumber
             }
         }
     }
@@ -240,8 +241,10 @@ class TdLibTelegramClient @Inject constructor(
 
     override suspend fun logout() {
         submittedPhoneNumber = null
+        mockCategories.clear()
+        mockFavorites.clear()
         if (isMockMode) {
-            _authState.value = TelegramAuthState.Uninitialized
+            _authState.value = TelegramAuthState.WaitingForPhoneNumber
             return
         }
         try {
@@ -249,7 +252,8 @@ class TdLibTelegramClient @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Error during logout", e)
         }
-        _authState.value = TelegramAuthState.Uninitialized
+        client = null
+        _authState.value = TelegramAuthState.WaitingForPhoneNumber
     }
 
     override suspend fun getMe(): TelegramUser? {

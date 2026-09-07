@@ -655,6 +655,19 @@ class WallpaperRepository @Inject constructor(
         }
     }
 
+    suspend fun clearAllData(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            wallpaperDao.clearWallpapers()
+            wallpaperDao.clearFavorites()
+            categoryDao.clearCategories()
+            clearImageCache()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error clearing all data", e)
+            false
+        }
+    }
+
     private fun WallpaperEntity.toDomain(): Wallpaper = Wallpaper(
         id = id,
         messageId = messageId,

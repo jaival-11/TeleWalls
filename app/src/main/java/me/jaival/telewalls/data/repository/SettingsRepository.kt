@@ -90,4 +90,10 @@ class SettingsRepository @Inject constructor(
             prefs[SYNC_FAVORITES_KEY] = enabled
         }
     }
+
+    suspend fun resetSettings() {
+        context.settingsDataStore.edit { prefs ->
+            prefs.clear()
+        }
+    }
 }

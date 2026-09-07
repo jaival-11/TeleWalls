@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import android.widget.Toast
 import androidx.compose.material.icons.Icons
@@ -35,6 +36,8 @@ import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -43,6 +46,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -64,6 +68,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.jaival.telewalls.core.telegram.TelegramAuthState
@@ -92,6 +99,7 @@ fun OnboardingScreen(
     var phoneNumber by remember { mutableStateOf("") }
     var smsCode by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var isPasswordVisible by remember { mutableStateOf(false) }
     var newChannelTitle by remember { mutableStateOf("TeleWalls Vault") }
     var stepErrorState by remember { mutableStateOf<String?>(null) }
     var showApiGuideDialog by remember { mutableStateOf(false) }
@@ -339,7 +347,11 @@ fun OnboardingScreen(
                             Spacer(modifier = Modifier.height(20.dp))
 
                             when (val state = authState) {
-                                is TelegramAuthState.WaitingForPhoneNumber, is TelegramAuthState.Initializing, is TelegramAuthState.Uninitialized -> {
+                                is TelegramAuthState.WaitingForPhoneNumber,
+                                is TelegramAuthState.Initializing,
+                                is TelegramAuthState.Uninitialized,
+                                is TelegramAuthState.LoggingOut,
+                                is TelegramAuthState.Closed -> {
                                     OutlinedTextField(
                                         value = phoneNumber,
                                         onValueChange = {
@@ -444,6 +456,19 @@ fun OnboardingScreen(
                                         },
                                         label = { Text("2FA Password") },
                                         singleLine = true,
+                                        visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                                        trailingIcon = {
+                                            val image = if (isPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                                            val description = if (isPasswordVisible) "Hide password" else "Show password"
+                                            IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                                                Icon(
+                                                    imageVector = image,
+                                                    contentDescription = description,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        },
                                         modifier = Modifier.fillMaxWidth(),
                                         shape = RoundedCornerShape(16.dp),
                                         colors = fieldColors

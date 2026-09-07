@@ -14,6 +14,7 @@ import me.jaival.telewalls.core.telegram.TelegramAuthState
 import me.jaival.telewalls.core.telegram.TelegramClient
 import me.jaival.telewalls.core.telegram.TelegramCredentials
 import me.jaival.telewalls.data.repository.AuthRepository
+import me.jaival.telewalls.data.repository.SettingsRepository
 import me.jaival.telewalls.data.repository.WallpaperRepository
 import javax.inject.Inject
 
@@ -21,7 +22,8 @@ import javax.inject.Inject
 class AuthViewModel @Inject constructor(
     private val telegramClient: TelegramClient,
     private val authRepository: AuthRepository,
-    private val wallpaperRepository: WallpaperRepository
+    private val wallpaperRepository: WallpaperRepository,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     val authState: StateFlow<TelegramAuthState> = telegramClient.authState
@@ -279,6 +281,14 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             telegramClient.logout()
             authRepository.clearSession()
+            wallpaperRepository.clearAllData()
+            settingsRepository.resetSettings()
+            _channels.value = emptyList()
+            _activeChannelId.value = null
+            _errorMessage.value = null
+            _reindexStatus.value = null
+            _isLoading.value = false
+            _isReindexing.value = false
         }
     }
 }

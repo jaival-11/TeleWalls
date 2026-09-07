@@ -100,13 +100,7 @@ class AuthRepository @Inject constructor(
 
     suspend fun clearSession() {
         context.dataStore.edit { prefs ->
-            prefs.remove(API_ID_KEY)
-            prefs.remove(API_HASH_KEY)
-            prefs.remove(ACTIVE_CHANNEL_ID_KEY)
-            prefs.remove(IS_SETUP_COMPLETED_KEY)
-            prefs.remove(PHONE_NUMBER_KEY)
-            prefs.remove(USER_NAME_KEY)
-            prefs.remove(PROFILE_PHOTO_PATH_KEY)
+            prefs.clear()
         }
     }
 }
