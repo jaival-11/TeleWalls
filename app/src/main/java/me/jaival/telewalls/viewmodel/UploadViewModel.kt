@@ -26,6 +26,7 @@ import javax.inject.Inject
 
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 
 sealed interface UploadState {
