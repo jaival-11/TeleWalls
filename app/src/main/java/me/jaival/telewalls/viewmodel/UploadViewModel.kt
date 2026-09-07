@@ -239,28 +239,27 @@ class UploadViewModel @Inject constructor(
 
             val mimeType = getMimeTypeFromUri(context, uri) ?: "image/jpeg"
 
-            authRepository.activeChannelIdFlow.collect { chatId ->
-                val targetChatId = chatId ?: 99999L
-                wallpaperRepository.uploadWallpaper(
-                    chatId = targetChatId,
-                    localPath = file.absolutePath,
-                    fileName = finalFileName,
-                    mimeType = mimeType,
-                    metadata = metadata
-                ).collect { event ->
-                    when (event) {
-                        is TelegramUploadEvent.Progress -> {
-                            val total = event.totalBytes ?: file.length()
-                            val percent = if (total > 0) (event.bytesUploaded.toFloat() / total) * 100f else 0f
-                            _uploadState.value = UploadState.Uploading(percent, event.bytesUploaded, total)
-                        }
-                        is TelegramUploadEvent.Succeeded -> {
-                            wallpaperRepository.saveUploadedWallpaperToDb(event.document)
-                            _uploadState.value = UploadState.Success
-                        }
-                        is TelegramUploadEvent.Failed -> {
-                            _uploadState.value = UploadState.Error(event.message)
-                        }
+            val chatId = authRepository.activeChannelIdFlow.firstOrNull()
+            val targetChatId = chatId ?: 99999L
+            wallpaperRepository.uploadWallpaper(
+                chatId = targetChatId,
+                localPath = file.absolutePath,
+                fileName = finalFileName,
+                mimeType = mimeType,
+                metadata = metadata
+            ).collect { event ->
+                when (event) {
+                    is TelegramUploadEvent.Progress -> {
+                        val total = event.totalBytes ?: file.length()
+                        val percent = if (total > 0) (event.bytesUploaded.toFloat() / total) * 100f else 0f
+                        _uploadState.value = UploadState.Uploading(percent, event.bytesUploaded, total)
+                    }
+                    is TelegramUploadEvent.Succeeded -> {
+                        wallpaperRepository.saveUploadedWallpaperToDb(event.document)
+                        _uploadState.value = UploadState.Success
+                    }
+                    is TelegramUploadEvent.Failed -> {
+                        _uploadState.value = UploadState.Error(event.message)
                     }
                 }
             }

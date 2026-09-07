@@ -176,8 +176,9 @@ class WallpaperRepository @Inject constructor(
             Log.d(TAG, "[REINDEX DEBUG] Starting reindexFromChannel for chatId=$chatId")
         }
         try {
-            // Delete cached wallpapers from other channels so old channel data does not persist
+            // Delete cached wallpapers & categories from other channels so old channel data does not persist
             wallpaperDao.deleteAllWallpapersExceptChatId(chatId)
+            categoryDao.clearCategories()
             wallpaperDao.deleteOrphanFavorites()
 
             val catResult = syncCategoriesFromChannel(chatId)
@@ -371,11 +372,11 @@ class WallpaperRepository @Inject constructor(
             if (BuildConfig.DEBUG) {
                 Log.d(TAG, "[REINDEX DEBUG] Fetched remote categories count=${remoteCategories.size}: $remoteCategories")
             }
+            categoryDao.clearCategories()
             if (remoteCategories.isNotEmpty()) {
                 val entities = remoteCategories.mapIndexed { index, name ->
                     CategoryEntity(name = name.trim(), sortOrder = index)
                 }
-                categoryDao.clearCategories()
                 categoryDao.insertCategories(entities)
                 Result.success(remoteCategories.size)
             } else {

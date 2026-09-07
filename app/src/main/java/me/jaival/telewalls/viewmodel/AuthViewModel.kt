@@ -252,6 +252,9 @@ class AuthViewModel @Inject constructor(
     fun completeSetup(channelId: Long? = null, onResult: (Boolean, String?) -> Unit = { _, _ -> }) {
         viewModelScope.launch {
             _isLoading.value = true
+            _isReindexing.value = true
+            _reindexStatus.value = "Completing setup & indexing channel..."
+            _errorMessage.value = null
             try {
                 val selectedId = channelId ?: _activeChannelId.value
                 if (selectedId == null || selectedId == 0L) {
@@ -262,6 +265,12 @@ class AuthViewModel @Inject constructor(
                 }
                 authRepository.saveActiveChannelId(selectedId)
                 authRepository.setSetupCompleted(true)
+
+                _reindexStatus.value = "Re-indexing channel wallpapers..."
+                val result = wallpaperRepository.reindexFromChannel(selectedId)
+                result.onSuccess { (wallpapersCount, categoriesCount) ->
+                    _reindexStatus.value = "Channel indexed ($wallpapersCount wallpapers, $categoriesCount categories)"
+                }
                 onResult(true, null)
             } catch (e: Exception) {
                 val err = e.message ?: "Failed to complete setup"
@@ -269,6 +278,7 @@ class AuthViewModel @Inject constructor(
                 onResult(false, err)
             } finally {
                 _isLoading.value = false
+                _isReindexing.value = false
             }
         }
     }
