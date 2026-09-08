@@ -123,9 +123,9 @@ fun DetailScreen(
     var newCategoryInput by remember { mutableStateOf("") }
 
     var controlsVisible by remember { mutableStateOf(true) }
-    var scale by remember(currentWall.id) { mutableFloatStateOf(1f) }
-    var offset by remember(currentWall.id) { mutableStateOf(Offset.Zero) }
-    var userHasInteracted by remember(currentWall.id) { mutableStateOf(false) }
+    var scale by remember(wallpaperId) { mutableFloatStateOf(1f) }
+    var offset by remember(wallpaperId) { mutableStateOf(Offset.Zero) }
+    var userHasInteracted by remember(wallpaperId) { mutableStateOf(false) }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
     var imageSize by remember { mutableStateOf(IntSize.Zero) }
 
