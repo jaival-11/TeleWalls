@@ -11,6 +11,7 @@ object ScreenRoutes {
     const val ACCOUNT = "account"
     const val DETAIL = "detail/{wallpaperId}"
     const val CATEGORY_DETAIL = "category_detail/{categoryName}"
+    const val LICENSES = "licenses"
 
     fun uploadRoute(mode: String = "single"): String = "upload?mode=$mode"
     fun detailRoute(wallpaperId: String): String = "detail/$wallpaperId"

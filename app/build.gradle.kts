@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.aboutLibraries)
 }
 
 android {
@@ -130,6 +131,7 @@ dependencies {
     implementation(libs.work.runtime.ktx)
     implementation(libs.lottie.compose)
     implementation(libs.tdlib)
+    implementation(libs.aboutlibraries.compose.m3)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

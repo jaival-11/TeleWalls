@@ -170,7 +170,8 @@ fun SettingsScreen(
     authViewModel: AuthViewModel,
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     updateViewModel: AppUpdateViewModel = hiltViewModel(),
-    onAccountClick: () -> Unit = {}
+    onAccountClick: () -> Unit = {},
+    onLicensesClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val wallpaperType by settingsViewModel.wallpaperType.collectAsState()
@@ -409,7 +410,7 @@ fun SettingsScreen(
                             icon = null,
                             title = "Open source licenses",
                             subtitle = "View third-party software licenses",
-                            onClick = { showOpenSourceDialog = true }
+                            onClick = onLicensesClick
                         )
                     }
                 }

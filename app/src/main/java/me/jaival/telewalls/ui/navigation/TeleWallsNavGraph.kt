@@ -36,6 +36,7 @@ import me.jaival.telewalls.ui.screens.detail.DetailScreen
 import me.jaival.telewalls.ui.screens.favorites.FavoritesScreen
 import me.jaival.telewalls.ui.screens.home.HomeScreen
 import me.jaival.telewalls.ui.screens.onboarding.OnboardingScreen
+import me.jaival.telewalls.ui.screens.settings.LicensesScreen
 import me.jaival.telewalls.ui.screens.settings.SettingsScreen
 import me.jaival.telewalls.ui.screens.upload.UploadScreen
 import me.jaival.telewalls.viewmodel.AppUpdateViewModel
@@ -272,6 +273,9 @@ fun TeleWallsNavGraph(
                         updateViewModel = appUpdateViewModel,
                         onAccountClick = {
                             navController.navigate(ScreenRoutes.ACCOUNT)
+                        },
+                        onLicensesClick = {
+                            navController.navigate(ScreenRoutes.LICENSES)
                         }
                     )
                 }
@@ -302,6 +306,37 @@ fun TeleWallsNavGraph(
                 ) {
                     AccountScreen(
                         authViewModel = authViewModel,
+                        onBackClick = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
+
+                composable(
+                    route = ScreenRoutes.LICENSES,
+                    enterTransition = {
+                        slideIntoContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                            animationSpec = tween(350)
+                        ) + fadeIn(animationSpec = tween(300))
+                    },
+                    exitTransition = {
+                        slideOutOfContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                            animationSpec = tween(350)
+                        ) + fadeOut(animationSpec = tween(300))
+                    },
+                    popEnterTransition = {
+                        fadeIn(animationSpec = tween(300))
+                    },
+                    popExitTransition = {
+                        slideOutOfContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                            animationSpec = tween(350)
+                        ) + fadeOut(animationSpec = tween(300))
+                    }
+                ) {
+                    LicensesScreen(
                         onBackClick = {
                             navController.popBackStack()
                         }
