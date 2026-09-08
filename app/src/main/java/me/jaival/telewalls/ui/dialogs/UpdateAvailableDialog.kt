@@ -42,9 +42,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.heightIn
 import me.jaival.telewalls.core.updater.SemVer
 import me.jaival.telewalls.core.updater.UpdateState
 import me.jaival.telewalls.ui.components.M3eWavyProgressBar
+import me.jaival.telewalls.ui.components.MarkdownText
 import kotlin.math.roundToInt
 
 @Composable
@@ -151,7 +153,7 @@ fun UpdateAvailableDialog(
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(110.dp)
+                            .heightIn(min = 90.dp, max = 160.dp)
                     ) {
                         Column(
                             modifier = Modifier
@@ -166,10 +168,9 @@ fun UpdateAvailableDialog(
                                 color = primaryColor
                             )
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = releaseNotes,
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurface
+                            MarkdownText(
+                                markdown = releaseNotes,
+                                primaryColor = primaryColor
                             )
                         }
                     }
