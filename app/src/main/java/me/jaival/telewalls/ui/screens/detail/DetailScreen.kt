@@ -123,8 +123,9 @@ fun DetailScreen(
     var newCategoryInput by remember { mutableStateOf("") }
 
     var controlsVisible by remember { mutableStateOf(true) }
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offset by remember { mutableStateOf(Offset.Zero) }
+    var scale by remember(currentWall.id) { mutableFloatStateOf(1f) }
+    var offset by remember(currentWall.id) { mutableStateOf(Offset.Zero) }
+    var userHasInteracted by remember(currentWall.id) { mutableStateOf(false) }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
     var imageSize by remember { mutableStateOf(IntSize.Zero) }
 
@@ -170,14 +171,24 @@ fun DetailScreen(
 
     val activeImageSize = if (imageSize.width > 0 && imageSize.height > 0) imageSize else (parsedSize ?: IntSize.Zero)
 
-    val minAllowedScale = remember(containerSize, activeImageSize) {
+    val initialFillScale = remember(containerSize, activeImageSize) {
         if (containerSize.width > 0 && containerSize.height > 0 && activeImageSize.width > 0 && activeImageSize.height > 0) {
-            val containerAspect = containerSize.width.toFloat() / containerSize.height.toFloat()
-            val imageAspect = activeImageSize.width.toFloat() / activeImageSize.height.toFloat()
-            val fitScale = kotlin.math.min(containerAspect / imageAspect, imageAspect / containerAspect)
-            (fitScale * 0.85f).coerceIn(0.05f, 1.0f)
+            val cw = containerSize.width.toFloat()
+            val ch = containerSize.height.toFloat()
+            val iw = activeImageSize.width.toFloat()
+            val ih = activeImageSize.height.toFloat()
+            val wFit = kotlin.math.min(cw, ch * (iw / ih))
+            val hFit = kotlin.math.min(ch, cw * (ih / iw))
+            kotlin.math.max(cw / wFit, ch / hFit)
         } else {
-            0.15f
+            1f
+        }
+    }
+
+    LaunchedEffect(initialFillScale) {
+        if (!userHasInteracted && initialFillScale > 0f) {
+            scale = initialFillScale
+            offset = Offset.Zero
         }
     }
 
@@ -213,19 +224,23 @@ fun DetailScreen(
                             controlsVisible = !controlsVisible
                         },
                         onDoubleTap = {
-                            if (scale != 1f || offset != Offset.Zero) {
-                                scale = 1f
+                            userHasInteracted = true
+                            if (kotlin.math.abs(scale - initialFillScale) > 0.05f || offset != Offset.Zero) {
+                                scale = initialFillScale
                                 offset = Offset.Zero
                             } else {
-                                scale = 2.5f
+                                scale = initialFillScale * 2.5f
                                 offset = Offset.Zero
                             }
                         }
                     )
                 }
-                .pointerInput(minAllowedScale, containerSize, activeImageSize) {
+                .pointerInput(initialFillScale, containerSize, activeImageSize) {
                     detectTransformGestures { _, pan, zoom, _ ->
-                        val newScale = (scale * zoom).coerceIn(minAllowedScale, 5f)
+                        userHasInteracted = true
+                        val minS = 0.8f
+                        val maxS = (initialFillScale * 5f).coerceAtLeast(5f)
+                        val newScale = (scale * zoom).coerceIn(minS, maxS)
                         scale = newScale
 
                         if (containerSize.width > 0 && containerSize.height > 0) {
@@ -235,14 +250,15 @@ fun DetailScreen(
                             val (totalW, totalH) = if (activeImageSize.width > 0 && activeImageSize.height > 0) {
                                 val iw = activeImageSize.width.toFloat()
                                 val ih = activeImageSize.height.toFloat()
-                                val cropScale = kotlin.math.max(cw / iw, ch / ih)
-                                Pair(iw * cropScale * newScale, ih * cropScale * newScale)
+                                val wFit = kotlin.math.min(cw, ch * (iw / ih))
+                                val hFit = kotlin.math.min(ch, cw * (ih / iw))
+                                Pair(wFit * newScale, hFit * newScale)
                             } else {
                                 Pair(cw * newScale, ch * newScale)
                             }
 
-                            val maxX = kotlin.math.abs(totalW - cw) / 2f
-                            val maxY = kotlin.math.abs(totalH - ch) / 2f
+                            val maxX = (totalW - cw).coerceAtLeast(0f) / 2f
+                            val maxY = (totalH - ch).coerceAtLeast(0f) / 2f
 
                             if (maxX > 0f || maxY > 0f) {
                                 val newX = (offset.x + pan.x).coerceIn(-maxX, maxX)
@@ -273,7 +289,7 @@ fun DetailScreen(
                             .build(),
                         contentDescription = currentWall.title,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
+                        contentScale = ContentScale.Fit,
                         onSuccess = { state ->
                             val w = state.result.drawable.intrinsicWidth
                             val h = state.result.drawable.intrinsicHeight
