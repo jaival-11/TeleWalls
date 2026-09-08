@@ -643,9 +643,7 @@ class TdLibTelegramClient @Inject constructor(
                     // 3. Fallback: Download Document file if image
                     val doc = content.document
                     val docFile = doc.document
-                    val mime = doc.mimeType.orEmpty()
-                    val docFileName = doc.fileName.orEmpty()
-                    if (mime.startsWith("image/", ignoreCase = true) || docFileName.endsWith(".jpg", ignoreCase = true) || docFileName.endsWith(".png", ignoreCase = true) || docFileName.endsWith(".jpeg", ignoreCase = true) || docFileName.endsWith(".webp", ignoreCase = true)) {
+                    if (isImageDocument(doc)) {
                         if (docFile.local?.isDownloadingCompleted == true && !docFile.local.path.isNullOrBlank() && File(docFile.local.path).exists()) {
                             return docFile.local.path
                         }
@@ -1256,21 +1254,41 @@ class TdLibTelegramClient @Inject constructor(
         val fileName: String
         val mimeType: String
         val captionText: String
+        val width: Int
+        val height: Int
 
         when (val content = msg.content) {
             is TdApi.MessageDocument -> {
                 val doc = content.document
-                file = doc.document
-                fileName = doc.fileName
-                mimeType = doc.mimeType
                 captionText = content.caption.text.orEmpty()
+                if (captionText.contains(CATEGORIES_HASHTAG, ignoreCase = true) ||
+                    captionText.contains(FAVORITES_HASHTAG, ignoreCase = true)) {
+                    return null
+                }
+                val parsedMeta = parseMetadataFromCaption(captionText)
+                if (parsedMeta == null && !isImageDocument(doc) && fallbackMetadata == null) {
+                    return null
+                }
+                file = doc.document
+                fileName = doc.fileName.orEmpty().ifBlank { "document_${msg.id}" }
+                mimeType = doc.mimeType.orEmpty().ifBlank { guessMimeTypeFromFileName(fileName) }
+                width = doc.thumbnail?.width ?: 0
+                height = doc.thumbnail?.height ?: 0
             }
             is TdApi.MessagePhoto -> {
-                val photoSize = content.photo.sizes.maxByOrNull { it.photo.size } ?: return null
+                captionText = content.caption.text.orEmpty()
+                if (captionText.contains(CATEGORIES_HASHTAG, ignoreCase = true) ||
+                    captionText.contains(FAVORITES_HASHTAG, ignoreCase = true)) {
+                    return null
+                }
+                val photoSize = content.photo.sizes.maxByOrNull { it.width * it.height }
+                    ?: content.photo.sizes.maxByOrNull { it.photo.size }
+                    ?: return null
                 file = photoSize.photo
                 fileName = "photo_${msg.id}.jpg"
                 mimeType = "image/jpeg"
-                captionText = content.caption.text.orEmpty()
+                width = photoSize.width
+                height = photoSize.height
             }
             else -> return null
         }
@@ -1278,13 +1296,9 @@ class TdLibTelegramClient @Inject constructor(
         val remoteId = file.remote?.id?.takeIf { it.isNotBlank() } ?: file.id.toString()
 
         val parsedMeta = parseMetadataFromCaption(captionText)
-        if (parsedMeta == null && fallbackMetadata == null) {
-            if (BuildConfig.DEBUG) {
-                Log.d(TAG, "[REINDEX DEBUG] Msg #${msg.id} caption metadata parsing returned null. Raw caption: '$captionText'")
-            }
-            return null
-        }
-        val metadata = parsedMeta ?: fallbackMetadata!!
+        val metadata = parsedMeta
+            ?: fallbackMetadata
+            ?: createFallbackMetadata(msg, fileName, captionText, width, height, file.size)
 
         val resolvedType = if (!metadata.wallpaperType.isNullOrBlank()) {
             metadata.wallpaperType
@@ -1324,6 +1338,135 @@ class TdLibTelegramClient @Inject constructor(
             localPath = localPath,
             thumbnailPath = existingThumbPath,
             metadata = finalMetadata
+        )
+    }
+
+    private fun isImageDocument(doc: TdApi.Document): Boolean {
+        val mime = doc.mimeType.orEmpty().lowercase()
+        if (mime.startsWith("image/")) return true
+        if (mime.startsWith("video/") || mime.startsWith("audio/") ||
+            mime == "application/pdf" || mime == "application/zip" ||
+            mime == "application/x-rar-compressed" || mime == "application/vnd.android.package-archive"
+        ) {
+            return false
+        }
+        val name = doc.fileName.orEmpty().lowercase()
+        val imageExtensions = setOf(
+            "jpg", "jpeg", "png", "webp", "heic", "heif", "gif", "bmp", "svg",
+            "raw", "dng", "tiff", "tif", "avif", "jxl"
+        )
+        val ext = name.substringAfterLast('.', "")
+        if (ext in imageExtensions) return true
+
+        if (doc.thumbnail != null && (mime.isBlank() || mime == "application/octet-stream")) {
+            return true
+        }
+        return false
+    }
+
+    private fun guessMimeTypeFromFileName(fileName: String): String {
+        val ext = fileName.substringAfterLast('.', "").lowercase()
+        return when (ext) {
+            "png" -> "image/png"
+            "webp" -> "image/webp"
+            "gif" -> "image/gif"
+            "heic" -> "image/heic"
+            "heif" -> "image/heif"
+            "bmp" -> "image/bmp"
+            "svg" -> "image/svg+xml"
+            "avif" -> "image/avif"
+            else -> "image/jpeg"
+        }
+    }
+
+    private fun calculateAspectRatio(width: Int, height: Int): String {
+        if (width <= 0 || height <= 0) return "9:16"
+        val ratio = width.toDouble() / height.toDouble()
+        return when {
+            kotlin.math.abs(ratio - 9.0 / 16.0) < 0.05 -> "9:16"
+            kotlin.math.abs(ratio - 16.0 / 9.0) < 0.05 -> "16:9"
+            kotlin.math.abs(ratio - 9.0 / 19.5) < 0.05 -> "9:19.5"
+            kotlin.math.abs(ratio - 9.0 / 20.0) < 0.05 -> "9:20"
+            kotlin.math.abs(ratio - 4.0 / 3.0) < 0.05 -> "4:3"
+            kotlin.math.abs(ratio - 3.0 / 4.0) < 0.05 -> "3:4"
+            kotlin.math.abs(ratio - 1.0) < 0.05 -> "1:1"
+            kotlin.math.abs(ratio - 16.0 / 10.0) < 0.05 -> "16:10"
+            else -> {
+                val gcd = gcd(width, height)
+                val num = width / gcd
+                val den = height / gcd
+                if (num <= 50 && den <= 50) "$num:$den" else if (ratio < 1.0) "9:16" else "16:9"
+            }
+        }
+    }
+
+    private fun gcd(a: Int, b: Int): Int {
+        var x = a
+        var y = b
+        while (y != 0) {
+            val t = y
+            y = x % y
+            x = t
+        }
+        return x
+    }
+
+    private fun createFallbackMetadata(
+        msg: TdApi.Message,
+        fileName: String,
+        captionText: String,
+        width: Int,
+        height: Int,
+        sizeBytes: Long
+    ): WallpaperMetadata {
+        val hashtags = "#\\w+".toRegex().findAll(captionText).map { it.value.removePrefix("#") }.toList()
+        val textWithoutHashtags = captionText.replace("#\\w+".toRegex(), "").trim()
+        val firstLine = textWithoutHashtags.lines().firstOrNull { it.isNotBlank() }?.trim()
+
+        val derivedTitle = when {
+            !firstLine.isNullOrBlank() -> {
+                if (firstLine.length > 50) firstLine.take(50) + "..." else firstLine
+            }
+            fileName.isNotBlank() && !fileName.startsWith("photo_") && !fileName.startsWith("document_") -> {
+                val nameWithoutExt = fileName.substringBeforeLast('.')
+                nameWithoutExt.replace('_', ' ').replace('-', ' ')
+                    .split(" ")
+                    .filter { it.isNotBlank() }
+                    .joinToString(" ") { word -> word.replaceFirstChar { c -> if (c.isLowerCase()) c.titlecase() else c.toString() } }
+                    .ifBlank { "Wallpaper" }
+            }
+            else -> "Wallpaper #${msg.id}"
+        }
+
+        val category = if (hashtags.isNotEmpty()) {
+            hashtags.first().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+        } else {
+            "Uncategorized"
+        }
+
+        val (resolution, aspectRatio, wallpaperType) = if (width > 0 && height > 0) {
+            val res = "${width}x${height}"
+            val ar = calculateAspectRatio(width, height)
+            val type = if (width >= height) "Desktop/Tablet" else "Phone"
+            Triple(res, ar, type)
+        } else {
+            Triple("1080x1920", "9:16", "Phone")
+        }
+
+        val timestamp = if (msg.date > 0) msg.date.toLong() * 1000L else System.currentTimeMillis()
+
+        return WallpaperMetadata(
+            title = derivedTitle,
+            category = category,
+            tags = hashtags,
+            resolution = resolution,
+            aspectRatio = aspectRatio,
+            sizeBytes = sizeBytes,
+            colors = emptyList(),
+            description = textWithoutHashtags,
+            author = "Telegram Upload",
+            timestamp = timestamp,
+            wallpaperType = wallpaperType
         )
     }
 
