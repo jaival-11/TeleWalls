@@ -250,64 +250,79 @@ fun UpdateAvailableDialog(
             }
         },
         confirmButton = {
-            Row(
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.End
             ) {
-                // Dismiss button
-                TextButton(
-                    onClick = onDismiss,
-                    enabled = updateState !is UpdateState.Downloading
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Dismiss",
-                        color = if (updateState is UpdateState.Downloading) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f) else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                    // Dismiss button
+                    TextButton(
+                        onClick = onDismiss,
+                        enabled = updateState !is UpdateState.Downloading
+                    ) {
+                        Text(
+                            text = "Dismiss",
+                            color = if (updateState is UpdateState.Downloading) {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1
+                        )
+                    }
 
-                Spacer(modifier = Modifier.width(4.dp))
-
-                // Changelog button (Opens release in browser)
-                TextButton(
-                    onClick = {
-                        try {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(htmlUrl)).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    // Changelog button (Opens release in browser)
+                    TextButton(
+                        onClick = {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(htmlUrl)).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                e.printStackTrace()
                             }
-                            context.startActivity(intent)
-                        } catch (e: Exception) {
-                            e.printStackTrace()
+                        }
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Changelog",
+                                color = primaryColor,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Outlined.OpenInNew,
+                                contentDescription = null,
+                                tint = primaryColor,
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                     }
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "Changelog",
-                            color = primaryColor,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.Outlined.OpenInNew,
-                            contentDescription = null,
-                            tint = primaryColor,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
                 }
 
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                // Install button
+                // Primary Install / Action button
                 when (updateState) {
                     is UpdateState.DownloadCompleted -> {
                         Button(
                             onClick = onInstallApkPrompt,
                             colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(text = "Install Now", fontWeight = FontWeight.Bold)
+                            Text(
+                                text = "Install Now",
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
                         }
                     }
                     is UpdateState.Downloading -> {
@@ -315,25 +330,39 @@ fun UpdateAvailableDialog(
                             onClick = {},
                             enabled = false,
                             colors = ButtonDefaults.buttonColors(disabledContainerColor = primaryColor.copy(alpha = 0.5f)),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(text = "Downloading...", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                            Text(
+                                text = "Downloading...",
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                maxLines = 1
+                            )
                         }
                     }
                     else -> {
                         Button(
                             onClick = onInstallClick,
                             colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
                                 Icon(
                                     imageVector = Icons.Outlined.Download,
                                     contentDescription = null,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text(text = "Install", fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = "Install Update",
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
                             }
                         }
                     }
