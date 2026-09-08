@@ -58,12 +58,13 @@ jobs:
 
     - name: Prepare Release APK Artifacts
       run: |
+        VERSION="${GITHUB_REF_NAME#v}"
         mkdir -p release-apks
-        find app/build/outputs/apk/release -name "*arm64-v8a*.apk" -exec cp {} release-apks/TeleWalls-arm64-v8a.apk \;
-        find app/build/outputs/apk/release -name "*armeabi-v7a*.apk" -exec cp {} release-apks/TeleWalls-armeabi-v7a.apk \;
-        find app/build/outputs/apk/release -name "*x86_64*.apk" -exec cp {} release-apks/TeleWalls-x86_64.apk \;
-        find app/build/outputs/apk/release -name "*x86*.apk" ! -name "*x86_64*.apk" -exec cp {} release-apks/TeleWalls-x86.apk \;
-        find app/build/outputs/apk/release -name "*universal*.apk" -exec cp {} release-apks/TeleWalls-universal.apk \;
+        find app/build/outputs/apk/release -name "*arm64-v8a*.apk" -exec cp {} release-apks/TeleWalls-${VERSION}-arm64-v8a.apk \;
+        find app/build/outputs/apk/release -name "*armeabi-v7a*.apk" -exec cp {} release-apks/TeleWalls-${VERSION}-armeabi-v7a.apk \;
+        find app/build/outputs/apk/release -name "*x86_64*.apk" -exec cp {} release-apks/TeleWalls-${VERSION}-x86_64.apk \;
+        find app/build/outputs/apk/release -name "*x86*.apk" ! -name "*x86_64*.apk" -exec cp {} release-apks/TeleWalls-${VERSION}-x86.apk \;
+        find app/build/outputs/apk/release -name "*universal*.apk" -exec cp {} release-apks/TeleWalls-${VERSION}-universal.apk \;
 
     - name: Generate Release Notes
       run: |
@@ -95,10 +96,6 @@ jobs:
         tag_name: ${{ github.ref_name }}
         body_path: release_notes.md
         files: |
-          release-apks/TeleWalls-arm64-v8a.apk
-          release-apks/TeleWalls-armeabi-v7a.apk
-          release-apks/TeleWalls-x86.apk
-          release-apks/TeleWalls-x86_64.apk
-          release-apks/TeleWalls-universal.apk
+          release-apks/*.apk
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

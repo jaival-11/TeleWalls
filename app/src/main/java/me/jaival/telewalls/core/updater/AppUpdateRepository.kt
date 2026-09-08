@@ -52,23 +52,47 @@ class AppUpdateRepository @Inject constructor(
             var apkDownloadUrl = ""
             if (jsonObject.has("assets") && jsonObject.get("assets").isJsonArray) {
                 val assets = jsonObject.getAsJsonArray("assets")
+                val apkAssets = mutableMapOf<String, String>()
+
                 for (assetElement in assets) {
                     if (assetElement.isJsonObject) {
                         val assetObj = assetElement.asJsonObject
                         val name = assetObj.get("name")?.asString ?: ""
-                        if (name.endsWith(".apk", ignoreCase = true)) {
-                            apkDownloadUrl = assetObj.get("browser_download_url")?.asString ?: ""
-                            if (name.contains("universal", ignoreCase = true)) {
-                                break // Prefer universal APK if available
-                            }
+                        val downloadUrl = assetObj.get("browser_download_url")?.asString ?: ""
+                        if (name.endsWith(".apk", ignoreCase = true) && downloadUrl.isNotBlank()) {
+                            apkAssets[name] = downloadUrl
                         }
                     }
+                }
+
+                // 1. Try to match primary supported ABI of the user's device
+                val supportedAbis = Build.SUPPORTED_ABIS ?: emptyArray()
+                for (abi in supportedAbis) {
+                    val matchingEntry = apkAssets.entries.firstOrNull { (name, _) ->
+                        if (abi.equals("x86", ignoreCase = true)) {
+                            name.contains("x86", ignoreCase = true) && !name.contains("x86_64", ignoreCase = true)
+                        } else {
+                            name.contains(abi, ignoreCase = true)
+                        }
+                    }
+                    if (matchingEntry != null) {
+                        apkDownloadUrl = matchingEntry.value
+                        break
+                    }
+                }
+
+                // 2. If no matching ABI APK was found, fallback to universal APK or first available APK
+                if (apkDownloadUrl.isBlank()) {
+                    apkDownloadUrl = apkAssets.entries.firstOrNull { (name, _) ->
+                        name.contains("universal", ignoreCase = true)
+                    }?.value ?: apkAssets.values.firstOrNull() ?: ""
                 }
             }
 
             if (apkDownloadUrl.isBlank()) {
                 val cleanTag = tagName.trim()
-                apkDownloadUrl = "https://github.com/jaival-11/TeleWalls/releases/download/$cleanTag/TeleWalls-universal.apk"
+                val versionStr = cleanTag.removePrefix("v")
+                apkDownloadUrl = "https://github.com/jaival-11/TeleWalls/releases/download/$cleanTag/TeleWalls-$versionStr-universal.apk"
             }
 
             AppReleaseInfo(
