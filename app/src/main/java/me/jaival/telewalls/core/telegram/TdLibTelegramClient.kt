@@ -1275,21 +1275,6 @@ class TdLibTelegramClient @Inject constructor(
                 width = doc.thumbnail?.width ?: 0
                 height = doc.thumbnail?.height ?: 0
             }
-            is TdApi.MessagePhoto -> {
-                captionText = content.caption.text.orEmpty()
-                if (captionText.contains(CATEGORIES_HASHTAG, ignoreCase = true) ||
-                    captionText.contains(FAVORITES_HASHTAG, ignoreCase = true)) {
-                    return null
-                }
-                val photoSize = content.photo.sizes.maxByOrNull { it.width * it.height }
-                    ?: content.photo.sizes.maxByOrNull { it.photo.size }
-                    ?: return null
-                file = photoSize.photo
-                fileName = "photo_${msg.id}.jpg"
-                mimeType = "image/jpeg"
-                width = photoSize.width
-                height = photoSize.height
-            }
             else -> return null
         }
 
