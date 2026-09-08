@@ -60,6 +60,9 @@ class DetailViewModel @Inject constructor(
     private val _imageRefreshKey = MutableStateFlow(0L)
     val imageRefreshKey: StateFlow<Long> = _imageRefreshKey.asStateFlow()
 
+    private val _currentImagePath = MutableStateFlow<String?>(null)
+    val currentImagePath: StateFlow<String?> = _currentImagePath.asStateFlow()
+
     private val _applyState = MutableStateFlow<WallpaperApplyState>(WallpaperApplyState.Idle)
     val applyState: StateFlow<WallpaperApplyState> = _applyState.asStateFlow()
 
@@ -70,28 +73,40 @@ class DetailViewModel @Inject constructor(
         viewModelScope.launch {
             val loaded = wallpaperRepository.getWallpaperById(id)
             _wallpaper.value = loaded
+            
             if (loaded != null) {
-                val hasFullImage = !loaded.localPath.isNullOrBlank() && (loaded.localPath.startsWith("http") || (File(loaded.localPath).exists() && File(loaded.localPath).length() > 0))
-                if (!hasFullImage) {
-                    val hasThumb = !loaded.thumbnailPath.isNullOrBlank() && (loaded.thumbnailPath.startsWith("http") || (File(loaded.thumbnailPath).exists() && File(loaded.thumbnailPath).length() > 0))
-                    if (!hasThumb) {
-                        val thumbPath = wallpaperRepository.loadThumbnailOnDemand(loaded)
-                        if (thumbPath != null) {
-                            _wallpaper.value = wallpaperRepository.getWallpaperById(id)
-                        }
-                    }
-                    _isLoadingFullImage.value = true
-                    val fullPath = wallpaperRepository.downloadFullWallpaper(loaded)
-                    val updated = wallpaperRepository.getWallpaperById(id)
-                    if (updated != null) {
-                        _wallpaper.value = updated
-                    }
-                    _imageRefreshKey.value = System.currentTimeMillis()
+                val fullPathValid = !loaded.localPath.isNullOrBlank() && (loaded.localPath.startsWith("http") || (File(loaded.localPath).exists() && File(loaded.localPath).length() > 0))
+                
+                if (fullPathValid) {
+                    _currentImagePath.value = loaded.localPath
                     _isLoadingFullImage.value = false
-                } else {
-                    _isLoadingFullImage.value = false
+                    return@launch
                 }
+                _isLoadingFullImage.value = true
+                kotlinx.coroutines.yield()
+
+                // Download full image with automatic retry to handle TDLib transient failures
+                var fullPath: String? = null
+                for (attempt in 1..3) {
+                    fullPath = wallpaperRepository.downloadFullWallpaper(loaded)
+                    if (fullPath != null) {
+                        break
+                    }
+                    if (attempt < 3) {
+                        kotlinx.coroutines.delay(1000)
+                    }
+                }
+
+                if (fullPath != null) {
+                    _currentImagePath.value = fullPath
+                    _wallpaper.value = loaded.copy(localPath = fullPath)
+                } else {
+                    _currentImagePath.value = null
+                }
+                
+                _isLoadingFullImage.value = false
             } else {
+                _currentImagePath.value = null
                 _isLoadingFullImage.value = false
             }
         }

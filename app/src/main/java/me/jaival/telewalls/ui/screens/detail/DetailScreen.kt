@@ -1,5 +1,6 @@
 package me.jaival.telewalls.ui.screens.detail
 
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -58,6 +59,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -198,11 +200,14 @@ fun DetailScreen(
     val topBgColor = dynamicColors.firstOrNull() ?: MaterialTheme.colorScheme.surface
     val bottomBgColor = dynamicColors.getOrNull(1) ?: MaterialTheme.colorScheme.background
 
-    val fullImageModel = remember(currentWall.localPath, imageRefreshKey) {
-        currentWall.localPath?.takeIf { it.isNotBlank() && (it.startsWith("http") || (File(it).exists() && File(it).length() > 0)) }?.let {
-            if (it.startsWith("http") || it.startsWith("content://") || it.startsWith("file://")) it else File(it)
-        }
+    val currentImagePath by viewModel.currentImagePath.collectAsState()
+    
+    // Convert the string path to a File object if it's a local path
+    val imageModel = currentImagePath?.let {
+        if (it.startsWith("http") || it.startsWith("content://") || it.startsWith("file://")) it else File(it)
     }
+
+
 
     Box(
         modifier = Modifier
@@ -281,24 +286,7 @@ fun DetailScreen(
                         translationY = offset.y
                     }
             ) {
-                if (!isLoadingFullImage && fullImageModel != null) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(fullImageModel)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = currentWall.title,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit,
-                        onSuccess = { state ->
-                            val w = state.result.drawable.intrinsicWidth
-                            val h = state.result.drawable.intrinsicHeight
-                            if (w > 0 && h > 0) {
-                                imageSize = IntSize(w, h)
-                            }
-                        }
-                    )
-                } else if (isLoadingFullImage || fullImageModel == null) {
+                if (isLoadingFullImage) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -314,7 +302,7 @@ fun DetailScreen(
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = "Loading wallpaper...",
+                                text = "Loading full wallpaper...",
                                 style = MaterialTheme.typography.bodyMedium.copy(
                                     color = Color.White,
                                     fontWeight = FontWeight.SemiBold,
@@ -323,18 +311,49 @@ fun DetailScreen(
                             )
                         }
                     }
+                } else if (imageModel != null) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(imageModel)
+                                .size(coil.size.Size.ORIGINAL)
+                                .build(),
+                            contentDescription = currentWall.title,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit,
+                            onSuccess = { state ->
+                                val w = state.result.drawable.intrinsicWidth
+                                val h = state.result.drawable.intrinsicHeight
+                                if (w > 0 && h > 0) {
+                                    imageSize = IntSize(w, h)
+                                }
+                            }
+                        )
+                    }
                 } else {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "Unable to load wallpaper",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontWeight = FontWeight.SemiBold
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "Unable to load wallpaper",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             )
-                        )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = { viewModel.loadWallpaper(wallpaperId) },
+                                colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
+                            ) {
+                                Text("Retry")
+                            }
+                        }
                     }
                 }
             }

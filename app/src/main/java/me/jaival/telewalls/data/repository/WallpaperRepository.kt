@@ -592,6 +592,12 @@ class WallpaperRepository @Inject constructor(
         if (!currentLocal.isNullOrBlank() && (currentLocal.startsWith("http") || (File(currentLocal).exists() && File(currentLocal).length() > 0))) {
             return@withContext currentLocal
         }
+        val safeName = if (wallpaper.fileName.isNotBlank()) "${wallpaper.fileId}_${wallpaper.fileName}" else "wallpaper_${wallpaper.fileId}.jpg"
+        val cachedFile = File(context.cacheDir, safeName)
+        if (cachedFile.exists() && cachedFile.length() > 0) {
+            wallpaperDao.updateLocalPath(wallpaper.id, cachedFile.absolutePath)
+            return@withContext cachedFile.absolutePath
+        }
         val downloadedPath = downloadWallpaperFile(wallpaper.fileId, wallpaper.fileName)
         if (!downloadedPath.isNullOrBlank() && (downloadedPath.startsWith("http") || (File(downloadedPath).exists() && File(downloadedPath).length() > 0))) {
             wallpaperDao.updateLocalPath(wallpaper.id, downloadedPath)
