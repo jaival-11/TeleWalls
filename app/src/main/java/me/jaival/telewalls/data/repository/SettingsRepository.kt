@@ -88,6 +88,33 @@ class SettingsRepository @Inject constructor(
         }
     }
 
+    suspend fun removeHiddenCategory(categoryName: String) {
+        context.settingsDataStore.edit { prefs ->
+            val current = prefs[HIDDEN_CATEGORIES_KEY] ?: emptySet()
+            val lowerName = categoryName.lowercase()
+            val match = current.firstOrNull { it.lowercase() == lowerName }
+            if (match != null) {
+                val newSet = current.toMutableSet()
+                newSet.remove(match)
+                prefs[HIDDEN_CATEGORIES_KEY] = newSet
+            }
+        }
+    }
+
+    suspend fun updateHiddenCategoryName(oldName: String, newName: String) {
+        context.settingsDataStore.edit { prefs ->
+            val current = prefs[HIDDEN_CATEGORIES_KEY] ?: emptySet()
+            val lowerOld = oldName.lowercase()
+            val match = current.firstOrNull { it.lowercase() == lowerOld }
+            if (match != null) {
+                val newSet = current.toMutableSet()
+                newSet.remove(match)
+                newSet.add(newName)
+                prefs[HIDDEN_CATEGORIES_KEY] = newSet
+            }
+        }
+    }
+
     suspend fun setSyncFavorites(enabled: Boolean) {
         context.settingsDataStore.edit { prefs ->
             prefs[SYNC_FAVORITES_KEY] = enabled
