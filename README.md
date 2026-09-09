@@ -43,24 +43,34 @@
 
 <table>
   <tr>
-    <td align="center">Home tab</td>
-    <td align="center">Categories Tab</td>
-    <td align="center">Saved Wallpapers</td>
-  </tr>
-  <tr>
     <td align="center"><img src="https://raw.githubusercontent.com/jaival-11/TeleWalls/refs/heads/main/assets/screenshots/Screenshot1.jpg" alt="Home tab" /></td>
     <td align="center"><img src="https://raw.githubusercontent.com/jaival-11/TeleWalls/refs/heads/main/assets/screenshots/Screenshot2.jpg" alt="Categories Tab" /></td>
     <td align="center"><img src="https://raw.githubusercontent.com/jaival-11/TeleWalls/refs/heads/main/assets/screenshots/Screenshot3.jpg" alt="Saved Wallpapers" /></td>
   </tr>
   <tr>
-    <td align="center">Settings</td>
-    <td align="center">Single Upload screen</td>
-    <td align="center">Multi upload</td>
+    <td align="center">Home tab</td>
+    <td align="center">Categories Tab</td>
+    <td align="center">Saved Wallpapers</td>
   </tr>
   <tr>
-    <td align="center"><img src="https://raw.githubusercontent.com/jaival-11/TeleWalls/refs/heads/main/assets/screenshots/Screenshot4.jpg" alt="Settings" /></td>
     <td align="center"><img src="https://raw.githubusercontent.com/jaival-11/TeleWalls/refs/heads/main/assets/screenshots/Screenshot5.jpg" alt="Single Upload screen" /></td>
     <td align="center"><img src="https://raw.githubusercontent.com/jaival-11/TeleWalls/refs/heads/main/assets/screenshots/Screenshot6.jpg" alt="Multi upload" /></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/jaival-11/TeleWalls/refs/heads/main/assets/screenshots/Screenshot7.jpg" alt="Wallpaper Details" /></td>
+  </tr>
+  <tr>
+    <td align="center">Single Upload screen</td>
+    <td align="center">Multi upload</td>
+    <td align="center">Wallpaper Details</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="https://raw.githubusercontent.com/jaival-11/TeleWalls/refs/heads/main/assets/screenshots/Screenshot8.jpg" alt="Manage Categories" /></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/jaival-11/TeleWalls/refs/heads/main/assets/screenshots/Screenshot4.jpg" alt="Settings" /></td>
+    <td align="center"></td>
+  </tr>
+  <tr>
+    <td align="center">Manage Categories</td>
+    <td align="center">Settings</td>
+    <td align="center"></td>
   </tr>
 </table>
 
