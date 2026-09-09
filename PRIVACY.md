@@ -1,6 +1,6 @@
 # Privacy Policy for TeleWalls
 
-**Effective Date:** September 8, 2026  
+**Effective Date:** September 9, 2026  
 **Developer:** Jaival  
 **Repository:** [https://github.com/jaival-11/TeleWalls](https://github.com/jaival-11/TeleWalls)
 
@@ -27,6 +27,7 @@ TeleWalls uses the official Telegram Database Library (**TDLib**) to interact di
 
 * **Account Authentication & Session Data:** When logging into TeleWalls, you may provide your Telegram API credentials (`api_id` and `api_hash`), phone number, and verification code (or 2FA password). These credentials and authentication session tokens are processed locally on your device via TDLib and stored in protected local app storage. They are **never** transmitted to or accessible by the Developer.
 * **TeleWalls Cloud Channel Storage:** TeleWalls uses a Telegram channel (e.g., `TeleWalls Vault`) within your own Telegram account to store wallpaper images, metadata (title, category, tags, resolution, aspect ratio, color palette, author, description), category configurations (`#Categories`), and favorites (`#Favorites`).
+* **Strict Scope of Account Access:** While TeleWalls requires your Telegram login to function, the application is strictly programmed to interact only with your designated channel(s). The App does not read, scan, download, export, or interact with your personal private chats, group messages, contacts, or any other Telegram data outside of its core wallpaper management functions.
 * **Direct Network Transmission:** All authentication requests, wallpaper uploads, thumbnail downloads, and channel synchronizations occur directly between your device and Telegram’s official servers over MTProto-encrypted connections.
 * **Privacy Impact & Third-Party Terms:** Because your device communicates directly with Telegram, your IP address and standard network metadata are processed by Telegram Messenger Inc., governed by the [Telegram Privacy Policy](https://telegram.org/privacy) and [Telegram API Terms of Service](https://core.telegram.org/api/terms).
 
@@ -115,6 +116,6 @@ If you have questions, feedback, or concerns regarding this Privacy Policy or Te
 
 ---
 
-*This Privacy Policy was last updated on September 8, 2026.*
+*This Privacy Policy was last updated on September 9, 2026.*
 
 
