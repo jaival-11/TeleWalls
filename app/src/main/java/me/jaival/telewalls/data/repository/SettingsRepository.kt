@@ -34,6 +34,17 @@ class SettingsRepository @Inject constructor(
         private val HIDDEN_CATEGORIES_KEY = stringSetPreferencesKey("hidden_categories")
         private val SYNC_FAVORITES_KEY = booleanPreferencesKey("sync_favorites")
         private val LAST_UPDATE_CHECK_TIME_KEY = longPreferencesKey("last_update_check_time_ms")
+        private val HAS_SEEN_WELCOME_DIALOG_KEY = booleanPreferencesKey("has_seen_welcome_dialog")
+    }
+
+    val hasSeenWelcomeDialogFlow: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
+        prefs[HAS_SEEN_WELCOME_DIALOG_KEY] ?: false
+    }
+
+    suspend fun setHasSeenWelcomeDialog(seen: Boolean) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[HAS_SEEN_WELCOME_DIALOG_KEY] = seen
+        }
     }
 
     val wallpaperTypeFlow: Flow<WallpaperTypeFilter> = context.settingsDataStore.data.map { prefs ->

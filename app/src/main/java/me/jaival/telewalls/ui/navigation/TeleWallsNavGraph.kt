@@ -28,6 +28,7 @@ import androidx.navigation.navArgument
 import me.jaival.telewalls.core.updater.UpdateState
 import me.jaival.telewalls.ui.components.AnimatedBottomBar
 import me.jaival.telewalls.ui.dialogs.UpdateAvailableDialog
+import me.jaival.telewalls.ui.dialogs.WelcomeDialog
 import me.jaival.telewalls.ui.screens.account.AccountScreen
 import me.jaival.telewalls.ui.screens.auth.AuthScreen
 import me.jaival.telewalls.ui.screens.collections.CategoryDetailScreen
@@ -45,6 +46,7 @@ import me.jaival.telewalls.viewmodel.CategoryDetailViewModel
 import me.jaival.telewalls.viewmodel.CollectionsViewModel
 import me.jaival.telewalls.viewmodel.DetailViewModel
 import me.jaival.telewalls.viewmodel.HomeViewModel
+import me.jaival.telewalls.viewmodel.SettingsViewModel
 import me.jaival.telewalls.viewmodel.UploadViewModel
 
 @Composable
@@ -59,8 +61,19 @@ fun TeleWallsNavGraph(
     val uploadViewModel: UploadViewModel = hiltViewModel()
     val authViewModel: AuthViewModel = hiltViewModel()
     val appUpdateViewModel: AppUpdateViewModel = hiltViewModel()
+    val settingsViewModel: SettingsViewModel = hiltViewModel()
 
     val updateState by appUpdateViewModel.updateState.collectAsState()
+    val hasSeenWelcomeDialogState by settingsViewModel.hasSeenWelcomeDialog.collectAsState()
+
+    if (hasSeenWelcomeDialogState == false) {
+        WelcomeDialog(
+            onAccept = {
+                settingsViewModel.setHasSeenWelcomeDialog(true)
+                appUpdateViewModel.checkForUpdatesOnAppOpen()
+            }
+        )
+    }
 
     UpdateAvailableDialog(
         updateState = updateState,

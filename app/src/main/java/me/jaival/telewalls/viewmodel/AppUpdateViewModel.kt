@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import me.jaival.telewalls.BuildConfig
 import me.jaival.telewalls.core.updater.AppReleaseInfo
@@ -41,10 +42,15 @@ class AppUpdateViewModel @Inject constructor(
 
     /**
      * Trigger background check on app open.
-     * Runs at most once per hour.
+     * Runs at most once per hour and only if welcome dialog has been accepted.
      */
     fun checkForUpdatesOnAppOpen() {
         viewModelScope.launch {
+            val hasSeenWelcome = settingsRepository.hasSeenWelcomeDialogFlow.first()
+            if (!hasSeenWelcome) {
+                return@launch
+            }
+
             if (_updateState.value is UpdateState.Downloading || _updateState.value is UpdateState.DownloadCompleted) {
                 return@launch
             }

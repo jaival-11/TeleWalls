@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import me.jaival.telewalls.data.repository.SettingsRepository
@@ -20,6 +21,10 @@ class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val wallpaperRepository: WallpaperRepository
 ) : ViewModel() {
+
+    val hasSeenWelcomeDialog: StateFlow<Boolean?> = settingsRepository.hasSeenWelcomeDialogFlow
+        .map<Boolean, Boolean?> { it }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val wallpaperType: StateFlow<WallpaperTypeFilter> = settingsRepository.wallpaperTypeFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), WallpaperTypeFilter.BOTH)
@@ -97,6 +102,12 @@ class SettingsViewModel @Inject constructor(
             gb >= 1.0 -> String.format(Locale.US, "%.2f GB", gb)
             mb >= 1.0 -> String.format(Locale.US, "%.2f MB", mb)
             else -> String.format(Locale.US, "%.2f KB", kb)
+        }
+    }
+
+    fun setHasSeenWelcomeDialog(seen: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setHasSeenWelcomeDialog(seen)
         }
     }
 }
