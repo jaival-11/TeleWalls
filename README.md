@@ -64,13 +64,13 @@
   </tr>
   <tr>
     <td align="center"><img src="https://raw.githubusercontent.com/jaival-11/TeleWalls/refs/heads/main/assets/screenshots/Screenshot8.jpg" alt="Manage Categories" /></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/jaival-11/TeleWalls/refs/heads/main/assets/screenshots/Screenshot9.jpg" alt="Edit Details" /></td>
     <td align="center"><img src="https://raw.githubusercontent.com/jaival-11/TeleWalls/refs/heads/main/assets/screenshots/Screenshot4.jpg" alt="Settings" /></td>
-    <td align="center"></td>
   </tr>
   <tr>
     <td align="center">Manage Categories</td>
+    <td align="center">Edit Details</td>
     <td align="center">Settings</td>
-    <td align="center"></td>
   </tr>
 </table>
 
