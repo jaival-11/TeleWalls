@@ -76,6 +76,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -488,12 +489,14 @@ fun DetailScreen(
                     ) {
                         Text(
                             text = currentWall.title,
+                            modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.titleLarge.copy(
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 20.sp
                             )
                         )
+                        Spacer(modifier = Modifier.width(10.dp))
                         Box(
                             modifier = Modifier
                                 .clip(CircleShape)
@@ -505,7 +508,9 @@ fun DetailScreen(
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     fontWeight = FontWeight.Bold
-                                )
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -558,14 +563,16 @@ fun DetailScreen(
                                 style = MaterialTheme.typography.bodyMedium.copy(color = Color.White, fontWeight = FontWeight.SemiBold)
                             )
                         }
-                        Column {
+                        Column(modifier = Modifier.weight(1f, fill = false)) {
                             Text(
                                 text = "Author",
                                 style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.5f))
                             )
                             Text(
                                 text = currentWall.author.ifBlank { "TeleWalls" },
-                                style = MaterialTheme.typography.bodyMedium.copy(color = primaryColor, fontWeight = FontWeight.SemiBold)
+                                style = MaterialTheme.typography.bodyMedium.copy(color = primaryColor, fontWeight = FontWeight.SemiBold),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
