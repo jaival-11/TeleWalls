@@ -73,7 +73,7 @@ jobs:
 
         echo "# ${TAG_NAME}" > release_notes.md
         echo "" >> release_notes.md
-        echo "## \`Changelog:\`" >> release_notes.md
+        echo "## Changelog:" >> release_notes.md
         echo "" >> release_notes.md
 
         REPO_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"

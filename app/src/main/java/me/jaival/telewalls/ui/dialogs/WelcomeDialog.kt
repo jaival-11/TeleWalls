@@ -93,7 +93,7 @@ fun WelcomeDialog(
                 ExplanationFeatureRow(
                     icon = Icons.Outlined.Lock,
                     title = "No Access to Your Personal Chats",
-                    description = "The app never accesses, reads, or stores your private messages, group chats, or contact details. It operates exclusively within dedicated wallpaper storage channel."
+                    description = "The app never accesses, reads, or stores your private messages, group chats, or contacts' details. It operates exclusively within dedicated wallpaper storage channel."
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
