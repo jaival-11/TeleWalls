@@ -79,9 +79,9 @@ jobs:
         REPO_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
 
         if [ -n "$PREV_TAG" ]; then
-          git log "${PREV_TAG}..${TAG_NAME}" --pretty=format:"- %s ([%h](${REPO_URL}/commit/%H))" >> release_notes.md
+          git log "${PREV_TAG}..${TAG_NAME}" --reverse --pretty=format:"- %s ([%h](${REPO_URL}/commit/%H))" >> release_notes.md
         else
-          git log "${TAG_NAME}" --pretty=format:"- %s ([%h](${REPO_URL}/commit/%H))" >> release_notes.md
+          git log "${TAG_NAME}" --reverse --pretty=format:"- %s ([%h](${REPO_URL}/commit/%H))" >> release_notes.md
         fi
         echo "" >> release_notes.md
 
