@@ -1,6 +1,7 @@
 package me.jaival.telewalls.ui.screens.home
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -76,7 +77,9 @@ fun HomeScreen(
     onWallpaperClick: (String) -> Unit,
     onSingleUploadClick: () -> Unit = {},
     onMultiUploadClick: () -> Unit = {},
-    scrollToTopTrigger: Int = 0
+    scrollToTopTrigger: Int = 0,
+    onSearchQueryChange: (String) -> Unit = {},
+    onBackClick: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val selectedCategories by viewModel.selectedCategories.collectAsState()
@@ -87,6 +90,16 @@ fun HomeScreen(
     val primaryColor = MaterialTheme.colorScheme.primary
 
     var showMassUploadDialog by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = searchQuery.isNotEmpty() || onBackClick != null) {
+        if (searchQuery.isNotEmpty()) {
+            onSearchQueryChange("")
+            viewModel.updateSearchQuery("")
+        }
+        if (onBackClick != null) {
+            onBackClick()
+        }
+    }
 
     val gridState = rememberLazyGridState()
     var isFabVisible by remember { mutableStateOf(true) }
@@ -221,7 +234,10 @@ fun HomeScreen(
                 // Search Bar
                 OutlinedTextField(
                     value = searchQuery,
-                    onValueChange = { viewModel.updateSearchQuery(it) },
+                    onValueChange = {
+                        onSearchQueryChange(it)
+                        viewModel.updateSearchQuery(it)
+                    },
                     placeholder = {
                         Text(
                             text = "Search title, tags, color (#FF007A, red)...",
@@ -238,7 +254,10 @@ fun HomeScreen(
                     },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.updateSearchQuery("") }) {
+                            IconButton(onClick = {
+                                onSearchQueryChange("")
+                                viewModel.updateSearchQuery("")
+                            }) {
                                 Icon(
                                     imageVector = Icons.Filled.Clear,
                                     contentDescription = "Clear search",

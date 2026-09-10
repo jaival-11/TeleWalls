@@ -176,7 +176,22 @@ fun TeleWallsNavGraph(
                     )
                 }
 
-                composable(ScreenRoutes.HOME) {
+                composable(
+                    route = ScreenRoutes.HOME,
+                    arguments = listOf(navArgument("q") { defaultValue = ""; type = NavType.StringType })
+                ) { backStackEntry ->
+                    val routeQuery = backStackEntry.arguments?.getString("q") ?: ""
+                    androidx.compose.runtime.LaunchedEffect(backStackEntry) {
+                        val savedQuery = backStackEntry.savedStateHandle.get<String>("query")
+                        val effectiveQuery = savedQuery ?: routeQuery
+                        if (effectiveQuery.isNotEmpty()) {
+                            homeViewModel.selectCategory("All")
+                            homeViewModel.updateSearchQuery(effectiveQuery)
+                        } else {
+                            homeViewModel.updateSearchQuery("")
+                        }
+                    }
+                    val hasPreviousBackStack = navController.previousBackStackEntry != null
                     HomeScreen(
                         viewModel = homeViewModel,
                         scrollToTopTrigger = homeScrollToTopTrigger,
@@ -188,7 +203,13 @@ fun TeleWallsNavGraph(
                         },
                         onMultiUploadClick = {
                             // MassUploadDialog is displayed directly on top of HomeScreen
-                        }
+                        },
+                        onSearchQueryChange = { newQuery ->
+                            backStackEntry.savedStateHandle["query"] = newQuery
+                        },
+                        onBackClick = if (hasPreviousBackStack) {
+                            { navController.popBackStack() }
+                        } else null
                     )
                 }
 
@@ -385,12 +406,7 @@ fun TeleWallsNavGraph(
                         viewModel = detailViewModel,
                         onBackClick = { navController.popBackStack() },
                         onColorClick = { colorHex ->
-                            homeViewModel.selectCategory("All")
-                            homeViewModel.updateSearchQuery(colorHex)
-                            navController.navigate(ScreenRoutes.HOME) {
-                                popUpTo(ScreenRoutes.HOME) { inclusive = false }
-                                launchSingleTop = true
-                            }
+                            navController.navigate(ScreenRoutes.homeRoute(colorHex))
                         }
                     )
                 }
