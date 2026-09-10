@@ -23,6 +23,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import me.jaival.telewalls.MainActivity
 import me.jaival.telewalls.core.palette.PaletteExtractor
 import me.jaival.telewalls.core.telegram.TelegramUploadEvent
 import me.jaival.telewalls.core.telegram.WallpaperMetadata
@@ -313,6 +314,16 @@ class MassUploadService : Service() {
     }
 
     private fun buildProgressNotification(current: Int, total: Int, currentFileName: String): android.app.Notification {
+        val contentIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val contentPendingIntent = PendingIntent.getActivity(
+            this,
+            100,
+            contentIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val pauseOrResumeAction = if (isPaused) ACTION_RESUME else ACTION_PAUSE
         val pauseOrResumeTitle = if (isPaused) "Resume" else "Pause"
         val pauseOrResumeIcon = if (isPaused) android.R.drawable.ic_media_play else android.R.drawable.ic_media_pause
@@ -353,6 +364,7 @@ class MassUploadService : Service() {
             .setContentTitle(titleText)
             .setContentText(contentText)
             .setSmallIcon(if (isPaused) android.R.drawable.ic_media_pause else android.R.drawable.stat_sys_upload)
+            .setContentIntent(contentPendingIntent)
             .setOngoing(!isPaused)
             .setOnlyAlertOnce(true)
             .setProgress(total, current, current == 0)
@@ -370,8 +382,19 @@ class MassUploadService : Service() {
     ) {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
+        val contentIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            103,
+            contentIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val builder = NotificationCompat.Builder(this, RESULT_CHANNEL_ID)
             .setSmallIcon(if (failureCount == 0) android.R.drawable.stat_sys_upload_done else android.R.drawable.stat_notify_error)
+            .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
 
