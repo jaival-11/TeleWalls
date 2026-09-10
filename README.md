@@ -27,8 +27,8 @@
 | [Features](#features) | What the app can do |
 | [Where to Get It (Download)](#where-to-get-it) | Download links for the latest stable APK |
 | [Build from Source](#build-from-source) | Prerequisites and compilation instructions |
-| [Contributions](#contributions) | Guidelines for contributing to the repository |
 | [Bug Reports & Feature Suggestions](#bug-reports--feature-suggestions) | How to report issues or request new features |
+| [Contributions](#contributions) | Guidelines for contributing to the repository |
 | [Under the Hood](#under-the-hood-for-developers) | Tech stack and  core architecture |
 | [Attributions & Credits](#attributions--credits) | Acknowledgments of third-party tools and creators |
 | [Privacy Policy](#privacy-policy) | Link to the complete Privacy Policy |
@@ -83,7 +83,7 @@
 * **Personal Telegram Wallpaper Cloud:** Use your own Telegram channel as unlimited cloud storage for your custom wallpaper library.
 * **Home Feed:** Explore your wallpaper library with high-quality preview grids and quick action controls.
 * **Categories & Collections:** Organize wallpapers into customizable categories for effortless browsing.
-* **Saved & Favorites:** Keep track of your favorite wallpapers in a dedicated tab for quick access and offline availability.
+* **Saved & Favorites:** Keep track of your favorite wallpapers in a dedicated tab for quick access.
 * **Single & Multi-Upload:** Upload single images or bulk upload multiple wallpapers at once directly to your Telegram channel.
 * **One-Tap Wallpaper Set:** Apply wallpapers directly to your Home Screen, Lock Screen, or both.
 * **Modern & Lightweight UI:** Built with Jetpack Compose and Material Design 3 featuring Monet dynamic color integration, fluid animations, and smooth screen transitions.
@@ -152,18 +152,6 @@ cd TeleWalls
 
 ---
 
-## Contributions
-
-Contributions from the open-source community are always welcome!
-
-1. Fork the repository.
-2. Create a new branch for your feature (`git checkout -b feature/AmazingFeature`).
-3. Commit your changes (`git commit -m 'feat: add some AmazingFeature'`).
-4. Push to the branch (`git push origin feature/AmazingFeature`).
-5. Open a Pull Request!
-
----
-
 ## Bug Reports & Feature Suggestions
 
 Encountered a bug or have a brilliant idea to make TeleWalls even better?
@@ -181,6 +169,18 @@ Open a [Feature Request](https://github.com/jaival-11/TeleWalls/issues/new?templ
 Feel free to open an [Issue](https://github.com/jaival-11/TeleWalls/issues/new/choose)
 
 *You can also contact me directly via details given at the top, though [GitHub Issues](https://github.com/jaival-11/TeleWalls/issues) is preferred.*
+
+---
+
+## Contributions
+
+Contributions from the open-source community are always welcome!
+
+1. Fork the repository.
+2. Create a new branch for your feature (`git checkout -b feature/AmazingFeature`).
+3. Commit your changes (`git commit -m 'feat: add some AmazingFeature'`).
+4. Push to the branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request!
 
 ---
 

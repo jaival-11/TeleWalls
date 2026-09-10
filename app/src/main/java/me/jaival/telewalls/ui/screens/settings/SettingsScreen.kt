@@ -342,7 +342,7 @@ fun SettingsScreen(
                             title = "Report Bug",
                             subtitle = "Report issues on GitHub",
                             onClick = {
-                                openUrl(context, "https://github.com/jaival-11/TeleWalls/issues")
+                                openUrl(context, "https://github.com/jaival-11/TeleWalls#bug-reports--feature-suggestions")
                             }
                         )
 
@@ -352,7 +352,7 @@ fun SettingsScreen(
                             title = "Request Feature",
                             subtitle = "Suggest new ideas or feature improvements",
                             onClick = {
-                                openUrl(context, "https://github.com/jaival-11/TeleWalls/issues")
+                                openUrl(context, "https://github.com/jaival-11/TeleWalls#bug-reports--feature-suggestions")
                             }
                         )
 
