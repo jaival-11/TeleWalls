@@ -84,7 +84,8 @@ import android.widget.Toast
 @Composable
 fun CollectionsScreen(
     viewModel: CollectionsViewModel,
-    onCollectionClick: (String) -> Unit
+    onCollectionClick: (String) -> Unit,
+    scrollToTopTrigger: Int = 0
 ) {
     val context = LocalContext.current
     val collections by viewModel.collections.collectAsState()
@@ -93,6 +94,12 @@ fun CollectionsScreen(
 
     val gridState = rememberLazyGridState()
     var isInitialTabOpen by remember { mutableStateOf(true) }
+
+    LaunchedEffect(scrollToTopTrigger) {
+        if (scrollToTopTrigger > 0) {
+            gridState.animateScrollToItem(0)
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.toastEvent.collect { message ->

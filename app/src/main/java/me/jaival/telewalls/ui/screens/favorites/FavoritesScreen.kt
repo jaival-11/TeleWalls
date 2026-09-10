@@ -33,11 +33,18 @@ import me.jaival.telewalls.viewmodel.HomeViewModel
 @Composable
 fun FavoritesScreen(
     viewModel: HomeViewModel,
-    onWallpaperClick: (String) -> Unit
+    onWallpaperClick: (String) -> Unit,
+    scrollToTopTrigger: Int = 0
 ) {
     val favorites by viewModel.favorites.collectAsState()
     val gridState = rememberLazyGridState()
     var isInitialTabOpen by remember { mutableStateOf(true) }
+
+    LaunchedEffect(scrollToTopTrigger) {
+        if (scrollToTopTrigger > 0) {
+            gridState.animateScrollToItem(0)
+        }
+    }
 
     LaunchedEffect(gridState.isScrollInProgress) {
         if (gridState.isScrollInProgress) {

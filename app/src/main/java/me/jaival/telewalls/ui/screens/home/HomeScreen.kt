@@ -75,7 +75,8 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onWallpaperClick: (String) -> Unit,
     onSingleUploadClick: () -> Unit = {},
-    onMultiUploadClick: () -> Unit = {}
+    onMultiUploadClick: () -> Unit = {},
+    scrollToTopTrigger: Int = 0
 ) {
     val context = LocalContext.current
     val selectedCategories by viewModel.selectedCategories.collectAsState()
@@ -92,6 +93,12 @@ fun HomeScreen(
     var previousIndex by remember { mutableIntStateOf(0) }
     var previousScrollOffset by remember { mutableIntStateOf(0) }
     var isInitialTabOpen by remember { mutableStateOf(true) }
+
+    LaunchedEffect(scrollToTopTrigger) {
+        if (scrollToTopTrigger > 0) {
+            gridState.animateScrollToItem(0)
+        }
+    }
 
     LaunchedEffect(gridState) {
         snapshotFlow { Pair(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) }

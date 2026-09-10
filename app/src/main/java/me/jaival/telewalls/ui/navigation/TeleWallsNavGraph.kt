@@ -14,6 +14,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -55,6 +58,10 @@ fun TeleWallsNavGraph(
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: ScreenRoutes.HOME
+
+    var homeScrollToTopTrigger by remember { mutableIntStateOf(0) }
+    var collectionsScrollToTopTrigger by remember { mutableIntStateOf(0) }
+    var favoritesScrollToTopTrigger by remember { mutableIntStateOf(0) }
 
     val homeViewModel: HomeViewModel = hiltViewModel()
     val collectionsViewModel: CollectionsViewModel = hiltViewModel()
@@ -135,6 +142,12 @@ fun TeleWallsNavGraph(
                                 launchSingleTop = true
                                 restoreState = true
                             }
+                        } else {
+                            when (route) {
+                                ScreenRoutes.HOME -> homeScrollToTopTrigger++
+                                ScreenRoutes.COLLECTIONS -> collectionsScrollToTopTrigger++
+                                ScreenRoutes.FAVORITES -> favoritesScrollToTopTrigger++
+                            }
                         }
                     }
                 )
@@ -166,6 +179,7 @@ fun TeleWallsNavGraph(
                 composable(ScreenRoutes.HOME) {
                     HomeScreen(
                         viewModel = homeViewModel,
+                        scrollToTopTrigger = homeScrollToTopTrigger,
                         onWallpaperClick = { id ->
                             navController.navigate(ScreenRoutes.detailRoute(id))
                         },
@@ -181,6 +195,7 @@ fun TeleWallsNavGraph(
                 composable(ScreenRoutes.COLLECTIONS) {
                     CollectionsScreen(
                         viewModel = collectionsViewModel,
+                        scrollToTopTrigger = collectionsScrollToTopTrigger,
                         onCollectionClick = { categoryName ->
                             navController.navigate(ScreenRoutes.categoryDetailRoute(categoryName))
                         }
@@ -206,6 +221,7 @@ fun TeleWallsNavGraph(
                 composable(ScreenRoutes.FAVORITES) {
                     FavoritesScreen(
                         viewModel = homeViewModel,
+                        scrollToTopTrigger = favoritesScrollToTopTrigger,
                         onWallpaperClick = { id ->
                             navController.navigate(ScreenRoutes.detailRoute(id))
                         }
