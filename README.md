@@ -81,6 +81,7 @@
 ## Features
 
 * **Personal Telegram Wallpaper Cloud:** Use your own Telegram channel as unlimited cloud storage for your custom wallpaper library.
+* **Multi-Device Sync:** Seamlessly sync your favorite wallpapers, custom categories, and library across all your devices.
 * **Home Feed:** Explore your wallpaper library with high-quality preview grids and quick action controls.
 * **Categories & Collections:** Organize wallpapers into customizable categories for effortless browsing.
 * **Saved & Favorites:** Keep track of your favorite wallpapers in a dedicated tab for quick access.
@@ -109,6 +110,22 @@ You can download the latest compiled APK directly from the following sources:
       <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/jaival-11/TeleWalls">
         <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/refs/heads/main/assets/graphics/badge_obtainium.png" alt="Download from Obtainium" height="70">
       </a>
+    </td>
+  </tr>
+  <tr>
+    <th align="center">Orion Store</th>
+    <th align="center">SafeHaven Store</th>
+  </tr>
+  <tr>
+    <td align="center">
+     <a href="https://rookieenough.github.io/Orion-Data/redirect.html?id=telewalls">
+      <img src="https://raw.githubusercontent.com/RookieEnough/Orion-Store/refs/heads/main/assets/orion-badge.png" alt="Download from Orion Store" height="50">
+     </a>
+    </td>
+    <td align="center">
+     <a href="https://store.colourswift.com/app/me.jaival.telewalls">
+      <img src="https://store.colourswift.com/badge.svg" alt="Download from SafeHaven Store" height="50">
+     </a>
     </td>
   </tr>
  </table>
