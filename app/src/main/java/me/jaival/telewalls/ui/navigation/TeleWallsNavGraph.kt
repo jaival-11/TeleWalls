@@ -168,7 +168,8 @@ fun TeleWallsNavGraph(
                     currentRoute = currentRoute,
                     onNavigate = { route ->
                         if (route != currentRoute) {
-                            navController.navigate(route) {
+                            val targetRoute = if (route == ScreenRoutes.HOME) ScreenRoutes.homeRoute() else route
+                            navController.navigate(targetRoute) {
                                 popUpTo(ScreenRoutes.HOME) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
@@ -192,7 +193,7 @@ fun TeleWallsNavGraph(
         ) {
             NavHost(
                 navController = navController,
-                startDestination = if (isSetupCompleted) ScreenRoutes.HOME else ScreenRoutes.ONBOARDING,
+                startDestination = if (isSetupCompleted) ScreenRoutes.homeRoute() else ScreenRoutes.ONBOARDING,
                 enterTransition = { fadeIn(animationSpec = tween(300)) },
                 exitTransition = { fadeOut(animationSpec = tween(300)) }
             ) {
@@ -200,7 +201,7 @@ fun TeleWallsNavGraph(
                     OnboardingScreen(
                         viewModel = authViewModel,
                         onComplete = {
-                            navController.navigate(ScreenRoutes.HOME) {
+                            navController.navigate(ScreenRoutes.homeRoute()) {
                                 popUpTo(ScreenRoutes.ONBOARDING) { inclusive = true }
                             }
                         }
@@ -215,7 +216,7 @@ fun TeleWallsNavGraph(
                     androidx.compose.runtime.LaunchedEffect(backStackEntry) {
                         val savedQuery = backStackEntry.savedStateHandle.get<String>("query")
                         val effectiveQuery = savedQuery ?: routeQuery
-                        if (effectiveQuery.isNotEmpty()) {
+                        if (effectiveQuery.isNotEmpty() && effectiveQuery != "{q}") {
                             homeViewModel.selectCategory("All")
                             homeViewModel.updateSearchQuery(effectiveQuery)
                         } else {
@@ -307,7 +308,7 @@ fun TeleWallsNavGraph(
                     UploadScreen(
                         viewModel = uploadViewModel,
                         onUploadSuccess = {
-                            navController.navigate(ScreenRoutes.HOME) {
+                            navController.navigate(ScreenRoutes.homeRoute()) {
                                 popUpTo(ScreenRoutes.HOME) { inclusive = true }
                             }
                         },
