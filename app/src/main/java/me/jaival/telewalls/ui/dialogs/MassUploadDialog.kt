@@ -70,13 +70,14 @@ import me.jaival.telewalls.core.upload.MassUploadService
 
 @Composable
 fun MassUploadDialog(
+    initialUris: List<Uri> = emptyList(),
     onDismissRequest: () -> Unit
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val primaryColor = MaterialTheme.colorScheme.primary
 
-    var selectedUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var selectedUris by remember(initialUris) { mutableStateOf(initialUris) }
     var isScanningFolder by remember { mutableStateOf(false) }
     var showEditMenu by remember { mutableStateOf(false) }
 

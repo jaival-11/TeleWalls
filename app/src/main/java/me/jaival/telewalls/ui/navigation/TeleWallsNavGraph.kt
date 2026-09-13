@@ -29,7 +29,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import me.jaival.telewalls.core.updater.UpdateState
+import androidx.compose.runtime.mutableStateOf
 import me.jaival.telewalls.ui.components.AnimatedBottomBar
+import me.jaival.telewalls.ui.dialogs.MassUploadDialog
 import me.jaival.telewalls.ui.dialogs.UpdateAvailableDialog
 import me.jaival.telewalls.ui.dialogs.WelcomeDialog
 import me.jaival.telewalls.ui.screens.account.AccountScreen
@@ -47,6 +49,8 @@ import me.jaival.telewalls.viewmodel.AppUpdateViewModel
 import me.jaival.telewalls.viewmodel.AuthViewModel
 import me.jaival.telewalls.viewmodel.CategoryDetailViewModel
 import me.jaival.telewalls.viewmodel.CollectionsViewModel
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import me.jaival.telewalls.viewmodel.DetailViewModel
 import me.jaival.telewalls.viewmodel.HomeViewModel
 import me.jaival.telewalls.viewmodel.SettingsViewModel
@@ -54,14 +58,18 @@ import me.jaival.telewalls.viewmodel.UploadViewModel
 
 @Composable
 fun TeleWallsNavGraph(
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    sharedUris: List<Uri>? = null,
+    onSharedUrisHandled: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: ScreenRoutes.HOME
 
     var homeScrollToTopTrigger by remember { mutableIntStateOf(0) }
     var collectionsScrollToTopTrigger by remember { mutableIntStateOf(0) }
     var favoritesScrollToTopTrigger by remember { mutableIntStateOf(0) }
+    var batchUploadUris by remember { mutableStateOf<List<Uri>?>(null) }
 
     val homeViewModel: HomeViewModel = hiltViewModel()
     val collectionsViewModel: CollectionsViewModel = hiltViewModel()
@@ -113,6 +121,29 @@ fun TeleWallsNavGraph(
     }
 
     val isSetupCompleted = isSetupCompletedState == true
+
+    androidx.compose.runtime.LaunchedEffect(sharedUris, isSetupCompleted) {
+        val uris = sharedUris
+        if (!uris.isNullOrEmpty() && isSetupCompleted) {
+            if (uris.size == 1) {
+                val singleUri = uris.first()
+                uploadViewModel.selectImage(context, singleUri)
+                navController.navigate(ScreenRoutes.uploadRoute()) {
+                    launchSingleTop = true
+                }
+            } else {
+                batchUploadUris = uris
+            }
+            onSharedUrisHandled()
+        }
+    }
+
+    if (batchUploadUris != null) {
+        MassUploadDialog(
+            initialUris = batchUploadUris!!,
+            onDismissRequest = { batchUploadUris = null }
+        )
+    }
 
     androidx.compose.runtime.LaunchedEffect(isSetupCompleted) {
         if (!isSetupCompleted && currentRoute != ScreenRoutes.ONBOARDING) {
@@ -199,7 +230,7 @@ fun TeleWallsNavGraph(
                             navController.navigate(ScreenRoutes.detailRoute(id))
                         },
                         onSingleUploadClick = {
-                            navController.navigate(ScreenRoutes.uploadRoute("single"))
+                            navController.navigate(ScreenRoutes.uploadRoute())
                         },
                         onMultiUploadClick = {
                             // MassUploadDialog is displayed directly on top of HomeScreen
@@ -251,7 +282,6 @@ fun TeleWallsNavGraph(
 
                 composable(
                     route = ScreenRoutes.UPLOAD,
-                    arguments = listOf(navArgument("mode") { defaultValue = "single"; type = NavType.StringType }),
                     enterTransition = {
                         slideIntoContainer(
                             towards = AnimatedContentTransitionScope.SlideDirection.Up,
@@ -273,11 +303,9 @@ fun TeleWallsNavGraph(
                             animationSpec = tween(350)
                         ) + fadeOut(animationSpec = tween(300))
                     }
-                ) { backStackEntry ->
-                    val mode = backStackEntry.arguments?.getString("mode") ?: "single"
+                ) {
                     UploadScreen(
                         viewModel = uploadViewModel,
-                        isMultiMode = mode == "multi",
                         onUploadSuccess = {
                             navController.navigate(ScreenRoutes.HOME) {
                                 popUpTo(ScreenRoutes.HOME) { inclusive = true }

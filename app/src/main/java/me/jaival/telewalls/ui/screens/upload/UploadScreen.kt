@@ -73,14 +73,12 @@ import androidx.compose.material3.IconButton
 fun UploadScreen(
     viewModel: UploadViewModel,
     onUploadSuccess: () -> Unit,
-    isMultiMode: Boolean = false,
     onBackClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val uploadState by viewModel.uploadState.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val selectedUri by viewModel.selectedImageUri.collectAsState()
-    val selectedUris by viewModel.selectedImageUris.collectAsState()
     val selectedFileName by viewModel.selectedFileName.collectAsState()
     val detectedResolution by viewModel.detectedResolution.collectAsState()
     val detectedColors by viewModel.detectedColors.collectAsState()
@@ -100,14 +98,6 @@ fun UploadScreen(
     ) { uri: Uri? ->
         if (uri != null) {
             viewModel.selectImage(context, uri)
-        }
-    }
-
-    val multiPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetMultipleContents()
-    ) { uris: List<Uri> ->
-        if (uris.isNotEmpty()) {
-            viewModel.selectMultipleImages(context, uris)
         }
     }
 
@@ -158,7 +148,7 @@ fun UploadScreen(
                 }
                 Column {
                     Text(
-                        text = if (isMultiMode) "Batch Upload" else "Single Upload",
+                        text = "Single Upload",
                         style = MaterialTheme.typography.headlineMedium.copy(
                             color = MaterialTheme.colorScheme.onBackground,
                             fontWeight = FontWeight.Black,
@@ -166,7 +156,7 @@ fun UploadScreen(
                         )
                     )
                     Text(
-                        text = if (isMultiMode) "Batch upload wallpapers to Telegram channel" else "Upload wallpaper to telegram channel",
+                        text = "Upload wallpaper to telegram channel",
                         style = MaterialTheme.typography.labelSmall.copy(
                             color = primaryColor,
                             fontWeight = FontWeight.SemiBold
@@ -186,11 +176,7 @@ fun UploadScreen(
                     .background(MaterialTheme.colorScheme.surfaceContainer)
                     .border(2.dp, if (selectedUri != null) primaryColor else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(24.dp))
                     .clickable {
-                        if (isMultiMode) {
-                            multiPickerLauncher.launch("image/*")
-                        } else {
-                            singlePickerLauncher.launch("image/*")
-                        }
+                        singlePickerLauncher.launch("image/*")
                     },
                 contentAlignment = Alignment.Center
             ) {
@@ -210,7 +196,7 @@ fun UploadScreen(
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = if (selectedUris.size > 1) "${selectedUris.size} Selected" else detectedResolution,
+                            text = detectedResolution,
                             color = primaryColor,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
@@ -226,7 +212,7 @@ fun UploadScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = if (isMultiMode) "Tap to select multiple photos" else "Tap to select photo from gallery",
+                            text = "Tap to select photo from gallery",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Medium
                         )

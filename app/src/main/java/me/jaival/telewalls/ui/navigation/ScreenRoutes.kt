@@ -5,7 +5,7 @@ object ScreenRoutes {
     const val HOME = "home?q={q}"
     const val COLLECTIONS = "collections"
     const val FAVORITES = "favorites"
-    const val UPLOAD = "upload?mode={mode}"
+    const val UPLOAD = "upload"
     const val AUTH = "auth"
     const val SETTINGS = "settings"
     const val ACCOUNT = "account"
@@ -14,7 +14,7 @@ object ScreenRoutes {
     const val LICENSES = "licenses"
 
     fun homeRoute(query: String = ""): String = "home?q=${android.net.Uri.encode(query)}"
-    fun uploadRoute(mode: String = "single"): String = "upload?mode=$mode"
+    fun uploadRoute(): String = "upload"
     fun detailRoute(wallpaperId: String): String = "detail/$wallpaperId"
     fun categoryDetailRoute(categoryName: String): String = "category_detail/${android.net.Uri.encode(categoryName)}"
 }

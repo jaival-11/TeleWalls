@@ -79,6 +79,14 @@ class MassUploadService : Service() {
             val intent = Intent(context, MassUploadService::class.java).apply {
                 action = ACTION_START
                 putStringArrayListExtra(EXTRA_IMAGE_URIS, ArrayList(uris.map { it.toString() }))
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                if (uris.isNotEmpty()) {
+                    val clipData = android.content.ClipData.newRawUri("images", uris.first())
+                    for (i in 1 until uris.size) {
+                        clipData.addItem(android.content.ClipData.Item(uris[i]))
+                    }
+                    this.clipData = clipData
+                }
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)
