@@ -80,6 +80,7 @@ fun TeleWallsNavGraph(
 
     val updateState by appUpdateViewModel.updateState.collectAsState()
     val hasSeenWelcomeDialogState by settingsViewModel.hasSeenWelcomeDialog.collectAsState()
+    val categories by uploadViewModel.categories.collectAsState()
 
     if (hasSeenWelcomeDialogState == false) {
         WelcomeDialog(
@@ -141,6 +142,7 @@ fun TeleWallsNavGraph(
     if (batchUploadUris != null) {
         MassUploadDialog(
             initialUris = batchUploadUris!!,
+            categories = categories,
             onDismissRequest = { batchUploadUris = null }
         )
     }

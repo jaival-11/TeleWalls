@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -94,6 +95,10 @@ fun MassUploadDialog(
     var wallpaperType by remember { mutableStateOf("Auto-detect") }
     var selectedCategory by remember { mutableStateOf("") }
     var tags by remember { mutableStateOf("") }
+
+    BackHandler(enabled = showMetadataStep) {
+        showMetadataStep = false
+    }
 
     val startUploadAndDismiss = {
         Toast.makeText(context, "Check notification for progress", Toast.LENGTH_SHORT).show()
@@ -422,7 +427,7 @@ fun MassUploadDialog(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = "Set metadata options to apply to all ${selectedUris.size} wallpapers.",
+                        text = "Add common details for all ${selectedUris.size} wallpapers.",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -508,9 +513,9 @@ fun MassUploadDialog(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Category
+                    // Category (Pills Only)
                     val availableCategories = remember(categories) {
-                        categories.filter { !it.equals("All", ignoreCase = true) && !it.equals("Uncategorized", ignoreCase = true) }
+                        categories.filter { !it.equals("All", ignoreCase = true) && !it.equals("Uncategorized", ignoreCase = true) && !it.equals("uncategorised", ignoreCase = true) }
                     }
                     if (availableCategories.isNotEmpty()) {
                         Text(
@@ -525,16 +530,6 @@ fun MassUploadDialog(
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                     }
-
-                    OutlinedTextField(
-                        value = selectedCategory,
-                        onValueChange = { selectedCategory = it },
-                        label = { Text("Category") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = fieldColors
-                    )
 
                     Spacer(modifier = Modifier.height(12.dp))
 
