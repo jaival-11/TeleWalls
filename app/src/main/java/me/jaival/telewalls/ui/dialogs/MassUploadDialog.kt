@@ -68,6 +68,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
@@ -96,8 +97,12 @@ fun MassUploadDialog(
     var selectedCategory by remember { mutableStateOf("") }
     var tags by remember { mutableStateOf("") }
 
-    BackHandler(enabled = showMetadataStep) {
-        showMetadataStep = false
+    BackHandler {
+        if (showMetadataStep) {
+            showMetadataStep = false
+        } else {
+            onDismissRequest()
+        }
     }
 
     val startUploadAndDismiss = {
@@ -154,7 +159,13 @@ fun MassUploadDialog(
         }
     }
 
-    Dialog(onDismissRequest = onDismissRequest) {
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false
+        )
+    ) {
         Surface(
             shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
