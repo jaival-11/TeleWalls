@@ -63,6 +63,10 @@ class MassUploadService : Service() {
     companion object {
         private const val TAG = "MassUploadService"
         const val EXTRA_IMAGE_URIS = "extra_image_uris"
+        const val EXTRA_AUTHOR = "extra_author"
+        const val EXTRA_WALLPAPER_TYPE = "extra_wallpaper_type"
+        const val EXTRA_CATEGORY = "extra_category"
+        const val EXTRA_TAGS = "extra_tags"
 
         const val ACTION_START = "me.jaival.telewalls.ACTION_START"
         const val ACTION_PAUSE = "me.jaival.telewalls.ACTION_PAUSE"
@@ -74,11 +78,22 @@ class MassUploadService : Service() {
         private const val PROGRESS_NOTIFICATION_ID = 2001
         private const val RESULT_NOTIFICATION_ID = 2002
 
-        fun startUpload(context: Context, uris: List<Uri>) {
+        fun startUpload(
+            context: Context,
+            uris: List<Uri>,
+            author: String = "",
+            wallpaperType: String = "",
+            category: String = "",
+            tags: String = ""
+        ) {
             if (uris.isEmpty()) return
             val intent = Intent(context, MassUploadService::class.java).apply {
                 action = ACTION_START
                 putStringArrayListExtra(EXTRA_IMAGE_URIS, ArrayList(uris.map { it.toString() }))
+                putExtra(EXTRA_AUTHOR, author)
+                putExtra(EXTRA_WALLPAPER_TYPE, wallpaperType)
+                putExtra(EXTRA_CATEGORY, category)
+                putExtra(EXTRA_TAGS, tags)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 if (uris.isNotEmpty()) {
                     val clipData = android.content.ClipData.newRawUri("images", uris.first())
@@ -127,6 +142,11 @@ class MassUploadService : Service() {
         }
 
         val uriStrings = intent?.getStringArrayListExtra(EXTRA_IMAGE_URIS) ?: emptyList()
+        val author = intent?.getStringExtra(EXTRA_AUTHOR) ?: ""
+        val wallpaperType = intent?.getStringExtra(EXTRA_WALLPAPER_TYPE) ?: ""
+        val category = intent?.getStringExtra(EXTRA_CATEGORY) ?: ""
+        val tags = intent?.getStringExtra(EXTRA_TAGS) ?: ""
+
         if (uriStrings.isEmpty()) {
             stopSelf()
             return START_NOT_STICKY
@@ -163,17 +183,35 @@ class MassUploadService : Service() {
         }
 
         serviceScope.launch {
-            processMassUpload(uriStrings.map { Uri.parse(it) })
+            processMassUpload(
+                uris = uriStrings.map { Uri.parse(it) },
+                batchAuthor = author,
+                batchWallpaperType = wallpaperType,
+                batchCategory = category,
+                batchTags = tags
+            )
         }
 
         return START_NOT_STICKY
     }
 
-    private suspend fun processMassUpload(uris: List<Uri>) {
+    private suspend fun processMassUpload(
+        uris: List<Uri>,
+        batchAuthor: String = "",
+        batchWallpaperType: String = "",
+        batchCategory: String = "",
+        batchTags: String = ""
+    ) {
         val total = uris.size
         var successCount = 0
         var failureCount = 0
         val errorDetails = mutableListOf<String>()
+
+        val parsedBatchTags = if (batchTags.isNotBlank()) {
+            batchTags.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        } else {
+            emptyList()
+        }
 
         val chatId = authRepository.activeChannelIdFlow.first() ?: 99999L
 
@@ -219,14 +257,20 @@ class MassUploadService : Service() {
             val (width, height) = detectResolution(uri)
             val resolutionStr = "${width}x${height}"
             val aspectRatioStr = computeAspectRatioString(width, height)
-            val wallpaperTypeStr = if (width >= height) "Desktop/Tablet" else "Phone"
+            val autoWallpaperTypeStr = if (width >= height) "Desktop/Tablet" else "Phone"
+            val wallpaperTypeStr = when {
+                batchWallpaperType.equals("Phone", ignoreCase = true) -> "Phone"
+                batchWallpaperType.equals("Desktop/Tablet", ignoreCase = true) || batchWallpaperType.equals("Desktop", ignoreCase = true) -> "Desktop/Tablet"
+                else -> autoWallpaperTypeStr
+            }
             val colorsList = PaletteExtractor.extractColorsFromUri(this, uri).hexList
-            val authorName = CharacterAuthorUtils.getRandomCharacterName()
+            val authorName = batchAuthor.takeIf { it.isNotBlank() } ?: CharacterAuthorUtils.getRandomCharacterName()
+            val categoryStr = batchCategory.takeIf { it.isNotBlank() } ?: "Uncategorized"
 
             val metadata = WallpaperMetadata(
                 title = cleanTitle,
-                category = "Uncategorized",
-                tags = emptyList(),
+                category = categoryStr,
+                tags = parsedBatchTags,
                 resolution = resolutionStr,
                 aspectRatio = aspectRatioStr,
                 sizeBytes = tempFile.length(),

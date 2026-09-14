@@ -8,8 +8,6 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,23 +23,30 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -67,10 +72,12 @@ import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 import me.jaival.telewalls.core.upload.FolderScanner
 import me.jaival.telewalls.core.upload.MassUploadService
+import me.jaival.telewalls.ui.components.CategoryChips
 
 @Composable
 fun MassUploadDialog(
     initialUris: List<Uri> = emptyList(),
+    categories: List<String> = emptyList(),
     onDismissRequest: () -> Unit
 ) {
     val context = LocalContext.current
@@ -81,9 +88,23 @@ fun MassUploadDialog(
     var isScanningFolder by remember { mutableStateOf(false) }
     var showEditMenu by remember { mutableStateOf(false) }
 
+    // Metadata Step State
+    var showMetadataStep by remember { mutableStateOf(false) }
+    var author by remember { mutableStateOf("") }
+    var wallpaperType by remember { mutableStateOf("Auto-detect") }
+    var selectedCategory by remember { mutableStateOf("") }
+    var tags by remember { mutableStateOf("") }
+
     val startUploadAndDismiss = {
         Toast.makeText(context, "Check notification for progress", Toast.LENGTH_SHORT).show()
-        MassUploadService.startUpload(context, selectedUris)
+        MassUploadService.startUpload(
+            context = context,
+            uris = selectedUris,
+            author = author,
+            wallpaperType = if (wallpaperType == "Auto-detect") "" else wallpaperType,
+            category = selectedCategory,
+            tags = tags
+        )
         onDismissRequest()
     }
 
@@ -138,6 +159,7 @@ fun MassUploadDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -150,7 +172,11 @@ fun MassUploadDialog(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = if (selectedUris.isNotEmpty()) Icons.Filled.CheckCircle else Icons.Filled.CloudUpload,
+                        imageVector = when {
+                            showMetadataStep -> Icons.Filled.Tune
+                            selectedUris.isNotEmpty() -> Icons.Filled.CheckCircle
+                            else -> Icons.Filled.CloudUpload
+                        },
                         contentDescription = null,
                         tint = primaryColor,
                         modifier = Modifier.size(32.dp)
@@ -230,8 +256,8 @@ fun MassUploadDialog(
                     ) {
                         Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                } else {
-                    // State when Photos are Selected: "{count} photos selected"
+                } else if (!showMetadataStep) {
+                    // Step 1: Photos Selected -> Preview & Next button
                     Text(
                         text = "${selectedUris.size} photos selected",
                         style = MaterialTheme.typography.titleLarge.copy(
@@ -243,7 +269,7 @@ fun MassUploadDialog(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = "Ready to upload to your Telegram channel.",
+                        text = "Ready to configure upload options.",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -334,7 +360,7 @@ fun MassUploadDialog(
                         }
                     }
 
-                    // Action Buttons Row: Edit Selection & Upload
+                    // Action Buttons Row: Edit Selection & Next
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -353,6 +379,197 @@ fun MassUploadDialog(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Edit Selection", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = {
+                                showMetadataStep = true
+                            },
+                            shape = RoundedCornerShape(20.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Next", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    TextButton(
+                        onClick = onDismissRequest,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                } else {
+                    // Step 2: Metadata Configuration Step
+                    Text(
+                        text = "Batch Upload Options",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = "Set metadata options to apply to all ${selectedUris.size} wallpapers.",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            fontSize = 13.sp
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    val fieldColors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        focusedBorderColor = primaryColor,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        focusedLabelColor = primaryColor,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Author Name
+                    OutlinedTextField(
+                        value = author,
+                        onValueChange = { author = it },
+                        label = { Text("Author Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = fieldColors
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Wallpaper Type Dropdown
+                    var typeDropdownExpanded by remember { mutableStateOf(false) }
+                    val typeOptions = listOf("Auto-detect", "Phone", "Desktop/Tablet")
+
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = wallpaperType,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Wallpaper Type") },
+                            trailingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowDropDown,
+                                    contentDescription = "Select Type"
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = fieldColors
+                        )
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable { typeDropdownExpanded = true }
+                        )
+                        DropdownMenu(
+                            expanded = typeDropdownExpanded,
+                            onDismissRequest = { typeDropdownExpanded = false },
+                            modifier = Modifier
+                                .fillMaxWidth(0.8f)
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        ) {
+                            typeOptions.forEach { option ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = option,
+                                            color = if (wallpaperType == option) primaryColor else MaterialTheme.colorScheme.onSurface,
+                                            fontWeight = if (wallpaperType == option) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    },
+                                    onClick = {
+                                        wallpaperType = option
+                                        typeDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Category
+                    val availableCategories = remember(categories) {
+                        categories.filter { !it.equals("All", ignoreCase = true) && !it.equals("Uncategorized", ignoreCase = true) }
+                    }
+                    if (availableCategories.isNotEmpty()) {
+                        Text(
+                            text = "Category",
+                            style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                        )
+                        CategoryChips(
+                            selectedCategory = selectedCategory,
+                            onCategorySelected = { selectedCategory = if (selectedCategory.equals(it, ignoreCase = true)) "" else it },
+                            categories = availableCategories,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = selectedCategory,
+                        onValueChange = { selectedCategory = it },
+                        label = { Text("Category") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = fieldColors
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Tags
+                    OutlinedTextField(
+                        value = tags,
+                        onValueChange = { tags = it },
+                        label = { Text("Tags (comma-separated: neon, dark, city)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = fieldColors
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Action Buttons Row: Back & Upload
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { showMetadataStep = false },
+                            shape = RoundedCornerShape(20.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Back", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
 
                         Button(

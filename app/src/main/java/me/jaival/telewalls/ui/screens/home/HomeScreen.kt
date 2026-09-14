@@ -364,6 +364,7 @@ fun HomeScreen(
 
             if (showMassUploadDialog) {
                 MassUploadDialog(
+                    categories = categories,
                     onDismissRequest = { showMassUploadDialog = false }
                 )
             }
