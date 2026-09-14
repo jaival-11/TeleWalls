@@ -244,6 +244,12 @@ fun ManageCategoriesBottomSheet(
     var newCategoryText by remember { mutableStateOf("") }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    val cleanNewCategory = newCategoryText.trim()
+    val isNewBlank = cleanNewCategory.isBlank()
+    val isNewAll = cleanNewCategory.equals("All", ignoreCase = true)
+    val isNewDuplicate = categories.any { it.equals(cleanNewCategory, ignoreCase = true) }
+    val isNewValid = !isNewBlank && !isNewAll && !isNewDuplicate
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -307,21 +313,38 @@ fun ManageCategoriesBottomSheet(
                     placeholder = { Text("New category name...", fontSize = 14.sp) },
                     singleLine = true,
                     shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    isError = !isNewValid && newCategoryText.isNotBlank()
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = {
-                        if (newCategoryText.isNotBlank()) {
-                            onAddCategory(newCategoryText.trim())
+                        if (isNewValid) {
+                            onAddCategory(cleanNewCategory)
                             newCategoryText = ""
                         }
                     },
-                    enabled = newCategoryText.isNotBlank(),
+                    enabled = isNewValid,
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Icon(imageVector = Icons.Filled.Add, contentDescription = "Add")
                 }
+            }
+
+            if (isNewDuplicate) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Category name already exists. Try another name.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            } else if (isNewAll) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Category name cannot be \"All\"",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -545,7 +568,7 @@ fun ManageCategoriesBottomSheet(
                     if (isDuplicate) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Category name already exists. Try another name. Try another name",
+                            text = "Category name already exists. Try another name.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )

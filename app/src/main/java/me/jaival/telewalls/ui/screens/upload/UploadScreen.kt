@@ -486,6 +486,12 @@ fun UploadScreen(
 
     // Add New Category Dialog
     if (showAddCategoryDialog) {
+        val cleanInput = newCategoryInput.trim()
+        val isBlank = cleanInput.isBlank()
+        val isAll = cleanInput.equals("All", ignoreCase = true)
+        val isDuplicate = categories.any { it.equals(cleanInput, ignoreCase = true) }
+        val isValid = !isBlank && !isAll && !isDuplicate
+
         AlertDialog(
             onDismissRequest = {
                 showAddCategoryDialog = false
@@ -512,6 +518,7 @@ fun UploadScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
+                        isError = !isValid && newCategoryInput.isNotBlank(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -523,15 +530,29 @@ fun UploadScreen(
                             unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
+                    if (isDuplicate) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Category name already exists. Try another name.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    } else if (isAll) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Category name cannot be \"All\"",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        val trimmed = newCategoryInput.trim()
-                        if (trimmed.isNotBlank()) {
+                        if (isValid) {
                             viewModel.createCategory(
-                                categoryName = trimmed,
+                                categoryName = cleanInput,
                                 onCategoryCreated = { created ->
                                     selectedCategory = created
                                 },
@@ -543,7 +564,7 @@ fun UploadScreen(
                             newCategoryInput = ""
                         }
                     },
-                    enabled = newCategoryInput.isNotBlank()
+                    enabled = isValid
                 ) {
                     Text("Create")
                 }
