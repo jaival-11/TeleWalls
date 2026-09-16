@@ -184,4 +184,32 @@ class HomeViewModel @Inject constructor(
             wallpaperRepository.loadThumbnailOnDemand(wallpaper)
         }
     }
+
+    fun deleteWallpapers(wallpapers: List<Wallpaper>, onComplete: (Int) -> Unit) {
+        viewModelScope.launch {
+            val deletedCount = wallpaperRepository.deleteWallpapers(wallpapers)
+            onComplete(deletedCount)
+        }
+    }
+
+    fun batchUpdateWallpapers(
+        wallpapers: List<Wallpaper>,
+        author: String?,
+        category: String?,
+        tags: List<String>?,
+        wallpaperType: String?,
+        onComplete: (Int) -> Unit
+    ) {
+        viewModelScope.launch {
+            val updatedCount = wallpaperRepository.batchUpdateWallpaperMetadata(
+                wallpapers = wallpapers,
+                author = author,
+                category = category,
+                tags = tags,
+                wallpaperType = wallpaperType
+            )
+            onComplete(updatedCount)
+        }
+    }
 }
+

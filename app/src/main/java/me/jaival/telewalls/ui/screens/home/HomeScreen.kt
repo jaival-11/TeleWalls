@@ -65,9 +65,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.jaival.telewalls.ui.components.AnimatedWallpaperCard
+import me.jaival.telewalls.ui.components.BatchSelectionHeader
 import me.jaival.telewalls.ui.components.CategoryChips
 import me.jaival.telewalls.ui.components.ExpandableUploadFab
 import me.jaival.telewalls.ui.components.ShimmerCard
+import me.jaival.telewalls.ui.dialogs.BatchEditDialog
 import me.jaival.telewalls.ui.dialogs.MassUploadDialog
 import me.jaival.telewalls.viewmodel.HomeViewModel
 
@@ -90,8 +92,16 @@ fun HomeScreen(
     val primaryColor = MaterialTheme.colorScheme.primary
 
     var showMassUploadDialog by remember { mutableStateOf(false) }
+    var selectedWallpaperIds by remember { mutableStateOf(setOf<String>()) }
+    var showBatchEditDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
+    val isSelectionMode = selectedWallpaperIds.isNotEmpty()
 
-    BackHandler(enabled = searchQuery.isNotEmpty() || onBackClick != null) {
+    BackHandler(enabled = isSelectionMode || searchQuery.isNotEmpty() || onBackClick != null) {
+        if (isSelectionMode) {
+            selectedWallpaperIds = emptySet()
+            return@BackHandler
+        }
         if (searchQuery.isNotEmpty()) {
             onSearchQueryChange("")
             viewModel.updateSearchQuery("")
@@ -170,130 +180,151 @@ fun HomeScreen(
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // Header bar
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "TeleWalls",
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                color = MaterialTheme.colorScheme.onBackground,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 28.sp
-                            )
-                        )
-                        Text(
-                            text = "Personal Wallpaper Gallery",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = primaryColor,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        )
-                    }
-
-                    // Vault Sync Status Indicator
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceContainer)
-                            .clickable { viewModel.reindexChannel() }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (isRefreshing) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(14.dp),
-                                    color = primaryColor,
-                                    strokeWidth = 2.dp
-                                )
+                if (isSelectionMode) {
+                    BatchSelectionHeader(
+                        selectedCount = selectedWallpaperIds.size,
+                        totalCount = wallpapers.size,
+                        onClearSelection = { selectedWallpaperIds = emptySet() },
+                        onSelectAllToggle = {
+                            if (selectedWallpaperIds.size == wallpapers.size) {
+                                selectedWallpaperIds = emptySet()
                             } else {
-                                Icon(
-                                    imageVector = Icons.Filled.CloudDone,
-                                    contentDescription = "Reindex from channel",
-                                    tint = primaryColor,
-                                    modifier = Modifier.size(16.dp)
-                                )
+                                selectedWallpaperIds = wallpapers.map { it.id }.toSet()
                             }
-                            Spacer(modifier = Modifier.width(6.dp))
+                        },
+                        onEditClick = { showBatchEditDialog = true },
+                        onDeleteClick = { showDeleteConfirmationDialog = true },
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                } else {
+                    // Header bar
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
                             Text(
-                                text = if (isRefreshing) "Reindexing..." else "Telegram",
+                                text = "TeleWalls",
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 28.sp
+                                )
+                            )
+                            Text(
+                                text = "Personal Wallpaper Gallery",
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontSize = 11.sp
+                                    color = primaryColor,
+                                    fontWeight = FontWeight.SemiBold
                                 )
                             )
                         }
-                    }
-                }
 
-                // Search Bar
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = {
-                        onSearchQueryChange(it)
-                        viewModel.updateSearchQuery(it)
-                    },
-                    placeholder = {
-                        Text(
-                            text = "Search title, tags, color (#FF007A, red)...",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            fontSize = 14.sp
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.Search,
-                            contentDescription = "Search",
-                            tint = primaryColor
-                        )
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = {
-                                onSearchQueryChange("")
-                                viewModel.updateSearchQuery("")
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Filled.Clear,
-                                    contentDescription = "Clear search",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        // Vault Sync Status Indicator
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceContainer)
+                                .clickable { viewModel.reindexChannel() }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (isRefreshing) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(14.dp),
+                                        color = primaryColor,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Filled.CloudDone,
+                                        contentDescription = "Reindex from channel",
+                                        tint = primaryColor,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = if (isRefreshing) "Reindexing..." else "Telegram",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontSize = 11.sp
+                                    )
                                 )
                             }
                         }
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(24.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        focusedBorderColor = primaryColor,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                )
+                    }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                    // Search Bar
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = {
+                            onSearchQueryChange(it)
+                            viewModel.updateSearchQuery(it)
+                        },
+                        placeholder = {
+                            Text(
+                                text = "Search title, tags, color (#FF007A, red)...",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                fontSize = 14.sp
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Filled.Search,
+                                contentDescription = "Search",
+                                tint = primaryColor
+                            )
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = {
+                                    onSearchQueryChange("")
+                                    viewModel.updateSearchQuery("")
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Clear,
+                                        contentDescription = "Clear search",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(24.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            focusedBorderColor = primaryColor,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                    )
 
-                // Category Chips Row
-                CategoryChips(
-                    selectedCategories = selectedCategories,
-                    onCategorySelected = { viewModel.selectCategory(it) },
-                    categories = categories
-                )
+                    // Category Chips Bar
+                    val availableCategories = remember(categories) {
+                        categories.filter { !it.equals("Uncategorized", ignoreCase = true) && !it.equals("uncategorised", ignoreCase = true) }
+                    }
+                    CategoryChips(
+                        selectedCategory = if (selectedCategories.isEmpty() || selectedCategories.any { it.equals("All", ignoreCase = true) }) "All" else selectedCategories.first(),
+                        selectedCategories = selectedCategories,
+                        onCategorySelected = { viewModel.selectCategory(it) },
+                        categories = availableCategories,
+                        modifier = Modifier.padding(vertical = 6.dp)
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Wallpaper Staggered Grid
-                if (wallpapers.isEmpty() && isRefreshing) {
+                if (isRefreshing && wallpapers.isEmpty()) {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
                         state = gridState,
@@ -339,13 +370,25 @@ fun HomeScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         itemsIndexed(wallpapers, key = { _, item -> item.id }) { index, wallpaper ->
+                            val isSelected = wallpaper.id in selectedWallpaperIds
                             AnimatedWallpaperCard(
                                 wallpaper = wallpaper,
                                 index = index,
-                                onClick = { onWallpaperClick(wallpaper.id) },
+                                onClick = {
+                                    if (isSelectionMode) {
+                                        selectedWallpaperIds = if (isSelected) selectedWallpaperIds - wallpaper.id else selectedWallpaperIds + wallpaper.id
+                                    } else {
+                                        onWallpaperClick(wallpaper.id)
+                                    }
+                                },
                                 onFavoriteToggle = { viewModel.toggleFavorite(wallpaper.id) },
                                 onLoadThumbnail = { viewModel.loadThumbnailOnDemand(it) },
-                                animateBounce = isInitialTabOpen
+                                animateBounce = isInitialTabOpen,
+                                isSelected = isSelected,
+                                isSelectionMode = isSelectionMode,
+                                onLongClick = {
+                                    selectedWallpaperIds = if (isSelected) selectedWallpaperIds - wallpaper.id else selectedWallpaperIds + wallpaper.id
+                                }
                             )
                         }
                     }
@@ -353,19 +396,92 @@ fun HomeScreen(
             }
 
             // Expandable Floating Action Button with bounce animations and speed dial options
-            ExpandableUploadFab(
-                isVisible = isFabVisible,
-                onSingleUploadClick = onSingleUploadClick,
-                onMultiUploadClick = {
-                    onMultiUploadClick()
-                    showMassUploadDialog = true
-                }
-            )
+            if (!isSelectionMode) {
+                ExpandableUploadFab(
+                    isVisible = isFabVisible,
+                    onSingleUploadClick = onSingleUploadClick,
+                    onMultiUploadClick = {
+                        onMultiUploadClick()
+                        showMassUploadDialog = true
+                    }
+                )
+            }
 
             if (showMassUploadDialog) {
                 MassUploadDialog(
                     categories = categories,
                     onDismissRequest = { showMassUploadDialog = false }
+                )
+            }
+
+            if (showBatchEditDialog) {
+                BatchEditDialog(
+                    selectedCount = selectedWallpaperIds.size,
+                    categories = categories,
+                    onDismissRequest = { showBatchEditDialog = false },
+                    onSave = { author, wallpaperType, selectedCategory, tags ->
+                        showBatchEditDialog = false
+                        val selectedWallpapers = wallpapers.filter { it.id in selectedWallpaperIds }
+                        val tagsList = tags.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                        viewModel.batchUpdateWallpapers(
+                            wallpapers = selectedWallpapers,
+                            author = author,
+                            category = selectedCategory,
+                            tags = if (tagsList.isNotEmpty()) tagsList else null,
+                            wallpaperType = wallpaperType,
+                            onComplete = { count ->
+                                Toast.makeText(context, "Updated $count wallpaper(s)", Toast.LENGTH_SHORT).show()
+                                selectedWallpaperIds = emptySet()
+                            }
+                        )
+                    }
+                )
+            }
+
+            if (showDeleteConfirmationDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteConfirmationDialog = false },
+                    title = {
+                        Text(
+                            text = "Delete ${selectedWallpaperIds.size} Wallpaper(s)?",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "Are you sure you want to delete the selected ${selectedWallpaperIds.size} wallpaper(s)? This action cannot be undone.",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showDeleteConfirmationDialog = false
+                                val selectedWallpapers = wallpapers.filter { it.id in selectedWallpaperIds }
+                                viewModel.deleteWallpapers(
+                                    wallpapers = selectedWallpapers,
+                                    onComplete = { count ->
+                                        Toast.makeText(context, "Deleted $count wallpaper(s)", Toast.LENGTH_SHORT).show()
+                                        selectedWallpaperIds = emptySet()
+                                    }
+                                )
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Text("Delete", fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = { showDeleteConfirmationDialog = false }
+                        ) {
+                            Text("Cancel")
+                        }
+                    },
+                    shape = RoundedCornerShape(24.dp)
                 )
             }
         }

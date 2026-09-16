@@ -27,7 +27,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.LocalContext
 import me.jaival.telewalls.ui.components.AnimatedWallpaperCard
+import me.jaival.telewalls.ui.components.BatchSelectionHeader
+import me.jaival.telewalls.ui.dialogs.BatchEditDialog
 import me.jaival.telewalls.viewmodel.HomeViewModel
 
 @Composable
@@ -36,9 +45,20 @@ fun FavoritesScreen(
     onWallpaperClick: (String) -> Unit,
     scrollToTopTrigger: Int = 0
 ) {
+    val context = LocalContext.current
     val favorites by viewModel.favorites.collectAsState()
+    val categories by viewModel.categories.collectAsState()
     val gridState = rememberLazyGridState()
     var isInitialTabOpen by remember { mutableStateOf(true) }
+
+    var selectedWallpaperIds by remember { mutableStateOf(setOf<String>()) }
+    var showBatchEditDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
+    val isSelectionMode = selectedWallpaperIds.isNotEmpty()
+
+    BackHandler(enabled = isSelectionMode) {
+        selectedWallpaperIds = emptySet()
+    }
 
     LaunchedEffect(scrollToTopTrigger) {
         if (scrollToTopTrigger > 0) {
@@ -55,70 +75,176 @@ fun FavoritesScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
-                Text(
-                    text = "Favorites",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 28.sp
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (isSelectionMode) {
+                    BatchSelectionHeader(
+                        selectedCount = selectedWallpaperIds.size,
+                        totalCount = favorites.size,
+                        onClearSelection = { selectedWallpaperIds = emptySet() },
+                        onSelectAllToggle = {
+                            if (selectedWallpaperIds.size == favorites.size) {
+                                selectedWallpaperIds = emptySet()
+                            } else {
+                                selectedWallpaperIds = favorites.map { it.id }.toSet()
+                            }
+                        },
+                        onEditClick = { showBatchEditDialog = true },
+                        onDeleteClick = { showDeleteConfirmationDialog = true },
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
-                )
-                Text(
-                    text = "${favorites.size} Wallpapers saved",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                } else {
+                    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+                        Text(
+                            text = "Favorites",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 28.sp
+                            )
+                        )
+                        Text(
+                            text = "${favorites.size} Wallpapers saved",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (favorites.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "No Favorites Yet",
+                                style = MaterialTheme.typography.titleLarge.copy(color = MaterialTheme.colorScheme.onBackground)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Tap the heart icon on any wallpaper to add it here!",
+                                style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            )
+                        }
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        state = gridState,
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        itemsIndexed(favorites, key = { _, item -> item.id }) { index, wallpaper ->
+                            val isSelected = wallpaper.id in selectedWallpaperIds
+                            AnimatedWallpaperCard(
+                                wallpaper = wallpaper,
+                                index = index,
+                                onClick = {
+                                    if (isSelectionMode) {
+                                        selectedWallpaperIds = if (isSelected) selectedWallpaperIds - wallpaper.id else selectedWallpaperIds + wallpaper.id
+                                    } else {
+                                        onWallpaperClick(wallpaper.id)
+                                    }
+                                },
+                                onFavoriteToggle = { viewModel.toggleFavorite(wallpaper.id) },
+                                onLoadThumbnail = { viewModel.loadThumbnailOnDemand(it) },
+                                animateBounce = isInitialTabOpen,
+                                isSelected = isSelected,
+                                isSelectionMode = isSelectionMode,
+                                onLongClick = {
+                                    selectedWallpaperIds = if (isSelected) selectedWallpaperIds - wallpaper.id else selectedWallpaperIds + wallpaper.id
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (showBatchEditDialog) {
+                BatchEditDialog(
+                    selectedCount = selectedWallpaperIds.size,
+                    categories = categories,
+                    onDismissRequest = { showBatchEditDialog = false },
+                    onSave = { author, wallpaperType, selectedCategory, tags ->
+                        showBatchEditDialog = false
+                        val selectedWallpapers = favorites.filter { it.id in selectedWallpaperIds }
+                        val tagsList = tags.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                        viewModel.batchUpdateWallpapers(
+                            wallpapers = selectedWallpapers,
+                            author = author,
+                            category = selectedCategory,
+                            tags = if (tagsList.isNotEmpty()) tagsList else null,
+                            wallpaperType = wallpaperType,
+                            onComplete = { count ->
+                                Toast.makeText(context, "Updated $count wallpaper(s)", Toast.LENGTH_SHORT).show()
+                                selectedWallpaperIds = emptySet()
+                            }
+                        )
+                    }
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (favorites.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (showDeleteConfirmationDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteConfirmationDialog = false },
+                    title = {
                         Text(
-                            text = "No Favorites Yet",
-                            style = MaterialTheme.typography.titleLarge.copy(color = MaterialTheme.colorScheme.onBackground)
+                            text = "Delete ${selectedWallpaperIds.size} Wallpaper(s)?",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
+                    },
+                    text = {
                         Text(
-                            text = "Tap the heart icon on any wallpaper to add it here!",
-                            style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            text = "Are you sure you want to delete the selected ${selectedWallpaperIds.size} wallpaper(s)? This action cannot be undone.",
+                            style = MaterialTheme.typography.bodyMedium
                         )
-                    }
-                }
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    state = gridState,
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    itemsIndexed(favorites, key = { _, item -> item.id }) { index, wallpaper ->
-                        AnimatedWallpaperCard(
-                            wallpaper = wallpaper,
-                            index = index,
-                            onClick = { onWallpaperClick(wallpaper.id) },
-                            onFavoriteToggle = { viewModel.toggleFavorite(wallpaper.id) },
-                            onLoadThumbnail = { viewModel.loadThumbnailOnDemand(it) },
-                            animateBounce = isInitialTabOpen
-                        )
-                    }
-                }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showDeleteConfirmationDialog = false
+                                val selectedWallpapers = favorites.filter { it.id in selectedWallpaperIds }
+                                viewModel.deleteWallpapers(
+                                    wallpapers = selectedWallpapers,
+                                    onComplete = { count ->
+                                        Toast.makeText(context, "Deleted $count wallpaper(s)", Toast.LENGTH_SHORT).show()
+                                        selectedWallpaperIds = emptySet()
+                                    }
+                                )
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Text("Delete", fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = { showDeleteConfirmationDialog = false }
+                        ) {
+                            Text("Cancel")
+                        }
+                    },
+                    shape = RoundedCornerShape(24.dp)
+                )
             }
         }
     }
 }
+
 
 

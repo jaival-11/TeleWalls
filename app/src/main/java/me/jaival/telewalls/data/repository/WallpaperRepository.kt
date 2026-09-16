@@ -581,6 +581,52 @@ class WallpaperRepository @Inject constructor(
         true
     }
 
+    suspend fun deleteWallpapers(wallpapers: List<Wallpaper>): Int = withContext(Dispatchers.IO) {
+        var deletedCount = 0
+        wallpapers.forEach { wallpaper ->
+            val success = deleteWallpaper(wallpaper)
+            if (success) {
+                deletedCount++
+            }
+        }
+        deletedCount
+    }
+
+    suspend fun batchUpdateWallpaperMetadata(
+        wallpapers: List<Wallpaper>,
+        author: String? = null,
+        category: String? = null,
+        tags: List<String>? = null,
+        wallpaperType: String? = null
+    ): Int = withContext(Dispatchers.IO) {
+        var updatedCount = 0
+        wallpapers.forEach { wallpaper ->
+            val newAuthor = if (!author.isNullOrBlank()) author.trim() else wallpaper.author
+            val newCategory = if (!category.isNullOrBlank()) category.trim() else wallpaper.category
+            val newTags = if (tags != null && tags.isNotEmpty()) tags else wallpaper.tags
+            val newType = if (!wallpaperType.isNullOrBlank() && !wallpaperType.equals("Keep original", ignoreCase = true)) {
+                wallpaperType.trim()
+            } else {
+                wallpaper.wallpaperType
+            }
+
+            val success = updateWallpaperMetadata(
+                wallpaper = wallpaper,
+                title = wallpaper.title,
+                author = newAuthor,
+                category = newCategory,
+                tags = newTags,
+                description = wallpaper.description,
+                wallpaperType = newType
+            )
+            if (success) {
+                updatedCount++
+            }
+        }
+        updatedCount
+    }
+
+
     suspend fun downloadWallpaperFile(fileId: String, fileName: String): String? = withContext(Dispatchers.IO) {
         val safeName = if (fileName.isNotBlank()) "${fileId}_$fileName" else "wallpaper_$fileId.jpg"
         val destFile = File(context.cacheDir, safeName)

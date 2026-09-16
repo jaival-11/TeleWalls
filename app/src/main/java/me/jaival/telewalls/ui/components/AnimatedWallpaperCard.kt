@@ -24,39 +24,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import me.jaival.telewalls.core.util.ImageUtils
-import me.jaival.telewalls.data.repository.Wallpaper
-import me.jaival.telewalls.ui.theme.LocalReduceAnimations
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AnimatedWallpaperCard(
     wallpaper: Wallpaper,
@@ -65,7 +40,10 @@ fun AnimatedWallpaperCard(
     onFavoriteToggle: () -> Unit,
     onLoadThumbnail: (Wallpaper) -> Unit = {},
     modifier: Modifier = Modifier,
-    animateBounce: Boolean = true
+    animateBounce: Boolean = true,
+    isSelected: Boolean = false,
+    isSelectionMode: Boolean = false,
+    onLongClick: (() -> Unit)? = null
 ) {
     val reduceAnimations = LocalReduceAnimations.current
 
@@ -127,19 +105,26 @@ fun AnimatedWallpaperCard(
                 alpha = animatedAlpha
             }
             .clip(RoundedCornerShape(24.dp))
-            .clickable(
+            .then(
+                if (isSelected) {
+                    Modifier.border(3.dp, primaryColor, RoundedCornerShape(24.dp))
+                } else Modifier
+            )
+            .combinedClickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) {
-                if (!reduceAnimations) {
-                    coroutineScope.launch {
-                        isPressed = true
-                        delay(80)
-                        isPressed = false
+                indication = null,
+                onClick = {
+                    if (!reduceAnimations) {
+                        coroutineScope.launch {
+                            isPressed = true
+                            delay(80)
+                            isPressed = false
+                        }
                     }
-                }
-                onClick()
-            }
+                    onClick()
+                },
+                onLongClick = onLongClick
+            )
     ) {
         if (imageModel != null) {
             AsyncImage(
@@ -159,6 +144,18 @@ fun AnimatedWallpaperCard(
                     .fillMaxWidth()
                     .aspectRatio(0.65f),
                 aspectRatio = 0.65f
+            )
+        }
+
+        // Selection overlay background
+        if (isSelectionMode || isSelected) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(0.65f)
+                    .background(
+                        if (isSelected) primaryColor.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.15f)
+                    )
             )
         }
 
@@ -194,22 +191,48 @@ fun AnimatedWallpaperCard(
             )
         }
 
-        // Top favorite heart icon button
-        IconButton(
-            onClick = onFavoriteToggle,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(4.dp)
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f))
-        ) {
-            Icon(
-                imageVector = if (wallpaper.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                contentDescription = "Favorite",
-                tint = if (wallpaper.isFavorite) tertiaryColor else Color.White,
-                modifier = Modifier.size(20.dp)
-            )
+        // Top right: Selection checkmark badge or Favorite heart icon
+        if (isSelectionMode || isSelected) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(if (isSelected) primaryColor else Color.Black.copy(alpha = 0.5f))
+                    .border(
+                        1.5.dp,
+                        if (isSelected) Color.White else Color.White.copy(alpha = 0.7f),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isSelected) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Selected",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        } else {
+            IconButton(
+                onClick = onFavoriteToggle,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f))
+            ) {
+                Icon(
+                    imageVector = if (wallpaper.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                    contentDescription = "Favorite",
+                    tint = if (wallpaper.isFavorite) tertiaryColor else Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
 
         // Bottom text info
