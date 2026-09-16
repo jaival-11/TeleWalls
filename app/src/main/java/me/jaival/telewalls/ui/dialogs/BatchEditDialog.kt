@@ -45,6 +45,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
+import me.jaival.telewalls.ui.components.CategoryChips
 
 @Composable
 fun BatchEditDialog(

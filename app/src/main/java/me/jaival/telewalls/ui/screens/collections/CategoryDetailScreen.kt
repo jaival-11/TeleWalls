@@ -41,6 +41,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.shape.RoundedCornerShape
+import me.jaival.telewalls.data.repository.Wallpaper
 import me.jaival.telewalls.ui.components.AnimatedWallpaperCard
 import me.jaival.telewalls.ui.components.BatchSelectionHeader
 import me.jaival.telewalls.ui.dialogs.BatchEditDialog

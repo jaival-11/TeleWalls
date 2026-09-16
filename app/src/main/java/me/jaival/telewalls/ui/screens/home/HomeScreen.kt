@@ -64,6 +64,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TextButton
+import me.jaival.telewalls.data.repository.Wallpaper
 import me.jaival.telewalls.ui.components.AnimatedWallpaperCard
 import me.jaival.telewalls.ui.components.BatchSelectionHeader
 import me.jaival.telewalls.ui.components.CategoryChips
@@ -313,7 +318,6 @@ fun HomeScreen(
                         categories.filter { !it.equals("Uncategorized", ignoreCase = true) && !it.equals("uncategorised", ignoreCase = true) }
                     }
                     CategoryChips(
-                        selectedCategory = if (selectedCategories.isEmpty() || selectedCategories.any { it.equals("All", ignoreCase = true) }) "All" else selectedCategories.first(),
                         selectedCategories = selectedCategories,
                         onCategorySelected = { viewModel.selectCategory(it) },
                         categories = availableCategories,
