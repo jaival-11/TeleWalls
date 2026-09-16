@@ -1,6 +1,7 @@
 package me.jaival.telewalls.data.repository
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -525,6 +526,45 @@ class WallpaperRepository @Inject constructor(
         }
     }
 
+    fun autoDetectWallpaperType(wallpaper: Wallpaper): String {
+        if (wallpaper.resolution.isNotBlank()) {
+            val resParts = wallpaper.resolution.lowercase().split("x", "*", ":").map { it.trim() }
+            if (resParts.size == 2) {
+                val w = resParts[0].toIntOrNull()
+                val h = resParts[1].toIntOrNull()
+                if (w != null && h != null && w > 0 && h > 0) {
+                    return if (w >= h) "Desktop/Tablet" else "Phone"
+                }
+            }
+        }
+
+        if (wallpaper.aspectRatio.isNotBlank()) {
+            val ratioParts = wallpaper.aspectRatio.lowercase().split(":", "/", "x").map { it.trim() }
+            if (ratioParts.size == 2) {
+                val w = ratioParts[0].toDoubleOrNull()
+                val h = ratioParts[1].toDoubleOrNull()
+                if (w != null && h != null && w > 0 && h > 0) {
+                    return if (w >= h) "Desktop/Tablet" else "Phone"
+                }
+            }
+        }
+
+        val imagePath = wallpaper.localPath ?: wallpaper.thumbnailPath
+        if (!imagePath.isNullOrBlank() && !imagePath.startsWith("http") && File(imagePath).exists()) {
+            try {
+                val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeFile(imagePath, options)
+                if (options.outWidth > 0 && options.outHeight > 0) {
+                    return if (options.outWidth >= options.outHeight) "Desktop/Tablet" else "Phone"
+                }
+            } catch (e: Exception) {
+                // Ignore decoding exception and fallback
+            }
+        }
+
+        return "Phone"
+    }
+
     suspend fun updateWallpaperMetadata(
         wallpaper: Wallpaper,
         title: String,
@@ -539,7 +579,11 @@ class WallpaperRepository @Inject constructor(
         val cleanCategory = category.trim().ifBlank { "Uncategorized" }
         val cleanTags = tags.map { it.trim() }.filter { it.isNotBlank() }
         val tagsCsv = cleanTags.joinToString(",")
-        val cleanType = wallpaperType.ifBlank { "Phone" }
+        val cleanType = if (wallpaperType.equals("Auto-detect", ignoreCase = true)) {
+            autoDetectWallpaperType(wallpaper)
+        } else {
+            wallpaperType.ifBlank { "Phone" }
+        }
 
         val updatedMetadata = WallpaperMetadata(
             title = cleanTitle,
@@ -605,7 +649,11 @@ class WallpaperRepository @Inject constructor(
             val newCategory = if (!category.isNullOrBlank()) category.trim() else wallpaper.category
             val newTags = if (tags != null && tags.isNotEmpty()) tags else wallpaper.tags
             val newType = if (!wallpaperType.isNullOrBlank() && !wallpaperType.equals("Keep original", ignoreCase = true)) {
-                wallpaperType.trim()
+                if (wallpaperType.equals("Auto-detect", ignoreCase = true)) {
+                    autoDetectWallpaperType(wallpaper)
+                } else {
+                    wallpaperType.trim()
+                }
             } else {
                 wallpaper.wallpaperType
             }

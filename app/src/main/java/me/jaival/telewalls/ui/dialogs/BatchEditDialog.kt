@@ -210,8 +210,12 @@ fun BatchEditDialog(
                 )
                 CategoryChips(
                     selectedCategory = selectedCategory,
-                    onCategorySelected = {
-                        selectedCategory = if (selectedCategory.equals(it, ignoreCase = true)) "" else it
+                    onCategorySelected = { category ->
+                        if (category.equals("Uncategorized", ignoreCase = true) || category.equals("uncategorised", ignoreCase = true)) {
+                            selectedCategory = "Uncategorized"
+                        } else {
+                            selectedCategory = if (selectedCategory.equals(category, ignoreCase = true)) "Uncategorized" else category
+                        }
                     },
                     categories = availableCategories,
                     modifier = Modifier.padding(bottom = 8.dp)
