@@ -58,7 +58,7 @@ fun BatchEditDialog(
 
     var author by remember { mutableStateOf("") }
     var wallpaperType by remember { mutableStateOf("Keep original") }
-    var selectedCategory by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("Uncategorized") }
     var tags by remember { mutableStateOf("") }
     var showConfirmationDialog by remember { mutableStateOf(false) }
 
@@ -112,7 +112,10 @@ fun BatchEditDialog(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "Add common details for all $selectedCount selected wallpapers.",
+                    text = if (selectedCount == 1)
+                        "Add common details for the selected wallpaper."
+                    else
+                        "Add common details for all $selectedCount selected wallpapers.",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -187,31 +190,32 @@ fun BatchEditDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Category Chips
+                // Category Chips (Uncategorized placed at the end and selected by default)
                 val availableCategories = remember(categories) {
-                    categories.filter {
+                    val filtered = categories.filter {
                         !it.equals("All", ignoreCase = true) &&
                         !it.equals("Uncategorized", ignoreCase = true) &&
                         !it.equals("uncategorised", ignoreCase = true)
-                    }
+                    }.toMutableList()
+                    filtered.add("Uncategorized")
+                    filtered
                 }
-                if (availableCategories.isNotEmpty()) {
-                    Text(
-                        text = "Category",
-                        style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 4.dp)
-                    )
-                    CategoryChips(
-                        selectedCategory = selectedCategory,
-                        onCategorySelected = {
-                            selectedCategory = if (selectedCategory.equals(it, ignoreCase = true)) "" else it
-                        },
-                        categories = availableCategories,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                }
+
+                Text(
+                    text = "Category",
+                    style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 4.dp)
+                )
+                CategoryChips(
+                    selectedCategory = selectedCategory,
+                    onCategorySelected = {
+                        selectedCategory = if (selectedCategory.equals(it, ignoreCase = true)) "" else it
+                    },
+                    categories = availableCategories,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -271,13 +275,16 @@ fun BatchEditDialog(
             onDismissRequest = { showConfirmationDialog = false },
             title = {
                 Text(
-                    text = "Update $selectedCount Wallpaper(s)?",
+                    text = if (selectedCount == 1) "Update Wallpaper?" else "Update $selectedCount Wallpapers?",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                 )
             },
             text = {
                 Text(
-                    text = "Are you sure you want to update details for the selected $selectedCount wallpaper(s)?",
+                    text = if (selectedCount == 1)
+                        "Are you sure you want to update details for the selected wallpaper?"
+                    else
+                        "Are you sure you want to update details for the selected $selectedCount wallpapers?",
                     style = MaterialTheme.typography.bodyMedium
                 )
             },

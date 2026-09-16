@@ -112,7 +112,7 @@ fun FavoritesScreen(
                             )
                         )
                         Text(
-                            text = "${favorites.size} Wallpapers saved",
+                            text = if (favorites.size == 1) "1 Wallpaper saved" else "${favorites.size} Wallpapers saved",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.SemiBold
@@ -190,7 +190,8 @@ fun FavoritesScreen(
                             tags = if (tagsList.isNotEmpty()) tagsList else null,
                             wallpaperType = wallpaperType,
                             onComplete = { count ->
-                                Toast.makeText(context, "Updated $count wallpaper(s)", Toast.LENGTH_SHORT).show()
+                                val msg = if (count == 1) "Updated 1 wallpaper" else "Updated $count wallpapers"
+                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                 selectedWallpaperIds = emptySet()
                             }
                         )
@@ -199,17 +200,21 @@ fun FavoritesScreen(
             }
 
             if (showDeleteConfirmationDialog) {
+                val count = selectedWallpaperIds.size
                 AlertDialog(
                     onDismissRequest = { showDeleteConfirmationDialog = false },
                     title = {
                         Text(
-                            text = "Delete ${selectedWallpaperIds.size} Wallpaper(s)?",
+                            text = if (count == 1) "Delete Wallpaper?" else "Delete $count Wallpapers?",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                         )
                     },
                     text = {
                         Text(
-                            text = "Are you sure you want to delete the selected ${selectedWallpaperIds.size} wallpaper(s)? This action cannot be undone.",
+                            text = if (count == 1)
+                                "Are you sure you want to delete the selected wallpaper? This action cannot be undone."
+                            else
+                                "Are you sure you want to delete the selected $count wallpapers? This action cannot be undone.",
                             style = MaterialTheme.typography.bodyMedium
                         )
                     },
@@ -221,7 +226,8 @@ fun FavoritesScreen(
                                 viewModel.deleteWallpapers(
                                     wallpapers = selectedWallpapers,
                                     onComplete = { count ->
-                                        Toast.makeText(context, "Deleted $count wallpaper(s)", Toast.LENGTH_SHORT).show()
+                                        val msg = if (count == 1) "Deleted 1 wallpaper" else "Deleted $count wallpapers"
+                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                         selectedWallpaperIds = emptySet()
                                     }
                                 )
