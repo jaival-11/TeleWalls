@@ -4,18 +4,20 @@ on:
   push:
     branches: [ "main", "master" ]
     paths-ignore:
-      - "**.md"
-      - "**.yml"
+      - '**.md'
+      - '**.yml'
       - LICENSE
-      - assets/
-      - "*.jpg"
+      - 'assets/**'
+      - '**.jpg'
+      - '**.py'
   pull_request:
     branches: [ "main", "master" ]
     paths-ignore:
-      - "**.md"
-      - "**.yml"
+      - '**.md'
+      - '**.yml'
       - LICENSE
-      - assets/
+      - 'assets/**'
+      - '**.py'
   workflow_dispatch:
 
 permissions:

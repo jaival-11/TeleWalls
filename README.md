@@ -12,7 +12,7 @@
 
 <br/>
 
-[![Follow on X](https://img.shields.io/badge/techironic11-1da1f2?style=for-the-badge&labelColor=0d1117&logo=x)](https://x.com/techironic11)[![Telegram Channel](https://img.shields.io/badge/Telegram-Join-0088cc?style=for-the-badge&labelColor=0d1117&logo=telegram)](https://t.me/techironic)[![Email Support](https://img.shields.io/badge/Email-Contact_Me-db4437?style=for-the-badge&labelColor=0d1117&logo=gmail)](mailto:jaival7909@gmail.com)
+[![Follow on X](https://img.shields.io/badge/techironic11-1da1f2?style=for-the-badge&labelColor=0d1117&logo=x)](https://x.com/techironic11)[![Telegram Channel](https://img.shields.io/badge/Telegram-Join-0088cc?style=for-the-badge&labelColor=0d1117&logo=telegram)](https://t.me/theironiccircle)[![Email Support](https://img.shields.io/badge/Email-Contact_Me-db4437?style=for-the-badge&labelColor=0d1117&logo=gmail)](mailto:jaival7909@gmail.com)
 
 <br/>
 
