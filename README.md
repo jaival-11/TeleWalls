@@ -8,7 +8,8 @@
 
 <br/>
 
-[![Latest release](https://img.shields.io/github/v/release/jaival-11/TeleWalls?style=for-the-badge&labelColor=0d1117)](https://github.com/jaival-11/TeleWalls/releases/latest) [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=for-the-badge&labelColor=0d1117&color=EA7233)](https://github.com/jaival-11/TeleWalls/blob/main/LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/jaival-11/TeleWalls?style=for-the-badge&labelColor=0d1117)](https://github.com/jaival-11/TeleWalls/releases/latest) [![GitHub Downloads](https://img.shields.io/github/downloads/Jaival-11/TeleWalls/total?style=for-the-badge&logo=Github&labelColor=0d1117&color=02B362)](https://github.com/jaival-11/TeleWalls/releases/latest)
+ [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=for-the-badge&labelColor=0d1117&color=EA7233)](https://github.com/jaival-11/TeleWalls/blob/main/LICENSE)
 
 <br/>
 
@@ -284,3 +285,5 @@ Copyright © 2026 Jaival
 **Made with ❤️ by [Jaival](https://github.com/jaival-11)**
 
 </div>
+
+[![GitGem](https://gitgem.org/api/badge/github/jaival-11/TeleWalls.svg)](https://gitgem.org/github/jaival-11/TeleWalls)
