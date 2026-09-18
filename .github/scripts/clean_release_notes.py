@@ -4,7 +4,7 @@ import re
 
 def escape_telegram_html(text: str) -> str:
     text = re.sub(r"&(?!amp;|lt;|gt;|quot;|#\d+;|#x[0-9a-fA-F]+;)", "&amp;", text)
-    valid_tag_pattern = r"(</?(?:a|b|i|s|u|code|pre|blockquote)(?:\s+href=\"[^\"]*\")?\s*>)"
+    valid_tag_pattern = r"(</?(?:a|b|i|s|strike|del|u|ins|em|strong|code|pre|blockquote)(?:\s+href=\"[^\"]*\")?\s*>)"
     parts = re.split(valid_tag_pattern, text, flags=re.IGNORECASE)
     for i in range(len(parts)):
         if not re.match(valid_tag_pattern, parts[i], flags=re.IGNORECASE):
@@ -23,6 +23,7 @@ def clean_release_notes(raw: str) -> str:
 
     text = re.sub(r"\[(.*?)\]\((.*?)\)", convert_md_link, text)
     text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", text)
+    text = re.sub(r"~{1,2}([\s\S]+?)~{1,2}", r"<s>\1</s>", text)
 
     cleaned_lines = []
     in_quote = False
@@ -56,7 +57,7 @@ def clean_release_notes(raw: str) -> str:
         cleaned_lines.append("<blockquote>" + "\n".join(quote_buf) + "</blockquote>")
 
     text = "\n".join(cleaned_lines)
-    text = re.sub(r"^#+\s*", "", text, flags=re.MULTILINE)
+    text = re.sub(r"^#{1,6}\s*(.+)$", r"<b>\1</b>", text, flags=re.MULTILINE)
     text = re.sub(r"^\*\s+", "- ", text, flags=re.MULTILINE)
     text = re.sub(r"\n\s*\n\s*\n+", "\n\n", text).strip()
     text = escape_telegram_html(text)

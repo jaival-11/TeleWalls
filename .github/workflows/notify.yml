@@ -119,13 +119,13 @@ jobs:
             } >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Send to Telegram
+      - name: Send to Telegram via Bot API (Issues & PRs)
+        if: github.event_name == 'issues' || github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
         env:
           BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CHAT_ID: ${{ steps.info.outputs.final_chat_id }}
           TOPIC_ID: ${{ steps.info.outputs.final_topic_id }}
           TEXT: ${{ steps.info.outputs.full_message }}
-          APK_PATH: ${{ steps.info.outputs.apk_path }}
         run: |
           jq -n \
             --arg chat_id "$CHAT_ID" \
@@ -140,16 +140,41 @@ jobs:
 
           curl -X POST -H "Content-Type: application/json" -d @payload.json "https://api.telegram.org/bot$BOT_TOKEN/sendMessage"
 
-          if [[ -n "$APK_PATH" && -f "$APK_PATH" ]]; then
-            CURL_ARGS=(
-              -F "chat_id=$CHAT_ID"
-              -F "document=@$APK_PATH"
-            )
-            if [[ -n "$TOPIC_ID" ]]; then
-              CURL_ARGS+=(-F "message_thread_id=$TOPIC_ID")
-            fi
-            curl -X POST "${CURL_ARGS[@]}" "https://api.telegram.org/bot$BOT_TOKEN/sendDocument"
-          fi
+      - name: Set up Python
+        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+        run: |
+          pip install telethon
+
+      - name: Send to Telegram via MTProto (Releases)
+        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+        timeout-minutes: 5
+        env:
+          PYTHONUNBUFFERED: "1"
+          TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          TELEGRAM_API_KEY: ${{ secrets.TELEGRAM_API_KEY }}
+          API_ID: ${{ secrets.API_ID }}
+          API_KEY: ${{ secrets.API_KEY }}
+          TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+          API_HASH: ${{ secrets.API_HASH }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          TELEGRAM_STRING_SESSION: ${{ secrets.TELEGRAM_STRING_SESSION }}
+          TELEGRAM_SESSION: ${{ secrets.TELEGRAM_SESSION }}
+          STRING_SESSION: ${{ secrets.STRING_SESSION }}
+          CHAT_ID: ${{ steps.info.outputs.final_chat_id }}
+          TOPIC_ID: ${{ steps.info.outputs.final_topic_id }}
+          TEXT: ${{ steps.info.outputs.full_message }}
+          APK_PATH: ${{ steps.info.outputs.apk_path }}
+        run: |
+          python3 .github/scripts/send_telegram_mtproto.py
+
+
 
 
 
