@@ -1,5 +1,8 @@
 package me.jaival.telewalls.ui.screens.detail
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -56,6 +59,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import me.jaival.telewalls.ui.components.CategoryChips
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -75,6 +79,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
@@ -131,6 +139,37 @@ fun DetailScreen(
     var userHasInteracted by remember(wallpaperId) { mutableStateOf(false) }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
     var imageSize by remember { mutableStateOf(IntSize.Zero) }
+
+    val view = LocalView.current
+    DisposableEffect(controlsVisible) {
+        val window = (view.context as? Activity)?.window
+            ?: (view.context as? ContextWrapper)?.let {
+                var ctx: Context = it
+                while (ctx is ContextWrapper) {
+                    if (ctx is Activity) return@let ctx
+                    ctx = ctx.baseContext
+                }
+                null
+            }?.window
+
+        if (window != null) {
+            val insetsController = WindowCompat.getInsetsController(window, view)
+            insetsController.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            if (controlsVisible) {
+                insetsController.show(WindowInsetsCompat.Type.statusBars())
+            } else {
+                insetsController.hide(WindowInsetsCompat.Type.statusBars())
+            }
+        }
+
+        onDispose {
+            if (window != null) {
+                val insetsController = WindowCompat.getInsetsController(window, view)
+                insetsController.show(WindowInsetsCompat.Type.statusBars())
+            }
+        }
+    }
 
     // Intercept back action when controls are hidden to bring back controls
     BackHandler(enabled = !controlsVisible) {
