@@ -33,6 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Animation
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.BugReport
@@ -74,7 +75,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
@@ -366,7 +370,17 @@ fun SettingsScreen(
                             }
                         )
 
-                        // Option 8: Contact Developer
+                        // Option 8: Join us on Telegram
+                        SettingItemRow(
+                            icon = TelegramIcon,
+                            title = "Join us on Telegram",
+                            subtitle = "t.me/theironiccircle",
+                            onClick = {
+                                openUrl(context, "https://t.me/theironiccircle")
+                            }
+                        )
+
+                        // Option 9: Contact Developer
                         SettingItemRow(
                             icon = Icons.Outlined.Email,
                             title = "Contact Developer",
@@ -387,7 +401,7 @@ fun SettingsScreen(
                         // -- DIVIDER --
                         SettingsDivider()
 
-                        // Option 9: Privacy Policy
+                        // Option 10: Privacy Policy
                         SettingItemRow(
                             icon = Icons.Outlined.PrivacyTip,
                             title = "Privacy Policy",
@@ -397,7 +411,7 @@ fun SettingsScreen(
                             }
                         )
 
-                        // Option 10: App License
+                        // Option 11: App License
                         SettingItemRow(
                             icon = Icons.Outlined.Gavel,
                             title = "App License",
@@ -405,7 +419,7 @@ fun SettingsScreen(
                             onClick = { showAppLicenseDialog = true }
                         )
 
-                        // Option 11: Open source licenses (EXPLICITLY NO ICON)
+                        // Option 12: Open source licenses (EXPLICITLY NO ICON)
                         SettingItemRow(
                             icon = null,
                             title = "Open source licenses",
@@ -890,6 +904,35 @@ private fun AccountDetailsCard(
             )
         }
     }
+}
+
+// Official Telegram paper plane logo icon
+private val TelegramIcon: ImageVector by lazy {
+    ImageVector.Builder(
+        name = "Telegram",
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f
+    ).apply {
+        path(fill = SolidColor(Color.Black)) {
+            moveTo(9.78f, 18.65f)
+            lineTo(10.06f, 14.42f)
+            lineTo(17.74f, 7.5f)
+            curveTo(18.08f, 7.19f, 17.67f, 7.04f, 17.22f, 7.31f)
+            lineTo(7.74f, 13.3f)
+            lineTo(3.64f, 12.0f)
+            curveTo(2.76f, 11.75f, 2.75f, 11.14f, 3.84f, 10.7f)
+            lineTo(19.79f, 4.5f)
+            curveTo(20.52f, 4.22f, 21.2f, 4.7f, 20.94f, 5.95f)
+            lineTo(18.24f, 18.65f)
+            curveTo(18.04f, 19.65f, 17.44f, 19.85f, 16.64f, 19.35f)
+            lineTo(12.14f, 16.05f)
+            lineTo(9.97f, 18.15f)
+            curveTo(9.73f, 18.38f, 9.53f, 18.6f, 9.08f, 18.6f)
+            close()
+        }
+    }.build()
 }
 
 // Interactive Setting Item Row Component
